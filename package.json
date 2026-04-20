@@ -1,0 +1,11 @@
+{
+  "name": "brainly-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter frontend dev\" \"pnpm --filter backend start\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
