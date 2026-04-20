@@ -22,15 +22,22 @@ import {
   Mail,
   ArrowRight
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+
+  const handleGetStarted = ()=>{
+      router.push("/auth/signup");
+  }
+
   return (
     <div className="min-h-screen bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
       {/* TopNavBar */}
       <header className="fixed top-0 w-full z-50 bg-[#131313]/60 backdrop-blur-xl border-b border-outline-variant/10">
         <nav className="flex justify-between items-center px-10 md:px-20 py-3 max-w-[1200px] mx-auto">
           <div className="text-lg font-black tracking-tighter text-[#E5E2E1] flex items-center gap-2">
-            <Brain className="text-primary-container w-6 h-6" fill="currentColor" />
+            <Brain className="text-primary-container w-6 h-6" />
             Brainly AI
           </div>
           <div className="hidden md:flex items-center gap-6 font-headline font-medium tracking-tight text-xs">
@@ -40,7 +47,7 @@ export default function Home() {
             <a className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300" href="#">ABOUT</a>
           </div>
           <div>
-            <button className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg font-headline font-medium tracking-tight text-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer">
+            <button onClick={handleGetStarted} className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg font-headline font-medium tracking-tight text-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer">
               Get Started
             </button>
           </div>
