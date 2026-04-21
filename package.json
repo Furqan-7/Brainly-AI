@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"pnpm --filter frontend dev\" \"pnpm --filter backend start\""
+    "dev": "concurrently \"pnpm --filter frontend dev\" \"pnpm --filter backend dev\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
