@@ -1,7 +1,7 @@
 "use client";
-
 import { motion } from "motion/react";
 import { Brain, Search, MessageSquare, Database, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const features = [
   {
@@ -27,6 +27,7 @@ const stats = [
 ];
 
 export default function SignupPage() {
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-background text-on-surface font-body flex overflow-hidden">
 
@@ -122,6 +123,8 @@ export default function SignupPage() {
             <p className="text-on-surface-variant text-sm">Join the next generation of precision AI users.</p>
           </div>
 
+
+
           {/* Social Auth */}
           <div className="grid grid-cols-2 gap-4">
             {[
@@ -186,9 +189,9 @@ export default function SignupPage() {
           <div className="text-center">
             <p className="text-sm text-on-surface-variant">
               Already have an account?{" "}
-              <a href="#" className="text-primary font-semibold hover:underline transition-colors">
+              <button onClick={() => router.push("/auth/signin")} className="text-primary font-semibold hover:underline transition-colors">
                 Log in
-              </a>
+              </button>
             </p>
           </div>
         </div>

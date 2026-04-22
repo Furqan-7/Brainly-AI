@@ -23,7 +23,7 @@ const features = [
 ];
 
 export default function SignInPage() {
-    const router = useRouter();
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-background text-on-surface font-body flex overflow-hidden">
 
@@ -39,7 +39,7 @@ export default function SignInPage() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-2">
-          <Brain className="w-5 h-5 text-primary-container" fill="currentColor" />
+          <Brain className="w-5 h-5 text-primary-container" />
           <span className="text-lg font-black tracking-tighter text-on-surface">Brainly AI</span>
         </div>
 
@@ -193,18 +193,18 @@ export default function SignInPage() {
           <div className="text-center">
             <p className="text-xs text-on-surface-variant">
               Don't have an account?{" "}
-              <a onClick={()=>{
+              <button onClick={() => {
                 router.push("/auth/signup");
-              }} href="#" className="text-primary font-bold hover:underline underline-offset-4 transition-colors">
+              }} className="text-primary font-bold hover:underline underline-offset-4 transition-colors">
                 Sign up
-              </a>
+              </button>
             </p>
           </div>
 
           {/* Footer links */}
           <div className="pt-4 flex justify-center gap-6">
             {["Privacy Policy", "Terms", "Support"].map((l) => (
-              <a key={l} href="#" className="text-[10px] uppercase tracking-widest text-on-surface-variant/50 hover:text-on-surface transition-colors">
+              <a key={l} className="text-[10px] uppercase tracking-widest text-on-surface-variant/50 hover:text-on-surface transition-colors">
                 {l}
               </a>
             ))}

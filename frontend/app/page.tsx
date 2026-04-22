@@ -27,8 +27,8 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const router = useRouter();
 
-  const handleGetStarted = ()=>{
-      router.push("/auth/signup");
+  const handleGetStarted = () => {
+    router.push("/auth/signup");
   }
 
   return (
@@ -43,8 +43,12 @@ export default function Home() {
           <div className="hidden md:flex items-center gap-6 font-headline font-medium tracking-tight text-xs">
             <a className="text-primary-container font-bold border-b-2 border-primary-container pb-0.5 transition-all duration-300" href="#">HOME</a>
             <a className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300" href="#features">FEATURES</a>
-            <a className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300" href="#">PRICING</a>
-            <a className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300" href="#">ABOUT</a>
+            <a onClick={() => {
+              router.push("/pricing");
+            }} className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300" >PRICING</a>
+            <a onClick={() => {
+              router.push("/about");
+            }} className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300">ABOUT</a>
           </div>
           <div>
             <button onClick={handleGetStarted} className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg font-headline font-medium tracking-tight text-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer">
