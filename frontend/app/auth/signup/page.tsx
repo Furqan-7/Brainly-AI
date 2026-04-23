@@ -42,7 +42,7 @@ export default function SignupPage() {
     });
 
     if (Response.data.success) {
-      router.push("/dashboard");
+      router.push(`/chat?name=${encodeURIComponent(Response.data.username)}`);
     } else {
       alert("User already exist");
     }

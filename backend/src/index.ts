@@ -53,7 +53,8 @@ app.post("/signup", async (req, res) => {
 
     return res.status(200).json({
       message: "User created successfully",
-      user,
+      username: user.username,
+      id: user.id,
       success: true
     });
 
@@ -112,6 +113,8 @@ app.post("/signin", async (require, res) => {
     return res.status(200).json({
       message: "User logged in successfully",
       success: true,
+      username: user.username,
+      id: user.id,
       token
     });
 

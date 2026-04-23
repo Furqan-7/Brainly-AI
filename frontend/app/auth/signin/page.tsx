@@ -33,11 +33,13 @@ export default function SignInPage() {
     const Response = await axios.post("http://localhost:3001/signin", {
       email,
       password
-    })
+    });
+
+
 
     if (Response.data.success) {
       localStorage.setItem("token", Response.data.token);
-      router.push("/dashboard");
+      router.push(`/chat?name=${encodeURIComponent(Response.data.username)}`);
     } else {
       alert("Invalid credentials");
     }
