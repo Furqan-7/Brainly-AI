@@ -17,7 +17,8 @@ app.post("/signup", async (req, res) => {
 
   if (!Response.success) {
     return res.status(411).json({
-      message: "Invalid input"
+      message: "Invalid input",
+      success: false
     })
   };
 
@@ -30,6 +31,17 @@ app.post("/signup", async (req, res) => {
   try {
 
     // Make a db call here 
+    const UserExist = await prisma.user.findUnique({
+      where: {
+        email: email
+      }
+    });
+
+    if (UserExist) {
+      return res.status(400).json({
+        message: "User already exists with this email"
+      });
+    }
 
     const user = await prisma.user.create({
       data: {
@@ -41,12 +53,14 @@ app.post("/signup", async (req, res) => {
 
     return res.status(200).json({
       message: "User created successfully",
-      user
+      user,
+      success: true
     });
 
   } catch (e) {
     return res.status(500).json({
-      message: "Internal Server Error"
+      message: "Internal Server Error",
+      success: false
     });
   }
 });
@@ -56,7 +70,8 @@ app.post("/signin", async (require, res) => {
   const Response = signinSchema.safeParse(require.body);
   if (!Response.success) {
     return res.status(411).json({
-      message: "Invalid Format"
+      message: "Invalid Format",
+      success: false
     })
   };
 
@@ -73,7 +88,8 @@ app.post("/signin", async (require, res) => {
 
     if (!user) {
       return res.status(400).json({
-        message: "Invalid user"
+        message: "Invalid user",
+        success: false
       })
     };
 
@@ -82,7 +98,8 @@ app.post("/signin", async (require, res) => {
 
     if (!isPasswordCorrect) {
       return res.status(402).json({
-        message: "Incorrect Password"
+        message: "Incorrect Password",
+        success: false
       })
     };
 
@@ -94,15 +111,15 @@ app.post("/signin", async (require, res) => {
 
     return res.status(200).json({
       message: "User logged in successfully",
+      success: true,
       token
     });
 
   } catch (e) {
-
     return res.status(500).json({
-      message: "Internal Server Error"
+      message: "Internal Server Error",
+      success: false
     });
-
   }
 });
 

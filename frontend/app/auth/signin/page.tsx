@@ -3,6 +3,8 @@
 import { motion } from "motion/react";
 import { Brain, Search, MessageSquare, Database, Mail, Lock, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import axios from "axios";
 
 const features = [
   {
@@ -23,7 +25,29 @@ const features = [
 ];
 
 export default function SignInPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
+
+  const handleSignIn = async () => {
+    const Response = await axios.post("http://localhost:3001/signin", {
+      email,
+      password
+    })
+
+    if (Response.data.success) {
+      localStorage.setItem("token", Response.data.token);
+      router.push("/dashboard");
+    } else {
+      alert("Invalid credentials");
+    }
+  };
+
+
+
+
+
+
   return (
     <div className="min-h-screen bg-background text-on-surface font-body flex overflow-hidden">
 
@@ -153,7 +177,9 @@ export default function SignInPage() {
                 Email Address
               </label>
               <div className="relative group">
-                <input
+                <input onChange={(e) => {
+                  setEmail(e.target.value);
+                }}
                   type="email"
                   placeholder="name@company.com"
                   className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 pr-10 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary-container focus:border-transparent outline-none transition-all"
@@ -173,7 +199,9 @@ export default function SignInPage() {
                 </a>
               </div>
               <div className="relative group">
-                <input
+                <input onChange={(e) => {
+                  setPassword(e.target.value);
+                }}
                   type="password"
                   placeholder="••••••••"
                   className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 pr-10 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary-container focus:border-transparent outline-none transition-all"
@@ -183,7 +211,7 @@ export default function SignInPage() {
             </div>
 
             {/* Submit */}
-            <button className="w-full bg-primary-container text-on-primary-container font-bold py-3 rounded-lg text-sm shadow-lg shadow-primary-container/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <button onClick={handleSignIn} className="w-full bg-primary-container text-on-primary-container font-bold py-3 rounded-lg text-sm shadow-lg shadow-primary-container/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
               Sign In
               <ArrowRight className="w-4 h-4" />
             </button>
