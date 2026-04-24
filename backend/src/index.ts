@@ -5,6 +5,7 @@ import { prisma } from "db";
 import cors from "cors";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { MiddleWhere } from "./MiddleWhere";
 
 const app = express();
 
@@ -125,6 +126,11 @@ app.post("/signin", async (require, res) => {
     });
   }
 });
+
+
+app.post("/add/content", MiddleWhere, async (req, res) => {
+
+})
 
 app.listen(3001, () => {
   console.log("Server is running on port 3001");

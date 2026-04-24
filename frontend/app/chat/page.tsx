@@ -13,7 +13,6 @@ import {
     Plus,
     Sparkles,
 } from "lucide-react";
-import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 const filterTabs = ["Recent", "Starred", "Archives"];
@@ -52,20 +51,8 @@ const cards = [
 ];
 
 export default function DashboardPage() {
-
     const params = useSearchParams();
-    const name = params.get("name");
-    console.log(name);
-
-
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alert("Your Token is Expired");
-            return;
-        }
-    })
-
+    const name = params.get('name');
     return (
         <div
             className="min-h-screen text-on-surface font-body"
