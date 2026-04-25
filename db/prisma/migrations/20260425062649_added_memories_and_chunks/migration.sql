@@ -1,3 +1,6 @@
+-- EnableExtension
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- CreateEnum
 CREATE TYPE "ContentType" AS ENUM ('pdf', 'url', 'youtube', 'tweet', 'note', 'image');
 

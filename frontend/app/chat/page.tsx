@@ -19,6 +19,7 @@ import {
     UserCircle2,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import AddContent from "../components/AddContent";
 
 const navLinks = [
     { label: "Memories", icon: LayoutDashboard, active: true },
@@ -62,6 +63,7 @@ const cards = [
 export default function ChatPage() {
     const [activeFilter, setActiveFilter] = useState("All");
     const [activeView, setActiveView] = useState("Recent");
+    const [isAddContentOpen, setIsAddContentOpen] = useState(false);
 
 
     return (
@@ -80,7 +82,7 @@ export default function ChatPage() {
 
                     {/* Logo */}
                     <div className="flex items-center gap-2 shrink-0">
-                        <Brain className="w-4 h-4 text-primary-container" fill="currentColor" />
+                        <Brain className="w-4 h-4 text-primary-container" />
                         <span className="text-sm font-black tracking-tighter text-on-surface">Brainly AI</span>
                     </div>
 
@@ -102,7 +104,9 @@ export default function ChatPage() {
 
                     {/* Right actions */}
                     <div className="flex items-center gap-2 shrink-0">
-                        <button className="flex items-center gap-1.5 bg-primary-container text-on-primary-container px-3 py-1.5 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all cursor-pointer">
+                        <button onClick={() => {
+                            setIsAddContentOpen(true);
+                        }} className="flex items-center gap-1.5 bg-primary-container text-on-primary-container px-3 py-1.5 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all cursor-pointer">
                             <Plus className="w-3.5 h-3.5" />
                             Add Memory
                         </button>
@@ -112,6 +116,14 @@ export default function ChatPage() {
                     </div>
                 </nav>
             </header>
+
+            {isAddContentOpen && (
+                <div className="fixed inset-0 w-full h-screen z-[9999] rounded-xl overflow-hidden shadow-2xl relative z-10 bg-surface" >
+                    <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} />
+                </div>
+            )}
+
+            <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} />
 
             {/* ── MAIN ── */}
             <main className="w-full max-w-5xl mx-auto px-6 md:px-10 pt-20 pb-10 space-y-8">

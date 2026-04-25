@@ -102,9 +102,34 @@ exports.Prisma.UserScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.MemoriesScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  title: 'title',
+  source_url: 'source_url',
+  file_path: 'file_path',
+  status: 'status',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ChunksScalarFieldEnum = {
+  id: 'id',
+  MemoryId: 'MemoryId',
+  content: 'content',
+  chunk_index: 'chunk_index',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -112,9 +137,36 @@ exports.Prisma.QueryMode = {
   insensitive: 'insensitive'
 };
 
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+exports.ContentType = exports.$Enums.ContentType = {
+  pdf: 'pdf',
+  url: 'url',
+  youtube: 'youtube',
+  tweet: 'tweet',
+  note: 'note',
+  image: 'image'
+};
+
+exports.Status = exports.$Enums.Status = {
+  pending: 'pending',
+  processing: 'processing',
+  ready: 'ready',
+  failed: 'failed'
+};
 
 exports.Prisma.ModelName = {
-  User: 'User'
+  User: 'User',
+  Memories: 'Memories',
+  Chunks: 'Chunks'
 };
 /**
  * Create the Client
@@ -140,7 +192,9 @@ const config = {
         "native": true
       }
     ],
-    "previewFeatures": [],
+    "previewFeatures": [
+      "postgresqlExtensions"
+    ],
     "sourceFilePath": "C:\\Users\\Admin\\OneDrive\\Desktop\\Projects\\Brainly AI\\db\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
@@ -163,13 +217,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id        Int      @id @default(autoincrement())\n  username  String\n  email     String   @unique\n  password  String\n  isPremium Boolean  @default(false)\n  createdAt DateTime @default(now())\n}\n",
-  "inlineSchemaHash": "741abda486001ef6454383a0502f8a8b1f66584e28fedf7a0551210b1391fbf6",
+  "inlineSchema": "generator client {\n  provider        = \"prisma-client-js\"\n  output          = \"../generated/prisma\"\n  previewFeatures = [\"postgresqlExtensions\"]\n}\n\ndatasource db {\n  provider   = \"postgresql\"\n  url        = env(\"DATABASE_URL\")\n  extensions = [vector]\n}\n\nenum ContentType {\n  pdf\n  url\n  youtube\n  tweet\n  note\n  image\n}\n\nenum Status {\n  pending\n  processing\n  ready\n  failed\n}\n\nmodel User {\n  id        Int        @id @default(autoincrement())\n  username  String\n  email     String     @unique\n  password  String\n  isPremium Boolean    @default(false)\n  createdAt DateTime   @default(now())\n  memories  Memories[]\n}\n\nmodel Memories {\n  id         Int         @id @default(autoincrement())\n  userId     Int\n  type       ContentType\n  title      String\n  source_url String?\n  file_path  String?\n  status     Status      @default(pending)\n  metadata   Json?\n  createdAt  DateTime    @default(now())\n  user       User        @relation(fields: [userId], references: [id])\n  chunks     Chunks[]\n}\n\nmodel Chunks {\n  id          Int                         @id @default(autoincrement())\n  MemoryId    Int\n  content     String\n  chunk_index Int\n  embedding   Unsupported(\"vector(1536)\")\n  createdAt   DateTime                    @default(now())\n  Memory      Memories                    @relation(fields: [MemoryId], references: [id])\n}\n",
+  "inlineSchemaHash": "d93d368e57a9a87d6f23edac62ffaf662a07ef659e671d3b7601b60219f7018c",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"username\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"isPremium\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"username\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"isPremium\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"memories\",\"kind\":\"object\",\"type\":\"Memories\",\"relationName\":\"MemoriesToUser\"}],\"dbName\":null},\"Memories\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"type\",\"kind\":\"enum\",\"type\":\"ContentType\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source_url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"file_path\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"Status\"},{\"name\":\"metadata\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"MemoriesToUser\"},{\"name\":\"chunks\",\"kind\":\"object\",\"type\":\"Chunks\",\"relationName\":\"ChunksToMemories\"}],\"dbName\":null},\"Chunks\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"MemoryId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"chunk_index\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"Memory\",\"kind\":\"object\",\"type\":\"Memories\",\"relationName\":\"ChunksToMemories\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = {
   getRuntime: async () => require('./query_engine_bg.js'),

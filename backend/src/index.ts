@@ -6,11 +6,13 @@ import cors from "cors";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { MiddleWhere } from "./MiddleWhere";
+import { GetEmbeddings } from "./Embeddings";
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
+
 
 
 app.post("/signup", async (req, res) => {

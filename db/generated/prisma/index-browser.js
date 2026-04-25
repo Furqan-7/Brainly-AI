@@ -130,9 +130,34 @@ exports.Prisma.UserScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.MemoriesScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  title: 'title',
+  source_url: 'source_url',
+  file_path: 'file_path',
+  status: 'status',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ChunksScalarFieldEnum = {
+  id: 'id',
+  MemoryId: 'MemoryId',
+  content: 'content',
+  chunk_index: 'chunk_index',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -140,9 +165,36 @@ exports.Prisma.QueryMode = {
   insensitive: 'insensitive'
 };
 
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+exports.ContentType = exports.$Enums.ContentType = {
+  pdf: 'pdf',
+  url: 'url',
+  youtube: 'youtube',
+  tweet: 'tweet',
+  note: 'note',
+  image: 'image'
+};
+
+exports.Status = exports.$Enums.Status = {
+  pending: 'pending',
+  processing: 'processing',
+  ready: 'ready',
+  failed: 'failed'
+};
 
 exports.Prisma.ModelName = {
-  User: 'User'
+  User: 'User',
+  Memories: 'Memories',
+  Chunks: 'Chunks'
 };
 
 /**
