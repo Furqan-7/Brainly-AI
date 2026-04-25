@@ -8,11 +8,52 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ContentType {
+  pdf
+  url
+  youtube
+  tweet
+  note
+  image
+}
+
+enum Status {
+  pending
+  processing
+  ready
+  failed
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   username  String
-  email     String   @unique
+  email     String     @unique
   password  String
-  isPremium Boolean  @default(false)
-  createdAt DateTime @default(now())
+  isPremium Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  memories  Memories[]
+}
+
+model Memories {
+  id         Int         @id @default(autoincrement())
+  userId     Int
+  type       ContentType
+  title      String
+  source_url String?
+  file_path  String?
+  status     Status      @default(pending)
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+  user       User        @relation(fields: [userId], references: [id])
+  chunks     Chunks[]
+}
+
+model Chunks {
+  id          Int      @id @default(autoincrement())
+  MemoryId    Int
+  content     String
+  chunk_index Int
+  embedding   Float[]
+  createdAt   DateTime @default(now())
+  Memory      Memories @relation(fields: [MemoryId], references: [id])
 }

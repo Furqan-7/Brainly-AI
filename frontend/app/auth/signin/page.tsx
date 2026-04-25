@@ -5,6 +5,8 @@ import { Brain, Search, MessageSquare, Database, Mail, Lock, ArrowRight } from "
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import axios from "axios";
+import { jwtDecode, JwtPayload } from "jwt-decode";
+import ChatPage from "@/app/chat/page";
 
 const features = [
   {
@@ -24,6 +26,12 @@ const features = [
   },
 ];
 
+type MyTokenPayload = {
+  userId: string;
+  username: string;
+  exp: number;
+};
+
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,11 +43,11 @@ export default function SignInPage() {
       password
     });
 
-
-
     if (Response.data.success) {
       localStorage.setItem("token", Response.data.token);
-      router.push(`/chat?name=${encodeURIComponent(Response.data.username)}`);
+      const user = jwtDecode<MyTokenPayload>(Response.data.token);
+      const username = user.username;
+      router.push("/chat");
     } else {
       alert("Invalid credentials");
     }

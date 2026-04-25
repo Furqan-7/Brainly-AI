@@ -23,9 +23,21 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
+
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+
+    router.push("/chat");
+
+  }, []);
 
   const handleGetStarted = () => {
     router.push("/auth/signup");

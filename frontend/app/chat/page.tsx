@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import {
     Search,
@@ -12,19 +13,29 @@ import {
     ArrowRight,
     Plus,
     Sparkles,
+    LayoutDashboard,
+    Lightbulb,
+    Settings,
+    UserCircle2,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-const filterTabs = ["Recent", "Starred", "Archives"];
+const navLinks = [
+    { label: "Memories", icon: LayoutDashboard, active: true },
+    { label: "Insights", icon: Lightbulb, active: false },
+    { label: "Settings", icon: Settings, active: false },
+];
+
+const viewTabs = ["Recent", "Starred", "Archives"];
+
+const contentFilters = ["All", "Web Pages", "Videos", "Tweets", "Documents", "Notes"];
 
 const cards = [
     {
         type: "youtube",
-        span: "row-span-2",
         data: {
             thumbnail: "https://lh3.googleusercontent.com/aida-public/AB6AXuAjdyWvl4FI_M92Eri5ALLcwYVkR_bnkX7-YlauXusMUTJoiG1bSGkf-bn1SigSRQEyb1u7_o3UXliKyaSo1CnhdfB9JTMvBNiS3JR-fu-jOGAPLjpPg9_3H5Zb0FW2nIeeQjkdroAw1J9igdH0c6gtsZBSfwG0514LBadx5QxtYJrC_23QRyEgRApUGtYbIPHcXk-eMPhGrvI1CTqYauqSVPlsTH2ER7UIbYy_LqfwT08GYfH2f6EfWHCPoc0H6e_KgVfflM6lffcy",
             duration: "14:22",
-            label: "YouTube Memory",
             title: "The Future of Generative AI: Architectures and Implications",
             desc: "Deep dive into transformer models and the evolution of latent space representation in modern large language models.",
             saved: "Saved 2 days ago",
@@ -33,7 +44,6 @@ const cards = [
     {
         type: "tweet",
         data: {
-            label: "Tweet Fragment",
             quote: '"The most powerful UI is the one that disappears. We aren\'t building tools; we are building extensions of human thought."',
             avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBlRy4LlQGuEZOyb2ehETfK3Ktu7s3zVLUeh9AOEe6GAlGzUm0fp_A37BriuXvqkPOQP4ac6NAQD23PwVDBpI0yaoU6VIzM10ZYl12-MdoEyHQHZIfh-oh18W5Dy7jSI2-TZclUPNXo7rltoeZCWsKNSGP6nTfKyz8IZlzd5tN9qWZ5lb5NIsAhHqnqwqYS0jiKviTgryajwB0c4lyD26MOOCBqdu4PUD0a_FTwsKKO_7hAC11TS8a0-SIlhD5BsSMb_9GydRNzWDXj",
             handle: "@design_philosopher",
@@ -42,7 +52,6 @@ const cards = [
     {
         type: "pdf",
         data: {
-            label: "Technical Doc",
             title: "Q4 Brainly_AI_Roadmap_Final.pdf",
             progress: 75,
             size: "12.4 MB",
@@ -50,9 +59,11 @@ const cards = [
     },
 ];
 
-export default function DashboardPage() {
-    const params = useSearchParams();
-    const name = params.get('name');
+export default function ChatPage() {
+    const [activeFilter, setActiveFilter] = useState("All");
+    const [activeView, setActiveView] = useState("Recent");
+
+
     return (
         <div
             className="min-h-screen text-on-surface font-body"
@@ -63,17 +74,57 @@ export default function DashboardPage() {
                 backgroundSize: "40px 40px",
             }}
         >
-            <main className="w-full max-w-5xl mx-auto px-6 md:px-10 py-10 space-y-10">
+            {/* ── TOP NAV ── */}
+            <header className="fixed top-0 w-full z-50 bg-[#121212]/80 backdrop-blur-xl border-b border-outline-variant/10">
+                <nav className="flex items-center justify-between px-6 md:px-10 h-12 max-w-5xl mx-auto">
+
+                    {/* Logo */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Brain className="w-4 h-4 text-primary-container" fill="currentColor" />
+                        <span className="text-sm font-black tracking-tighter text-on-surface">Brainly AI</span>
+                    </div>
+
+                    {/* Nav links */}
+                    <div className="flex items-center gap-1">
+                        {navLinks.map((link) => (
+                            <button
+                                key={link.label}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${link.active
+                                    ? "bg-primary-container/15 text-primary-container"
+                                    : "text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container-high"
+                                    }`}
+                            >
+                                <link.icon className="w-3.5 h-3.5" />
+                                {link.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Right actions */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button className="flex items-center gap-1.5 bg-primary-container text-on-primary-container px-3 py-1.5 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all cursor-pointer">
+                            <Plus className="w-3.5 h-3.5" />
+                            Add Memory
+                        </button>
+                        <button className="w-7 h-7 rounded-full bg-surface-container-high border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
+                            <UserCircle2 className="w-4 h-4" />
+                        </button>
+                    </div>
+                </nav>
+            </header>
+
+            {/* ── MAIN ── */}
+            <main className="w-full max-w-5xl mx-auto px-6 md:px-10 pt-20 pb-10 space-y-8">
 
                 {/* ── GREETING ── */}
                 <motion.header
                     initial={{ opacity: 0, y: -16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="text-center space-y-2"
+                    className="text-center space-y-1.5 pt-4"
                 >
-                    <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-on-surface">
-                        Good Evening, {name}
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-on-surface">
+                        Good Evening,
                     </h1>
                     <p className="text-on-surface-variant text-sm font-medium opacity-70">
                         Your digital mind is synchronized and ready.
@@ -87,6 +138,7 @@ export default function DashboardPage() {
                     transition={{ duration: 0.5, delay: 0.1 }}
                     className="w-full max-w-2xl mx-auto space-y-3"
                 >
+                    {/* Search bar */}
                     <div className="relative flex items-center group">
                         <div className="absolute -inset-1 bg-[#6366F1] rounded-xl blur-xl opacity-20 group-focus-within:opacity-40 transition-opacity" />
                         <div className="relative flex w-full items-center bg-surface-container-high border border-outline-variant/30 rounded-xl overflow-hidden px-4 h-12 shadow-2xl gap-3">
@@ -96,19 +148,20 @@ export default function DashboardPage() {
                                 placeholder="Search your memories, documents, or insights..."
                                 type="text"
                             />
-                            <button className="flex items-center gap-1.5 bg-surface-container-highest px-3 py-1.5 rounded-lg border border-outline-variant/50 hover:bg-surface-bright transition-colors shrink-0">
+                            <button className="flex items-center gap-1.5 bg-surface-container-highest px-3 py-1.5 rounded-lg border border-outline-variant/50 hover:bg-surface-bright transition-colors shrink-0 cursor-pointer">
                                 <SlidersHorizontal className="w-3 h-3" />
                                 <span className="text-[10px] font-bold tracking-widest uppercase">Filter</span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Filter tabs */}
+                    {/* View tabs — Recent / Starred / Archives */}
                     <div className="flex justify-center gap-2">
-                        {filterTabs.map((tab, i) => (
+                        {viewTabs.map((tab) => (
                             <button
                                 key={tab}
-                                className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all ${i === 0
+                                onClick={() => setActiveView(tab)}
+                                className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer ${activeView === tab
                                     ? "bg-secondary-container/30 border border-secondary-fixed-dim/20 text-secondary-fixed-dim"
                                     : "bg-surface-container-high/50 border border-outline-variant/20 text-on-surface-variant/60 hover:text-on-surface-variant"
                                     }`}
@@ -118,6 +171,27 @@ export default function DashboardPage() {
                         ))}
                     </div>
                 </motion.section>
+
+                {/* ── CONTENT TYPE FILTER PILLS ── */}
+                <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.15 }}
+                    className="flex flex-wrap items-center gap-2"
+                >
+                    {contentFilters.map((f) => (
+                        <button
+                            key={f}
+                            onClick={() => setActiveFilter(f)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${activeFilter === f
+                                ? "bg-primary-container text-on-primary-container shadow-[0_0_12px_-2px_rgba(51,102,255,0.4)]"
+                                : "bg-surface-container-high border border-outline-variant/20 text-on-surface-variant hover:border-outline-variant/50 hover:text-on-surface"
+                                }`}
+                        >
+                            {f}
+                        </button>
+                    ))}
+                </motion.div>
 
                 {/* ── BENTO GRID ── */}
                 <motion.section
@@ -176,11 +250,7 @@ export default function DashboardPage() {
                             <p className="text-sm font-medium leading-relaxed italic">{cards[1].data.quote}</p>
                         </div>
                         <div className="mt-3 flex items-center gap-2">
-                            <img
-                                src={cards[1].data.avatar}
-                                alt="Avatar"
-                                className="w-5 h-5 rounded-full border border-outline-variant/30"
-                            />
+                            <img src={cards[1].data.avatar} alt="Avatar" className="w-5 h-5 rounded-full border border-outline-variant/30" />
                             <span className="text-[10px] font-semibold text-on-surface-variant">{cards[1].data.handle}</span>
                         </div>
                     </div>
@@ -207,7 +277,7 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
                             </div>
-                            <button className="flex items-center justify-center gap-1.5 py-2 bg-surface-container-highest rounded-lg border border-outline-variant/30 text-[10px] font-bold tracking-widest uppercase hover:bg-primary-container hover:text-on-primary-container transition-all">
+                            <button className="flex items-center justify-center gap-1.5 py-2 bg-surface-container-highest rounded-lg border border-outline-variant/30 text-[10px] font-bold tracking-widest uppercase hover:bg-primary-container hover:text-on-primary-container transition-all cursor-pointer">
                                 Resume Reading
                             </button>
                         </div>
@@ -215,15 +285,15 @@ export default function DashboardPage() {
 
                     {/* Brainly Insights — full width */}
                     <div className="md:col-span-2 flex items-center gap-4 bg-surface-container-low border border-outline-variant/10 rounded-xl p-5 hover:bg-surface-container-low/80 transition-all cursor-pointer group">
-                        <div className="hidden md:flex w-14 h-14 shrink-0 items-center justify-center bg-primary-container/10 rounded-xl border border-primary-container/20">
-                            <Brain className="w-7 h-7 text-primary-container" fill="currentColor" fillOpacity={0.3} />
+                        <div className="hidden md:flex w-12 h-12 shrink-0 items-center justify-center bg-primary-container/10 rounded-xl border border-primary-container/20">
+                            <Brain className="w-6 h-6 text-primary-container" fill="currentColor" fillOpacity={0.3} />
                         </div>
                         <div className="flex-grow space-y-1">
                             <div className="flex items-center gap-1.5">
                                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                                 <span className="text-[9px] font-bold tracking-widest uppercase text-primary">Brainly Insights</span>
                             </div>
-                            <h3 className="text-base font-bold leading-snug">
+                            <h3 className="text-sm font-bold leading-snug">
                                 You've focused heavily on 'Interface Design' today.
                             </h3>
                             <p className="text-xs text-on-surface-variant/70">

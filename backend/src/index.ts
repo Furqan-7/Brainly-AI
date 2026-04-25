@@ -106,7 +106,7 @@ app.post("/signin", async (require, res) => {
     };
 
     const token = jwt.sign({
-      userId: user.id
+      userId: user.id, username: user.username
     }, process.env.JWT_TOKEN as string, {
       expiresIn: "7d"
     });
@@ -129,6 +129,9 @@ app.post("/signin", async (require, res) => {
 
 
 app.post("/add/content", MiddleWhere, async (req, res) => {
+
+  const userId = res.locals.userId;
+
 
 })
 
