@@ -14,6 +14,7 @@ import {
     Sparkles,
     Brain,
 } from "lucide-react";
+import axios from "axios";
 
 type ContentType = "url" | "pdf" | "youtube" | "tweet" | "note" | "image";
 
@@ -118,6 +119,15 @@ export default function AddContent({
 
     function handleSubmit() {
         // TODO: wire to API
+
+        // const Response = axios.post("http://localhost:3001/api/content",{
+        //       type:activeType,
+        //       title,
+        //       url,
+        //       note,
+        //       context,
+        //       file,
+        // });
         console.log({ type: activeType, title, url, note, context, file });
         handleClose();
     }
@@ -166,8 +176,8 @@ export default function AddContent({
                                     key={type}
                                     onClick={() => handleTypeChange(type)}
                                     className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-all ${isActive
-                                            ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-300"
-                                            : "bg-white/4 border-white/8 text-white/40 hover:bg-white/8 hover:text-white/70 hover:border-white/15"
+                                        ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-300"
+                                        : "bg-white/4 border-white/8 text-white/40 hover:bg-white/8 hover:text-white/70 hover:border-white/15"
                                         }`}
                                 >
                                     <span className={isActive ? "text-indigo-400" : ""}>
@@ -251,10 +261,10 @@ export default function AddContent({
                                     onDrop={handleDrop}
                                     onClick={() => fileInputRef.current?.click()}
                                     className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${dragOver
-                                            ? "border-indigo-500/60 bg-indigo-500/8"
-                                            : file
-                                                ? "border-indigo-500/40 bg-indigo-500/5"
-                                                : "border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5"
+                                        ? "border-indigo-500/60 bg-indigo-500/8"
+                                        : file
+                                            ? "border-indigo-500/40 bg-indigo-500/5"
+                                            : "border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5"
                                         }`}
                                 >
                                     <input
