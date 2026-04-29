@@ -109,7 +109,7 @@ export default function ChatPage() {
                     className="text-center space-y-1.5 pt-4"
                 >
                     <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-on-surface">
-                        Good Evening,
+                        Good Evening, Furqan
                     </h1>
                     <p className="text-on-surface-variant text-sm font-medium opacity-70">
                         Your digital mind is synchronized and ready.
@@ -178,7 +178,6 @@ export default function ChatPage() {
                         </button>
                     ))}
                 </motion.div>
-
 
                 {/* ── BENTO GRID ── */}
                 <ContentGrid />

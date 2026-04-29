@@ -9,7 +9,6 @@ export function splitIntoChunks(Text: string, chunkSize: number = 500, overlap: 
         const chunk = words.slice(i, i + chunkSize).join(" ");
         chunks.push(chunk);
         i += chunkSize - overlap;
-
     }
     return chunks;
 } 
