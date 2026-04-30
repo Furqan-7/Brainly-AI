@@ -18,7 +18,7 @@ export async function UrlToText(url: string) {
 
         const metadata = title + description + keywords + canonical + text;
 
-        return metadata;
+        return metadata.toString();
     } catch (error) {
         console.log(error);
         return null;

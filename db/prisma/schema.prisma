@@ -4,7 +4,6 @@ generator client {
   previewFeatures = ["postgresqlExtensions"]
 }
 
-
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
@@ -52,11 +51,11 @@ model Memories {
 }
 
 model Chunks {
-  id          Int      @id @default(autoincrement())
+  id          Int                         @id @default(autoincrement())
   MemoryId    Int
   content     String
   chunk_index Int
   embedding   Unsupported("vector(1536)")
-  createdAt   DateTime @default(now())
-  Memory      Memories @relation(fields: [MemoryId], references: [id])
+  createdAt   DateTime                    @default(now())
+  Memory      Memories                    @relation(fields: [MemoryId], references: [id])
 }
