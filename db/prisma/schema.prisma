@@ -51,11 +51,11 @@ model Memories {
 }
 
 model Chunks {
-  id          Int                         @id @default(autoincrement())
+  id          Int                        @id @default(autoincrement())
   MemoryId    Int
   content     String
   chunk_index Int
-  embedding   Unsupported("vector(1536)")
-  createdAt   DateTime                    @default(now())
-  Memory      Memories                    @relation(fields: [MemoryId], references: [id])
+  embedding   Unsupported("vector(768)")
+  createdAt   DateTime                   @default(now())
+  Memory      Memories                   @relation(fields: [MemoryId], references: [id])
 }

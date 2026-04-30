@@ -6,13 +6,6 @@ import cors from "cors";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { MiddleWhere } from "./MiddleWhere";
-import { GetEmbeddings } from "./Embeddings";
-import { GetPdfText } from "./pdfToText";
-import { UrlToText } from "./UrlToText";
-import { getTranscript } from "./getTranscript";
-import { success } from "zod";
-import { fetchTweet } from "./fetchTweet";
-import { processImage } from "./processImage";
 import { processMemory } from "./processMemory";
 
 const app = express();
@@ -165,7 +158,9 @@ app.post("/api/content", MiddleWhere, async (req, res) => {
     res.status(201).json({ message: "Content saved, processing...", success: true, id: memory.id });
 
 
-    processMemory(memory).catch(console.error);
+    processMemory(memory).catch(console.error).then(() => {
+      console.log("Memory processed successfully");
+    });
 
   } catch (error) {
     console.log(error);
@@ -175,6 +170,184 @@ app.post("/api/content", MiddleWhere, async (req, res) => {
     });
   }
 });
+
+app.get("/api/content", MiddleWhere, async (req, res) => {
+  const userId = res.locals.userId;
+
+  try {
+    const Memories = await prisma.memories.findMany({
+      where: {
+        userId: userId,
+        status: "ready"
+      },
+      orderBy: {
+        createdAt: "desc"
+      },
+    })
+
+    return res.status(200).json({
+      message: "Memories fetched successfully",
+      success: true,
+      memories: Memories
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    })
+  }
+});
+
+app.get("/api/content/url", MiddleWhere, async (req, res) => {
+  const userId = res.locals.userId;
+
+  try {
+    const UrlMemories = await prisma.memories.findMany({
+      where: {
+        userId: userId,
+        type: "url",
+        status: "ready"
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+
+    return res.status(200).json({
+      message: "Url Memories fetched successfully",
+      success: true,
+      memories: UrlMemories
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    })
+  }
+});
+
+
+app.get("/api/content/youtube", MiddleWhere, async (req, res) => {
+  const userId = res.locals.userId;
+
+  try {
+    const YoutubeMemories = await prisma.memories.findMany({
+      where: {
+        userId: userId,
+        type: "youtube",
+        status: "ready"
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+
+    return res.status(200).json({
+      message: "Youtube Memories fetched successfully",
+      success: true,
+      memories: YoutubeMemories
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    })
+  }
+});
+
+app.get("/api/content/tweet", MiddleWhere, async (req, res) => {
+  const userId = res.locals.userId;
+
+  try {
+    const TweetMemories = await prisma.memories.findMany({
+      where: {
+        userId: userId,
+        type: "tweet",
+        status: "ready"
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+
+    return res.status(200).json({
+      message: "Tweet Memories fetched successfully",
+      success: true,
+      memories: TweetMemories
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    })
+  }
+});
+
+app.get("/api/content/document", MiddleWhere, async (req, res) => {
+  const userId = res.locals.userId;
+
+  try {
+    const DocumentMemories = await prisma.memories.findMany({
+      where: {
+        userId: userId,
+        type: "pdf",
+        status: "ready"
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+
+    return res.status(200).json({
+      message: "Document Memories fetched successfully",
+      success: true,
+      memories: DocumentMemories
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    })
+  }
+});
+
+app.get("/api/content/note", MiddleWhere, async (req, res) => {
+  const userId = res.locals.userId;
+
+  try {
+    const NoteMemories = await prisma.memories.findMany({
+      where: {
+        userId: userId,
+        type: "note",
+        status: "ready"
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+
+    return res.status(200).json({
+      message: "Note Memories fetched successfully",
+      success: true,
+      memories: NoteMemories
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    })
+  }
+});
+
+
+
+
+
+
+
+
+
+
 
 app.listen(3001, () => {
   console.log("Server is running on port 3001");
