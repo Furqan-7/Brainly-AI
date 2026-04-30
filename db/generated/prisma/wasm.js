@@ -209,6 +209,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -217,8 +218,8 @@ const config = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider        = \"prisma-client-js\"\n  output          = \"../generated/prisma\"\n  previewFeatures = [\"postgresqlExtensions\"]\n}\n\ndatasource db {\n  provider   = \"postgresql\"\n  url        = env(\"DATABASE_URL\")\n  extensions = [vector]\n}\n\nenum ContentType {\n  pdf\n  url\n  youtube\n  tweet\n  note\n  image\n}\n\nenum Status {\n  pending\n  processing\n  ready\n  failed\n}\n\nmodel User {\n  id        Int        @id @default(autoincrement())\n  username  String\n  email     String     @unique\n  password  String\n  isPremium Boolean    @default(false)\n  createdAt DateTime   @default(now())\n  memories  Memories[]\n}\n\nmodel Memories {\n  id         Int         @id @default(autoincrement())\n  userId     Int\n  type       ContentType\n  title      String\n  source_url String?\n  file_path  String?\n  status     Status      @default(pending)\n  metadata   Json?\n  createdAt  DateTime    @default(now())\n  user       User        @relation(fields: [userId], references: [id])\n  chunks     Chunks[]\n}\n\nmodel Chunks {\n  id          Int                         @id @default(autoincrement())\n  MemoryId    Int\n  content     String\n  chunk_index Int\n  embedding   Unsupported(\"vector(1536)\")\n  createdAt   DateTime                    @default(now())\n  Memory      Memories                    @relation(fields: [MemoryId], references: [id])\n}\n",
-  "inlineSchemaHash": "d93d368e57a9a87d6f23edac62ffaf662a07ef659e671d3b7601b60219f7018c",
+  "inlineSchema": "generator client {\n  provider        = \"prisma-client-js\"\n  output          = \"../generated/prisma\"\n  previewFeatures = [\"postgresqlExtensions\"]\n}\n\ndatasource db {\n  provider   = \"postgresql\"\n  url        = env(\"DATABASE_URL\")\n  extensions = [vector]\n}\n\nenum ContentType {\n  pdf\n  url\n  youtube\n  tweet\n  note\n  image\n}\n\nenum Status {\n  pending\n  processing\n  ready\n  failed\n}\n\nmodel User {\n  id        Int        @id @default(autoincrement())\n  username  String\n  email     String     @unique\n  password  String\n  isPremium Boolean    @default(false)\n  createdAt DateTime   @default(now())\n  memories  Memories[]\n}\n\nmodel Memories {\n  id         Int         @id @default(autoincrement())\n  userId     Int\n  type       ContentType\n  title      String\n  source_url String?\n  file_path  String?\n  status     Status      @default(pending)\n  metadata   Json?\n  createdAt  DateTime    @default(now())\n  user       User        @relation(fields: [userId], references: [id])\n  chunks     Chunks[]\n}\n\nmodel Chunks {\n  id          Int                        @id @default(autoincrement())\n  MemoryId    Int\n  content     String\n  chunk_index Int\n  embedding   Unsupported(\"vector(768)\")\n  createdAt   DateTime                   @default(now())\n  Memory      Memories                   @relation(fields: [MemoryId], references: [id])\n}\n",
+  "inlineSchemaHash": "677924ec5666585d65be43c64b443fba9348fec82a43f05daf81d7d79f160791",
   "copyEngine": true
 }
 config.dirname = '/'
