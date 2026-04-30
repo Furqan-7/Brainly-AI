@@ -5,7 +5,7 @@ export async function getTranscript(url: string) {
         const transcript = await YoutubeTranscript.fetchTranscript(url);
         console.log("Transcript fetched successfully");
         console.log(transcript);
-        return transcript;
+        return String(transcript);
     } catch (error) {
         console.log("Error fetching transcript");
         console.log(error);

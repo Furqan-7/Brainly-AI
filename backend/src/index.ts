@@ -11,6 +11,9 @@ import { GetPdfText } from "./pdfToText";
 import { UrlToText } from "./UrlToText";
 import { getTranscript } from "./getTranscript";
 import { success } from "zod";
+import { fetchTweet } from "./fetchTweet";
+import { processImage } from "./processImage";
+import { processMemory } from "./processMemory";
 
 const app = express();
 
@@ -145,11 +148,7 @@ app.post("/api/content", MiddleWhere, async (req, res) => {
     })
   }
 
-  const type = req.body.type;
-  const title = req.body.title;
-  const source_url = req.body.source_url;
-  const file_path = req.body.file_path;
-  const metadata = req.body.metadata;
+  const { type, title, source_url, file_path, metadata } = Response.data;
 
   try {
     const memory = await prisma.memories.create({
@@ -163,32 +162,19 @@ app.post("/api/content", MiddleWhere, async (req, res) => {
       }
     });
 
-    if (!memory.source_url || !memory.file_path || !metadata?.content) {
-      return res.status(402).json({
-        message: "Falied to Create Content",
-        success: false
-      })
-    }
+    res.status(201).json({ message: "Content saved, processing...", success: true, id: memory.id });
 
 
-    let text: string | null;
-
-    if (memory.type === "url") text = await UrlToText(memory.source_url);
-    // if (memory.type === "youtube") text = await getTranscript(memory.source_url);
-    // if (memory.type === "tweet") text = await fetchTweet(memory.source_url);
-    // if (memory.type === "pdf") text = await GetPdfText(memory.file_path);
-    // if (memory.type === "note") text = memory.metadata.content;
-    // if (memory.type === "image") text = await runOCR(memory.file_path);
-
-    // const Embeddings = await GetEmbeddings(text);
-    // console.log(Embeddings);
-
+    processMemory(memory).catch(console.error);
 
   } catch (error) {
-
+    console.log(error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    });
   }
-
-})
+});
 
 app.listen(3001, () => {
   console.log("Server is running on port 3001");
