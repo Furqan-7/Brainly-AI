@@ -5,7 +5,8 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
-![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=flat&logo=mongodb&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat&logo=prisma&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-workspace-F69220?style=flat&logo=pnpm&logoColor=white)
 
 ---
@@ -25,7 +26,7 @@ Brainly solves this by acting as a **personal knowledge hub**: save anything, ta
 - 🏷️ **Tagging & organization** — Categorize your knowledge base your way
 - 🔐 **JWT authentication** — Secure user sessions with token-based auth
 - ⚡ **Fast, typed API** — Built end-to-end in TypeScript for reliability
-- 🗃️ **Persistent storage** — MongoDB-backed data that survives sessions
+- 🗃️ **Relational data model** — PostgreSQL with Prisma ORM for type-safe, schema-first storage
 
 ---
 
@@ -44,7 +45,8 @@ Brainly-AI/
 │   │   ├── components/
 │   │   ├── pages/
 │   │   └── api/      # API client layer
-├── db/               # Database config & seed scripts
+├── db/               # Prisma schema & migrations
+│   └── schema.prisma # Data models (User, Content, Tag)
 ├── package.json      # pnpm workspace root
 └── pnpm-workspace.yaml
 ```
@@ -60,7 +62,8 @@ Brainly-AI/
 | Language    | TypeScript (end-to-end)             |
 | Backend     | Node.js, Express.js                 |
 | Frontend    | React, CSS                          |
-| Database    | MongoDB + Mongoose ORM              |
+| Database    | PostgreSQL                          |
+| ORM         | Prisma (type-safe, schema-first)    |
 | Auth        | JWT (JSON Web Tokens)               |
 | Package Mgr | pnpm workspaces (monorepo)          |
 | API Testing | Postman                             |
@@ -73,7 +76,7 @@ Brainly-AI/
 
 - Node.js 18+
 - pnpm (`npm install -g pnpm`)
-- MongoDB (local or Atlas URI)
+- PostgreSQL (local or hosted — e.g. Neon, Supabase)
 
 ### Installation
 
@@ -91,9 +94,20 @@ pnpm install
 Create a `.env` in `backend/`:
 
 ```env
-MONGO_URI=your_mongodb_connection_string
+DATABASE_URL=postgresql://user:password@localhost:5432/brainly
 JWT_SECRET=your_secret_key
 PORT=3001
+```
+
+### Database Setup
+
+```bash
+# Run Prisma migrations
+cd backend
+npx prisma migrate dev
+
+# (Optional) Open Prisma Studio to inspect your DB
+npx prisma studio
 ```
 
 ### Running the App
@@ -136,7 +150,7 @@ All protected routes require `Authorization: Bearer <token>` header.
 ## 🔭 Roadmap
 
 - [ ] Browser extension for one-click saving
-- [ ] Semantic vector search (embeddings)
+- [ ] Semantic vector search (pgvector embeddings)
 - [ ] Sharing collections with other users
 - [ ] Mobile-responsive UI
 - [ ] Cloudflare Workers deployment for edge performance
@@ -148,14 +162,14 @@ All protected routes require `Authorization: Bearer <token>` header.
 
 I personally struggled with knowledge management — bookmarks piled up, interesting threads got lost, and research was impossible to re-find. Brainly is a tool I actually want to use every day.
 
-It also pushed me to think seriously about monorepo architecture, shared TypeScript types, and JWT auth flows — not just follow tutorials, but make real engineering decisions.
+It also pushed me to think seriously about relational data modeling with Prisma, monorepo architecture with pnpm workspaces, shared TypeScript types, and JWT auth flows — not just follow tutorials, but make real engineering decisions.
 
 ---
 
 ## 👤 Author
 
-**Furqan Bodarnur**  
-Full-Stack Engineer | TypeScript · Node.js · React · MongoDB  
+**Bodarni Furqan**  
+Full-Stack Engineer | TypeScript · Node.js · React · PostgreSQL · Prisma  
 [GitHub](https://github.com/Furqan-7) · [LinkedIn](https://linkedin.com/in/furqan-132378327) · [Twitter/X](https://x.com/B_Furqan07)
 
 ---
@@ -163,4 +177,3 @@ Full-Stack Engineer | TypeScript · Node.js · React · MongoDB
 ## 📄 License
 
 MIT — feel free to use, fork, and build on this.
-
