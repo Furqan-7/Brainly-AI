@@ -4,7 +4,7 @@
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat&logo=prisma&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-workspace-F69220?style=flat&logo=pnpm&logoColor=white)
@@ -37,14 +37,12 @@ Brainly-AI/
 ├── backend/          # Node.js + Express REST API (TypeScript)
 │   ├── src/
 │   │   ├── routes/   # API route handlers
-│   │   ├── models/   # MongoDB schemas (Mongoose)
 │   │   ├── middleware/ # JWT auth middleware
 │   │   └── index.ts  # Server entry point
-├── frontend/         # React + TypeScript client
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   └── api/      # API client layer
+├── frontend/         # Next.js + TypeScript client
+│   ├── app/          # App router pages
+│   ├── components/
+│   └── lib/          # API client layer
 ├── db/               # Prisma schema & migrations
 │   └── schema.prisma # Data models (User, Content, Tag)
 ├── package.json      # pnpm workspace root
@@ -61,7 +59,7 @@ Brainly-AI/
 |-------------|-------------------------------------|
 | Language    | TypeScript (end-to-end)             |
 | Backend     | Node.js, Express.js                 |
-| Frontend    | React, CSS                          |
+| Frontend    | Next.js, Tailwind CSS               |
 | Database    | PostgreSQL                          |
 | ORM         | Prisma (type-safe, schema-first)    |
 | Auth        | JWT (JSON Web Tokens)               |
@@ -121,7 +119,7 @@ cd frontend && pnpm dev
 ```
 
 Backend runs on `http://localhost:3001`  
-Frontend runs on `http://localhost:5173`
+Frontend runs on `http://localhost:3000`
 
 ---
 
@@ -169,7 +167,7 @@ It also pushed me to think seriously about relational data modeling with Prisma,
 ## 👤 Author
 
 **Bodarni Furqan**  
-Full-Stack Engineer | TypeScript · Node.js · React · PostgreSQL · Prisma  
+Full-Stack Engineer | TypeScript · Node.js · Next.js · PostgreSQL · Prisma  
 [GitHub](https://github.com/Furqan-7) · [LinkedIn](https://linkedin.com/in/furqan-132378327) · [Twitter/X](https://x.com/B_Furqan07)
 
 ---
