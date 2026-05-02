@@ -1,4 +1,7 @@
-import "dotenv/config";
+import { config } from "dotenv";
+import { resolve } from "path";
+config({ path: resolve(__dirname, "../.env") });
+
 import express from "express";
 import { addContentSchema, signinSchema, signupSchema } from "./types";
 import { prisma } from "db";
@@ -7,15 +10,24 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { MiddleWhere } from "./MiddleWhere";
 import { processMemory } from "./processMemory";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 100,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false
+})
 
+app.use(limiter);
 
 app.post("/signup", async (req, res) => {
+  console.log("Reached Signup");
   const Response = signupSchema.safeParse(req.body);
 
   if (!Response.success) {
@@ -39,6 +51,7 @@ app.post("/signup", async (req, res) => {
         email: email
       }
     });
+    console.log("Failed here ");
 
     if (UserExist) {
       return res.status(400).json({
@@ -61,13 +74,17 @@ app.post("/signup", async (req, res) => {
       success: true
     });
 
-  } catch (e) {
+  } catch (e: any) {
+    console.error("[SIGNUP ERROR]", e?.message ?? e);
     return res.status(500).json({
       message: "Internal Server Error",
-      success: false
+      success: false,
+      error: e?.message ?? String(e),
+      hello: "hi"
     });
   }
 });
+
 
 app.post("/signin", async (require, res) => {
   const Response = signinSchema.safeParse(require.body);
@@ -318,7 +335,7 @@ app.get("/api/content/note", MiddleWhere, async (req, res) => {
     const NoteMemories = await prisma.memories.findMany({
       where: {
         userId: userId,
-        type: "note",
+        type: "pdf",
         status: "ready"
       },
       orderBy: {
@@ -338,16 +355,6 @@ app.get("/api/content/note", MiddleWhere, async (req, res) => {
     })
   }
 });
-
-
-
-
-
-
-
-
-
-
 
 app.listen(3001, () => {
   console.log("Server is running on port 3001");

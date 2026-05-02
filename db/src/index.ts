@@ -1,4 +1,4 @@
-import { Pool, neonConfig } from "@neondatabase/serverless";
+import { neonConfig } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../generated/prisma";
 import ws from "ws";
@@ -6,21 +6,28 @@ import ws from "ws";
 // Required for Neon WebSocket connections in Node.js environments
 neonConfig.webSocketConstructor = ws;
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+let _prisma: PrismaClient | undefined;
 
-function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL!;
-  const pool = new Pool({ connectionString });
-  const adapter = new PrismaNeon(pool);
-  return new PrismaClient({ adapter });
+function getPrismaClient(): PrismaClient {
+  if (!_prisma) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error("DATABASE_URL environment variable is not set!");
+    }
+    // PrismaNeon takes a PoolConfig object (connectionString is a valid PoolConfig field)
+    const adapter = new PrismaNeon({ connectionString });
+    _prisma = new PrismaClient({ adapter });
+  }
+  return _prisma;
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Lazy proxy — PrismaClient is created on first use, ensuring env vars are loaded
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient();
+    const value = (client as any)[prop];
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
 
 export { PrismaClient };
