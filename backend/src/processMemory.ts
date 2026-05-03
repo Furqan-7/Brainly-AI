@@ -64,7 +64,7 @@ export async function processMemory(memory: any) {
         })
     }
     catch (error) {
-        console.log("Failed at Embeddings");
+        console.log("Failed at Embeddings" + error);
         await prisma.memories.update({
             where: { id: memory.id },
             data: { status: "failed" }
