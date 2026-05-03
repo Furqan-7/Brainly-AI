@@ -1,27 +1,17 @@
-import * as cheerio from "cheerio";
 import axios from "axios";
+import * as cheerio from "cheerio";
 
+export async function UrlToText(url: string): Promise<string> {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
 
-export async function UrlToText(url: string) {
+    // remove script, style, nav, footer tags
+    $("script, style, nav, footer, header, noscript, iframe").remove();
 
-    try {
-        const response = await axios.get(url);
+    // get only the meaningful text
+    const text = $("body").text()
+        .replace(/\s+/g, " ")  // collapse whitespace
+        .trim();
 
-        const html = response.data;
-        const $ = cheerio.load(html);
-
-        const title = $('title').text();
-        const description = $('meta[name="description"]').attr('content');
-        const keywords = $('meta[name="keywords"]').attr('content');
-        const canonical = $('link[rel="canonical"]').attr('href');
-        const text = $('body').text();
-
-        const metadata = title + description + keywords + canonical + text;
-
-        return metadata.toString();
-    } catch (error) {
-        console.log(error);
-        return null;
-    }
-
+    return text;
 }

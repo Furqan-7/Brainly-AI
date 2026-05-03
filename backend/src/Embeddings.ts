@@ -1,4 +1,4 @@
-import { Ollama } from "ollama";
+
 import axios from "axios";
 
 export async function GetEmbeddings(content: string) {

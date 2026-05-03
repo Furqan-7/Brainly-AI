@@ -1,9 +1,10 @@
 import fs from 'node:fs/promises';
-const pdf = require("pdf-parse");
+import * as pdfParse from "pdf-parse";
 
-export async function GetPdfText(file_path: string) {
+export async function GetPdfText(file_path: string): Promise<string> {
+    console.log("pdfToText file path:" + file_path);
     const dataBuffer = await fs.readFile(file_path);
-    const data = await pdf(dataBuffer);
-    console.log(data.text);
+    //@ts-ignore
+    const data = await pdfParse.default(dataBuffer);
     return data.text;
 }

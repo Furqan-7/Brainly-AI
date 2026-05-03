@@ -11,6 +11,17 @@ import jwt from "jsonwebtoken";
 import { MiddleWhere } from "./MiddleWhere";
 import { processMemory } from "./processMemory";
 import rateLimit from "express-rate-limit";
+import multer from "multer";
+import path from "path";
+
+const storage = multer.diskStorage({
+  destination: "./uploads/",
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const uploads = multer({ storage });
 
 const app = express();
 
@@ -146,12 +157,21 @@ app.post("/signin", async (require, res) => {
 });
 
 
-app.post("/api/content", MiddleWhere, async (req, res) => {
+app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) => {
   const userId = res.locals.userId;
+
+  if (req.body.type == "pdf") {
+    if (!req.file) {
+      return res.status(400).json({ error: "PDF file is required", success: false });
+    }
+    req.body.file_path = req.file.path;
+  }
+
 
   const Response = addContentSchema.safeParse(req.body);
 
   if (!Response.success) {
+    console.log("ZOD ERROR:", Response.error.format());
     return res.status(411).json({
       message: "Invalid Input",
       success: false
@@ -173,7 +193,6 @@ app.post("/api/content", MiddleWhere, async (req, res) => {
     });
 
     res.status(201).json({ message: "Content saved, processing...", success: true, id: memory.id });
-
 
     processMemory(memory).catch(console.error).then(() => {
       console.log("Memory processed successfully");
@@ -335,7 +354,7 @@ app.get("/api/content/note", MiddleWhere, async (req, res) => {
     const NoteMemories = await prisma.memories.findMany({
       where: {
         userId: userId,
-        type: "pdf",
+        type: "note",
         status: "ready"
       },
       orderBy: {
