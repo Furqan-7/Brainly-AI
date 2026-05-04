@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Profiler, useState } from "react";
 import { motion } from "motion/react";
 import {
     Search,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import AddContent from "../components/AddContent";
 import { ContentGrid } from "../components/ContentGrid";
+import Profile from "../components/Profile";
 
 const navLinks = [
     { label: "Memories", icon: LayoutDashboard, active: true },
@@ -37,6 +38,7 @@ export default function ChatPage() {
     const [activeFilter, setActiveFilter] = useState("All");
     const [activeView, setActiveView] = useState("Recent");
     const [isAddContentOpen, setIsAddContentOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
 
 
     return (
@@ -83,12 +85,24 @@ export default function ChatPage() {
                             <Plus className="w-3.5 h-3.5" />
                             Add Memory
                         </button>
-                        <button className="w-7 h-7 rounded-full bg-surface-container-high border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
+                        <button onClick={() => {
+                            setIsProfileOpen(prev => !prev);
+                        }} className="w-7 h-7 rounded-full bg-surface-container-high border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
                             <UserCircle2 className="w-4 h-4" />
                         </button>
                     </div>
                 </nav>
             </header>
+
+            {isProfileOpen && (
+                <div className="absolute right-4 top-12 z-50">
+                    <Profile
+                        isProfileOpen={isProfileOpen}
+                        setIsProfileOpen={setIsProfileOpen}
+                    />
+                </div>
+            )}
+
 
             {isAddContentOpen && (
                 <div className="fixed inset-0 w-full h-screen z-[9999] rounded-xl overflow-hidden shadow-2xl relative z-10 bg-surface" >

@@ -34,14 +34,13 @@ export default function Home() {
     if (!token) {
       return;
     }
-
     router.push("/chat");
-
   }, []);
 
   const handleGetStarted = () => {
     router.push("/auth/signup");
-  }
+  };
+
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
