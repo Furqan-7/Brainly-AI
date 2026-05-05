@@ -159,7 +159,7 @@ app.post("/signin", async (require, res) => {
 
 app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) => {
   const userId = res.locals.userId;
-
+  console.log(req.body);
   if (req.body.type == "pdf") {
     if (!req.file) {
       return res.status(400).json({ error: "PDF file is required", success: false });

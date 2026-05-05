@@ -38,18 +38,26 @@ export default function SignInPage() {
   const router = useRouter();
 
   const handleSignIn = async () => {
-    const Response = await axios.post("http://localhost:3001/signin", {
-      email,
-      password
-    });
+    try {
+      const Response = await axios.post("http://localhost:3001/signin", {
+        email,
+        password
+      });
 
-    if (Response.data.success) {
-      localStorage.setItem("token", Response.data.token);
-      const user = jwtDecode<MyTokenPayload>(Response.data.token);
-      const username = user.username;
-      router.push("/chat");
-    } else {
-      alert("Invalid credentials");
+      if (Response.data.success) {
+        localStorage.setItem("token", Response.data.token);
+        const user = jwtDecode<MyTokenPayload>(Response.data.token);
+        const username = user.username;
+        router.push("/chat");
+      } else {
+        alert(Response.data.message ?? "Sign in failed");
+      }
+    } catch (err: any) {
+      // Show the actual error message returned by the backend
+      const serverMsg = err?.response?.data?.message;
+      const status = err?.response?.status;
+      alert(`Error ${status}: ${serverMsg ?? err.message}`);
+      console.error("[SIGNIN ERROR]", err?.response?.data ?? err);
     }
   };
 

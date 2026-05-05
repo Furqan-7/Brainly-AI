@@ -10,12 +10,12 @@ datasource db {
 }
 
 enum ContentType {
-  pdf
-  url
-  youtube
-  tweet
-  note
-  image
+  pdf //done 
+  url //done
+  youtube //done
+  tweet //not done
+  note // done
+  image // not done
 }
 
 enum Status {
