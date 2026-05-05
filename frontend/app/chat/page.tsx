@@ -21,6 +21,7 @@ import {
 import AddContent from "../components/AddContent";
 import { ContentGrid } from "../components/ContentGrid";
 import Profile from "../components/Profile";
+import UserProfileDropdown from "../components/Profile";
 
 const navLinks = [
     { label: "Memories", icon: LayoutDashboard, active: true },
@@ -39,6 +40,8 @@ export default function ChatPage() {
     const [activeView, setActiveView] = useState("Recent");
     const [isAddContentOpen, setIsAddContentOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+
 
 
     return (
@@ -95,11 +98,8 @@ export default function ChatPage() {
             </header>
 
             {isProfileOpen && (
-                <div className="absolute right-4 top-12 z-50">
-                    <Profile
-                        isProfileOpen={isProfileOpen}
-                        setIsProfileOpen={setIsProfileOpen}
-                    />
+                <div className="absolute right-10 top-12 z-50">
+                    <UserProfileDropdown />
                 </div>
             )}
 

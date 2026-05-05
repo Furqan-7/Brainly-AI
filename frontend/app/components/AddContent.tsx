@@ -117,18 +117,19 @@ export default function AddContent({
         setFile(null);
     }
 
-    function handleSubmit() {
-        // TODO: wire to API
+    async function handleSubmit() {
 
-        // const Response = axios.post("http://localhost:3001/api/content",{
-        //       type:activeType,
-        //       title,
-        //       url,
-        //       note,
-        //       context,
-        //       file,
-        // });
-        console.log({ type: activeType, title, url, note, context, file });
+        const Response = await axios.post("http://localhost:3001/api/content", {
+            type: activeType,
+            title,
+            url,
+            note,
+            context,
+            file,
+        });
+        if (Response.status === 201) {
+            console.log("Content added successfully");
+        }
         handleClose();
     }
 
