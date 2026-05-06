@@ -45,12 +45,12 @@ const cards = [
 
 export function ContentGrid() {
 
-    return <div>
+    return <div >
         <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto"
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto mt-10"
         >
             {/* YouTube card — tall */}
             <div className="md:row-span-2 flex flex-col bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all group">

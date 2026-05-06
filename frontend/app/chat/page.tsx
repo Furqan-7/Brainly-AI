@@ -17,6 +17,7 @@ import {
     Lightbulb,
     Settings,
     UserCircle2,
+    ArrowDown,
 } from "lucide-react";
 import AddContent from "../components/AddContent";
 import { ContentGrid } from "../components/ContentGrid";
@@ -40,8 +41,6 @@ export default function ChatPage() {
     const [activeView, setActiveView] = useState("Recent");
     const [isAddContentOpen, setIsAddContentOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-
-
 
 
     return (
@@ -154,8 +153,22 @@ export default function ChatPage() {
                         </div>
                     </div>
 
+
+                    {/* {Scroll Down Icon } */}
+                    <div className="mt-70 flex justify-center items-center flex-col gap-1  ">
+                        <div className="flex justify-center items-center flex-col gap-1">
+                            <div className="text-on-surface-variant/60">
+                                <p>Scroll Down to see your Memories</p>
+                            </div>
+                            <div className="justify-center flex">
+                                <ArrowDown className="w-5 h-5 text-on-surface-variant/70 " />
+                            </div>
+                        </div>
+
+
+                    </div>
                     {/* View tabs — Recent / Starred / Archives */}
-                    <div className="flex justify-center gap-2">
+                    <div className="flex justify-center gap-2  mt-20">
                         {viewTabs.map((tab) => (
                             <button
                                 key={tab}
@@ -192,6 +205,8 @@ export default function ChatPage() {
                         </button>
                     ))}
                 </motion.div>
+
+
 
                 {/* ── BENTO GRID ── */}
                 <ContentGrid />
