@@ -1,53 +1,34 @@
-import * as cheerio from "cheerio";
-import axios from "axios";
+import { Scraper } from "@the-convocation/twitter-scraper";
 
-const NITTER_INSTANCES = [
-    "nitter.privacydev.net",
-    "nitter.poast.org",
-    "nitter.catsarch.com",
-    "nitter.unixfox.eu",
-];
+const scraper = new Scraper();
 
-export async function fetchTweet(TweetUrl: string): Promise<string> {
-    console.log("fetchTweet url: " + TweetUrl);
+export async function fetchTweet(url: string) {
+    try {
+        const tweetId = url.split("/status/")[1]?.split("?")[0];
 
-    // extract the path from the tweet URL
-    // https://x.com/user/status/123 → /user/status/123
-    const urlPath = TweetUrl
-        .replace("https://twitter.com", "")
-        .replace("https://x.com", "")
-        .replace("http://twitter.com", "")
-        .replace("http://x.com", "");
+        const tweet = await scraper.getTweet(tweetId);
 
-    for (const instance of NITTER_INSTANCES) {
-        try {
-            const nitterUrl = `https://${instance}${urlPath}`;
-            console.log("Trying nitter instance: " + nitterUrl);
-
-            const { data } = await axios.get(nitterUrl, {
-                timeout: 5000, // don't wait too long per instance
-                headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                }
-            });
-
-            const $ = cheerio.load(data);
-            const allTweets = $(".tweet-content")
-                .map((_, el) => $(el).text().trim())
-                .get()
-                .join("\n\n");
-
-            if (allTweets) {
-                console.log("Tweet fetched successfully: " + allTweets);
-                return allTweets;
-            }
-
-        } catch (error) {
-            console.log(`Instance ${instance} failed, trying next...`);
-            continue; // try next instance
+        if (!tweet) {
+            throw new Error("Could not fetch tweet");
         }
-    }
 
-    console.log("All nitter instances failed");
-    return "";
+        const text = [
+            tweet.text,                          // main tweet content
+            tweet.hashtags.join(" "),            // hashtags as context
+            `By @${tweet.username} (${tweet.name})`, // author context
+        ]
+            .filter(Boolean)
+            .join("\n");
+
+        console.log(text);
+
+        return text;
+
+
+
+
+    } catch (error) {
+        console.log("Error while fetching tweet " + error);
+        return "";
+    }
 }

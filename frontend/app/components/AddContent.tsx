@@ -118,32 +118,39 @@ export default function AddContent({
     }
 
     async function handleSubmit() {
-        console.log(activeType);
-        console.log(title);
-        console.log(url);
-        console.log(note);
-        console.log(context);
-        console.log(file);
-        const token = localStorage.getItem("token");
-        console.log("token", token);
+        let payload;
+        let config = {
+            headers: {
+                token: localStorage.getItem("token"),
+            },
+        };
 
-        const Response = await axios.post("http://localhost:3001/api/content", {
-            type: activeType,
-            title,
-            source_url: url,
-            note,
-            context,
-            file_path: file,
-        },
-            {
-                headers: {
-                    token: localStorage.getItem("token")
-                }
-            }
+        if (file) {
+            const formdata = new FormData();
+            formdata.append("type", activeType);
+            formdata.append("title", title);
+            formdata.append("file", file);
+            payload = formdata;
+        } else {
+            payload = {
+                type: activeType,
+                title,
+                source_url: url,
+                note,
+                metadata: context,
+            };
+        }
+
+        const Response = await axios.post(
+            "http://localhost:3001/api/content",
+            payload,
+            config
         );
+
         if (Response.status === 201) {
             console.log("Content added successfully");
         }
+
         setIsAddContentOpen(false);
         handleClose();
     }

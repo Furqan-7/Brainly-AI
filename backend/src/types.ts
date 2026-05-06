@@ -14,7 +14,7 @@ export const signinSchema = z.object({
 export const addContentSchema = z.object({
     type: z.enum(["pdf", "url", "youtube", "tweet", "note", "image"]),
     title: z.string().min(1),
-    source_url: z.string().url().optional().nullable(),
+    source_url: z.string().optional().nullable(),
     file_path: z.string().optional().nullable(),
     status: z.enum(["pending", "processing", "ready", "failed"]).default("pending"),
     metadata: z.any().optional(),

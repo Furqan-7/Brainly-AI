@@ -42,6 +42,7 @@ model Memories {
   title      String
   source_url String?
   file_path  String?
+  note       String?
   status     Status      @default(pending)
   metadata   Json?
   createdAt  DateTime    @default(now())
