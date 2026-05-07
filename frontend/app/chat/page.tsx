@@ -1,6 +1,6 @@
 "use client";
 
-import { Profiler, useState } from "react";
+import { Profiler, useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
     Search,
@@ -20,9 +20,11 @@ import {
     ArrowDown,
 } from "lucide-react";
 import AddContent from "../components/AddContent";
-import { ContentGrid } from "../components/ContentGrid";
+import { ContentGrid, MemoryCard } from "../components/ContentGrid";
 import Profile from "../components/Profile";
 import UserProfileDropdown from "../components/Profile";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 
 const navLinks = [
     { label: "Memories", icon: LayoutDashboard, active: true },
