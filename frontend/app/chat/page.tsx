@@ -18,6 +18,7 @@ import {
     Settings,
     UserCircle2,
     ArrowDown,
+    Loader2,
 } from "lucide-react";
 import AddContent from "../components/AddContent";
 import { ContentGrid, MemoryCard } from "../components/ContentGrid";
@@ -35,6 +36,19 @@ const navLinks = [
 const viewTabs = ["Recent", "Starred", "Archives"];
 
 const contentFilters = ["All", "Web Pages", "Videos", "Tweets", "Documents", "Notes"];
+type MemoryType = "youtube" | "pdf" | "tweet" | "url" | "note" | "image";
+
+interface Memory {
+    id: number;
+    userId: number;
+    type: MemoryType;
+    title: string;
+    source_url: string | null;
+    file_path: string | null;
+    status: "pending" | "processing" | "ready" | "failed";
+    metadata: any;
+    createdAt: string;
+}
 
 
 
@@ -43,6 +57,63 @@ export default function ChatPage() {
     const [activeView, setActiveView] = useState("Recent");
     const [isAddContentOpen, setIsAddContentOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [memories, setMemories] = useState<Memory[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    useEffect(() => {
+        fetchMemories();
+    }, []);
+
+    const fetchMemories = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get("http://localhost:3001/api/content", {
+                headers: { token }
+            });
+
+            // ✅ log this to see exact structure
+            console.log("API response:", res.data);
+
+            // ✅ adjust path to match your actual response
+            const data = res.data.memories        // try this first
+                ?? res.data.data?.memories  // fallback
+                ?? [];
+
+            setMemories(data.filter(Boolean));    // remove any undefined items
+
+        } catch (err) {
+            setError("Failed to load memories.");
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-6 h-6 text-primary-container animate-spin" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <p className="text-sm text-error">{error}</p>
+            </div>
+        );
+    }
+
+    if (memories.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <Brain className="w-10 h-10 text-on-surface-variant/20" />
+                <p className="text-sm text-on-surface-variant/50">No memories yet. Add your first one!</p>
+            </div>
+        );
+    }
 
 
     return (
@@ -107,11 +178,10 @@ export default function ChatPage() {
 
             {isAddContentOpen && (
                 <div className="fixed inset-0 w-full h-screen z-[9999] rounded-xl overflow-hidden shadow-2xl relative z-10 bg-surface" >
-                    <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} />
+                    <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} fetchMemories={fetchMemories} />
                 </div>
             )}
 
-            <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} />
 
             {/* ── MAIN ── */}
             <main className="w-full max-w-5xl mx-auto px-6 md:px-10 pt-20 pb-10 space-y-8">
@@ -211,7 +281,7 @@ export default function ChatPage() {
 
 
                 {/* ── BENTO GRID ── */}
-                <ContentGrid />
+                <ContentGrid memories={memories} />
             </main>
 
             {/* ── FAB BUTTONS ── */}

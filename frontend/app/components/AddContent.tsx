@@ -76,9 +76,11 @@ const URL_TYPES: ContentType[] = ["url", "youtube", "tweet"];
 export default function AddContent({
     isAddContentOpen,
     setIsAddContentOpen,
+    fetchMemories
 }: {
     isAddContentOpen: boolean;
     setIsAddContentOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    fetchMemories: () => Promise<void>;
 }) {
     const [activeType, setActiveType] = useState<ContentType>("url");
     const [title, setTitle] = useState("");
@@ -149,6 +151,8 @@ export default function AddContent({
 
         if (Response.status === 201) {
             console.log("Content added successfully");
+            await fetchMemories();
+
         }
 
         setIsAddContentOpen(false);
@@ -383,13 +387,13 @@ export default function AddContent({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleClose}
-                            className="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/6 transition-all"
+                            className="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/6 transition-all hover:cursor-pointer"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSubmit}
-                            className="px-5 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-600/20"
+                            className="px-5 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-600/20 hover:cursor-pointer"
                         >
                             Save to Brain
                         </button>

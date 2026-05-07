@@ -13,6 +13,7 @@ import { processMemory } from "./processMemory";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import path from "path";
+import { getYoutubeThumbnail } from "./getYoutubeThumbnail";
 
 const storage = multer.diskStorage({
   destination: "./uploads/",
@@ -180,6 +181,13 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
 
   const { type, title, source_url, file_path, metadata } = Response.data;
 
+  let thumbnail = null;
+
+  if (type === "youtube" && source_url) {
+    thumbnail = getYoutubeThumbnail(source_url);
+    console.log(thumbnail);
+  }
+
   try {
     const memory = await prisma.memories.create({
       data: {
@@ -188,7 +196,9 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
         title,
         source_url,
         file_path,
-        metadata
+        metadata: {
+          thumbnail_url: thumbnail
+        }
       }
     });
 
