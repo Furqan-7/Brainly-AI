@@ -26,6 +26,13 @@ export const ChunksSchema = z.object({
     embedding: z.array(z.number()),
 });
 
+
+export const ChatSchema = z.object({
+    question: z.string().min(5, "Question must be at least 5 characters long").max(200, "Question must be at most 200 characters long"),
+});
+
+export type ChatInput = z.infer<typeof ChatSchema>;
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type SigninInput = z.infer<typeof signinSchema>;
 export type AddContentInput = z.infer<typeof addContentSchema>;

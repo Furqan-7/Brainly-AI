@@ -3,7 +3,7 @@ import { resolve } from "path";
 config({ path: resolve(__dirname, "../.env") });
 
 import express from "express";
-import { addContentSchema, signinSchema, signupSchema } from "./types";
+import { addContentSchema, ChatSchema, signinSchema, signupSchema } from "./types";
 import { prisma } from "db";
 import cors from "cors";
 import bcrypt from "bcrypt";
@@ -14,6 +14,9 @@ import rateLimit from "express-rate-limit";
 import multer from "multer";
 import path from "path";
 import { getYoutubeThumbnail } from "./getYoutubeThumbnail";
+import { GetEmbeddings } from "./Embeddings";
+import axios from "axios";
+import { GetLLMResponse } from "./GetLLMResponse";
 
 const storage = multer.diskStorage({
   destination: "./uploads/",
@@ -216,6 +219,118 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
     });
   }
 });
+
+app.post("/api/chat", MiddleWhere, async (req, res) => {
+
+  console.log("Reached api/chat with question : " + req.body.question);
+
+  const Response = ChatSchema.safeParse(req.body);
+
+  if (!Response.success) {
+    return res.status(411).json({
+      message: "Invalid Input",
+      success: false
+    })
+  }
+
+  const question = Response.data.question;
+  const userId = res.locals.userId;
+
+  try {
+    // Step 1 — Embed the question
+    const Embedings = await GetEmbeddings(question);
+
+    // Step 2 — Vector search: find top 5 most similar chunks for this user
+    const similarChunks = await prisma.$queryRaw<{
+      id: number;
+      MemoryId: number;
+      content: string;
+      chunk_index: number;
+      similarity: number;
+      title: string;
+      type: string;
+      source_url: string | null;
+    }[]>`
+      SELECT 
+        c.id,
+        c."MemoryId",
+        c.content,
+        c.chunk_index,
+        m.title,
+        m.type,
+        m.source_url,
+        1 - (c.embedding <=> ${JSON.stringify(Embedings)}::vector) AS similarity
+      FROM "Chunks" c
+      JOIN "Memories" m ON c."MemoryId" = m.id
+      WHERE m."userId" = ${userId}
+        AND m.status = 'ready'
+      ORDER BY c.embedding <=> ${JSON.stringify(Embedings)}::vector
+      LIMIT 5
+    `;
+
+    if (!similarChunks || similarChunks.length === 0) {
+      return res.status(200).json({
+        message: "No relevant memories found",
+        success: true,
+        answer: "I couldn't find anything relevant in your knowledge base. Try saving some content first.",
+        sources: []
+      });
+    }
+
+    // Step 3 — Build context from the top chunks
+    const context = similarChunks
+      .map((chunk, i) => `[Source ${i + 1} - ${chunk.type.toUpperCase()}: "${chunk.title}"]\n${chunk.content}`)
+      .join("\n\n---\n\n");
+
+    // Step 4 — Build sources list for the response
+    const sources = similarChunks.map(chunk => ({
+      memoryId: chunk.MemoryId,
+      title: chunk.title,
+      type: chunk.type,
+      source_url: chunk.source_url,
+      similarity: Number(chunk.similarity).toFixed(2)
+    }));
+
+    // Step 5 — Call Ollama LLM with context + question
+    const prompt = `You are Brainly AI, a personal knowledge assistant.
+You have access to the user's saved content below. Answer the user's question using ONLY the provided context.
+If the answer is not in the context, say: "I couldn't find that in your saved content."
+Never make up information. Always be concise and accurate.
+
+CONTEXT FROM USER'S KNOWLEDGE BASE:
+${context}
+
+USER QUESTION: ${question}
+
+ANSWER:`;
+
+    const llmResponse = await GetLLMResponse(prompt);
+
+    const answer = llmResponse;
+
+    // Step 6 — Return answer + sources
+    return res.status(200).json({
+      message: "Chat response generated",
+      success: true,
+      answer,
+      sources
+    });
+
+
+
+
+  } catch (error) {
+    console.log("Chat Error " + error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    })
+  }
+
+
+
+});
+
 
 app.get("/api/content", MiddleWhere, async (req, res) => {
   const userId = res.locals.userId;

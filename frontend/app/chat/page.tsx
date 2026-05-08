@@ -26,6 +26,7 @@ import Profile from "../components/Profile";
 import UserProfileDropdown from "../components/Profile";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { ChatComponent } from "../components/ChatComponent";
 
 const navLinks = [
     { label: "Memories", icon: LayoutDashboard, active: true },
@@ -60,6 +61,12 @@ export default function ChatPage() {
     const [memories, setMemories] = useState<Memory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [submittedQuery, setSubmittedQuery] = useState("");
+
+
+
     useEffect(() => {
         fetchMemories();
     }, []);
@@ -169,13 +176,15 @@ export default function ChatPage() {
                 </nav>
             </header>
 
+
+            {/* Profile Icon Section  */}
             {isProfileOpen && (
                 <div className="absolute right-10 top-12 z-50">
                     <UserProfileDropdown />
                 </div>
             )}
 
-
+            {/* Add Content Section  */}
             {isAddContentOpen && (
                 <div className="fixed inset-0 w-full h-screen z-[9999] rounded-xl overflow-hidden shadow-2xl relative z-10 bg-surface" >
                     <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} fetchMemories={fetchMemories} />
@@ -213,17 +222,24 @@ export default function ChatPage() {
                         <div className="absolute -inset-1 bg-[#6366F1] rounded-xl blur-xl opacity-20 group-focus-within:opacity-40 transition-opacity" />
                         <div className="relative flex w-full items-center bg-surface-container-high border border-outline-variant/30 rounded-xl overflow-hidden px-4 h-12 shadow-2xl gap-3">
                             <Search className="w-4 h-4 text-primary-fixed-dim shrink-0" />
-                            <input
+                            <input onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                            }}
                                 className="bg-transparent border-none focus:ring-0 w-full text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none"
                                 placeholder="Search your memories, documents, or insights..."
                                 type="text"
                             />
-                            <button className="flex items-center gap-1.5 bg-surface-container-highest px-3 py-1.5 rounded-lg border border-outline-variant/50 hover:bg-surface-bright transition-colors shrink-0 cursor-pointer">
+                            <button onClick={() => {
+                                setSubmittedQuery(searchQuery);
+                            }} className="flex items-center gap-1.5 bg-surface-container-highest px-3 py-1.5 rounded-lg border border-outline-variant/50 hover:bg-surface-bright transition-colors shrink-0 cursor-pointer">
                                 <SlidersHorizontal className="w-3 h-3" />
                                 <span className="text-[10px] font-bold tracking-widest uppercase">Filter</span>
                             </button>
                         </div>
                     </div>
+
+                    {/* Querry Result Component  */}
+                    <ChatComponent text={submittedQuery} />
 
 
                     {/* {Scroll Down Icon } */}
