@@ -308,6 +308,8 @@ ANSWER:`;
 
     const answer = llmResponse;
 
+    console.log(answer);
+
     // Step 6 — Return answer + sources
     return res.status(200).json({
       message: "Chat response generated",
@@ -315,6 +317,8 @@ ANSWER:`;
       answer,
       sources
     });
+
+
 
 
 

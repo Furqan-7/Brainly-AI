@@ -1,31 +1,39 @@
-import { GoogleGenerativeAI }
-    from "@google/generative-ai";
+import OpenAI from "openai";
+import { config } from "dotenv";
 
-const genAI =
-    new GoogleGenerativeAI(
-        process.env.GEMINI_API_KEY!
-    );
+config();
+
+const client = new OpenAI({
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: "https://api.groq.com/openai/v1",
+});
 
 export async function GetLLMResponse(
     prompt: string
 ) {
+
     try {
-        const model =
-            genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+
+        const completion =
+            await client.chat.completions.create({
+                model: "llama-3.3-70b-versatile",
+
+                messages: [
+                    {
+                        role: "user",
+                        content: prompt,
+                    },
+                ],
             });
 
-        const result =
-            await model.generateContent(
-                prompt
-            );
-
-        return result.response.text();
+        return completion
+            .choices[0]
+            .message.content;
 
     } catch (error) {
 
         console.error(
-            "Gemini Error:",
+            "Groq Error:",
             error
         );
 
