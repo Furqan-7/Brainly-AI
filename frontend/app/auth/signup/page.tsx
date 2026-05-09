@@ -35,6 +35,7 @@ export default function SignupPage() {
   const router = useRouter();
 
   const handleCreateAccount = async () => {
+    console.log(process.env.NEXT_PUBLIC_API);
     const Response = await axios.post(`${process.env.NEXT_PUBLIC_API}/signup`, {
       username,
       email,
@@ -42,7 +43,7 @@ export default function SignupPage() {
     });
 
     if (Response.data.success) {
-      router.push(`/chat?name=${encodeURIComponent(Response.data.username)}`);
+      router.push(`/chat`);
     } else {
       alert("User already exist");
     }
