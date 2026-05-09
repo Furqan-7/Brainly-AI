@@ -40,10 +40,11 @@ export default function SignInPage() {
 
   const handleSignIn = async () => {
     try {
-      const Response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/signin`, {
+      const Response = await axios.post(`${process.env.NEXT_PUBLIC_API}/signin`, {
         email,
         password
       });
+      console.log(Response.data);
 
       if (Response.data.success) {
         localStorage.setItem("token", Response.data.token);
