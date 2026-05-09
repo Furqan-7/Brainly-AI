@@ -61,6 +61,7 @@ export default function ChatPage() {
     const [memories, setMemories] = useState<Memory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [submittedQuery, setSubmittedQuery] = useState("");
@@ -74,6 +75,9 @@ export default function ChatPage() {
     const fetchMemories = async () => {
         try {
             const token = localStorage.getItem("token");
+            if (!token) {
+                router.push("/");
+            }
             const res = await axios.get(`${process.env.NEXT_PUBLIC_API}/api/content`, {
                 headers: { token }
             });

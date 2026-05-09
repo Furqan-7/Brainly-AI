@@ -355,6 +355,7 @@ app.get("/api/content", MiddleWhere, async (req, res) => {
       memories: Memories
     })
   } catch (error) {
+    console.error("[GET /api/content] Error:", error);
     return res.status(500).json({
       message: "Internal Server Error",
       success: false
