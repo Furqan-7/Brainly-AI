@@ -8,6 +8,7 @@ import axios from "axios";
 import { jwtDecode, JwtPayload } from "jwt-decode";
 import ChatPage from "@/app/chat/page";
 
+
 const features = [
   {
     icon: Database,
@@ -39,7 +40,7 @@ export default function SignInPage() {
 
   const handleSignIn = async () => {
     try {
-      const Response = await axios.post("http://localhost:3001/signin", {
+      const Response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/signin`, {
         email,
         password
       });

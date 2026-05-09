@@ -74,7 +74,7 @@ export default function ChatPage() {
     const fetchMemories = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get("http://localhost:3001/api/content", {
+            const res = await axios.get(`${process.env.NEXT_PUBLIC_API}/api/content`, {
                 headers: { token }
             });
 

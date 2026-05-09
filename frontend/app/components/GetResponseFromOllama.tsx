@@ -6,7 +6,7 @@ export async function GetResponseFromOllama(
 ) {
     try {
         const res = await axios.post(
-            "http://localhost:3001/api/chat",
+            `${process.env.NEXT_PUBLIC_API}/api/chat`,
             {
                 question: text,
             },

@@ -144,7 +144,7 @@ export default function AddContent({
         }
 
         const Response = await axios.post(
-            "http://localhost:3001/api/content",
+            `${process.env.NEXT_PUBLIC_API}/api/content`,
             payload,
             config
         );

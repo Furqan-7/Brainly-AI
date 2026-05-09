@@ -35,7 +35,7 @@ export default function SignupPage() {
   const router = useRouter();
 
   const handleCreateAccount = async () => {
-    const Response = await axios.post("http://localhost:3001/signup", {
+    const Response = await axios.post(`${process.env.NEXT_PUBLIC_API}/signup`, {
       username,
       email,
       password
