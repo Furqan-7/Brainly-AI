@@ -43,6 +43,8 @@ export default function SignupPage() {
     });
 
     if (Response.data.success) {
+      localStorage.setItem("token", Response.data.token);
+      localStorage.setItem("username", Response.data.username);
       router.push(`/chat`);
     } else {
       alert("User already exist");

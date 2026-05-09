@@ -182,6 +182,7 @@ export default function UserProfileDropdown({
                                 onClick={() => {
                                     setIsOpen(false);
                                     localStorage.removeItem("token");
+                                    localStorage.removeItem("username");
                                     route.push("/");
                                     onLogout?.();
                                 }}

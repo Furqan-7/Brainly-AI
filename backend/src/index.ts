@@ -66,7 +66,7 @@ app.post("/signup", async (req, res) => {
         email: email
       }
     });
-    console.log("Failed here ");
+
 
     if (UserExist) {
       return res.status(400).json({
@@ -82,9 +82,16 @@ app.post("/signup", async (req, res) => {
       }
     });
 
+    const token = jwt.sign({
+      userId: user.id, username: user.username
+    }, process.env.JWT_TOKEN as string, {
+      expiresIn: "7d"
+    });
+
     return res.status(200).json({
       message: "User created successfully",
       username: user.username,
+      token: token,
       id: user.id,
       success: true
     });

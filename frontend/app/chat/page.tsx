@@ -61,10 +61,13 @@ export default function ChatPage() {
     const [memories, setMemories] = useState<Memory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [username, setUsername] = useState("");
     const router = useRouter();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [submittedQuery, setSubmittedQuery] = useState("");
+
+
 
 
 
@@ -75,6 +78,10 @@ export default function ChatPage() {
     const fetchMemories = async () => {
         try {
             const token = localStorage.getItem("token");
+            const name = localStorage.getItem("username");
+            if (name) {
+                setUsername(name);
+            }
             if (!token) {
                 router.push("/");
             }
@@ -117,14 +124,6 @@ export default function ChatPage() {
         );
     }
 
-    if (memories.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <Brain className="w-10 h-10 text-on-surface-variant/20" />
-                <p className="text-sm text-on-surface-variant/50">No memories yet. Add your first one!</p>
-            </div>
-        );
-    }
 
 
     return (
@@ -207,7 +206,7 @@ export default function ChatPage() {
                     className="text-center space-y-1.5 pt-4"
                 >
                     <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-on-surface">
-                        Good Evening, Furqan
+                        Good Evening, {username || "User"}
                     </h1>
                     <p className="text-on-surface-variant text-sm font-medium opacity-70">
                         Your digital mind is synchronized and ready.
@@ -301,7 +300,14 @@ export default function ChatPage() {
 
 
                 {/* ── BENTO GRID ── */}
-                <ContentGrid memories={memories} />
+                {memories.length > 0 ? (
+                    <ContentGrid memories={memories} />
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                        <Brain className="w-10 h-10 text-on-surface-variant/20" />
+                        <p className="text-sm text-on-surface-variant/50">No memories yet. Add your first one!</p>
+                    </div>
+                )}
             </main>
 
             {/* ── FAB BUTTONS ── */}
