@@ -4,23 +4,18 @@ export async function GetResponseFromOllama(
     text: string,
     token: string
 ) {
-    try {
-        const res = await axios.post(
-            `${process.env.NEXT_PUBLIC_API}/api/chat`,
-            {
-                question: text,
+    // Let errors propagate — ChatComponent handles them
+    const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API}/api/chat`,
+        {
+            question: text,
+        },
+        {
+            headers: {
+                token,
             },
-            {
-                headers: {
-                    token,
-                },
-            }
-        );
+        }
+    );
 
-        return res.data;
-
-    } catch (err) {
-        console.error(err);
-        return "Something went wrong";
-    }
+    return res.data;
 }

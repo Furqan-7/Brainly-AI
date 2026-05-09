@@ -27,6 +27,8 @@ interface Source {
 }
 
 interface AIResponse {
+    success: boolean;
+    message?: string;
     answer: string;
     sources: Source[];
 }
@@ -209,15 +211,20 @@ export function ChatComponent({
 
                 setThinkingState("done");
 
-                setStatusLabel("Answer ready");
-
-                setLLMResponse(
-                    response.answer || ""
-                );
-
-                setSources(
-                    response.sources || []
-                );
+                if (response.success) {
+                    setStatusLabel("Answer ready");
+                    setLLMResponse(
+                        response.answer || ""
+                    );
+                    setSources(
+                        response.sources || []
+                    );
+                } else {
+                    setStatusLabel("Failed");
+                    setError(
+                        response.message || "Failed to generate AI response."
+                    );
+                }
 
                 setTimeout(() => {
                     setThinkingState("idle");

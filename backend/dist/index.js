@@ -58,7 +58,6 @@ app.post("/signup", async (req, res) => {
                 email: email
             }
         });
-        console.log("Failed here ");
         if (UserExist) {
             return res.status(400).json({
                 message: "User already exists with this email"
@@ -71,9 +70,15 @@ app.post("/signup", async (req, res) => {
                 password: HashedPassword
             }
         });
+        const token = jsonwebtoken_1.default.sign({
+            userId: user.id, username: user.username
+        }, process.env.JWT_TOKEN, {
+            expiresIn: "7d"
+        });
         return res.status(200).json({
             message: "User created successfully",
             username: user.username,
+            token: token,
             id: user.id,
             success: true
         });
@@ -291,6 +296,7 @@ app.get("/api/content", MiddleWhere_1.MiddleWhere, async (req, res) => {
         });
     }
     catch (error) {
+        console.error("[GET /api/content] Error:", error);
         return res.status(500).json({
             message: "Internal Server Error",
             success: false
