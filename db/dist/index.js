@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PrismaClient = exports.prisma = void 0;
 const serverless_1 = require("@neondatabase/serverless");
 const adapter_neon_1 = require("@prisma/adapter-neon");
-const index_js_1 = require("../generated/prisma/index.js");
-Object.defineProperty(exports, "PrismaClient", { enumerable: true, get: function () { return index_js_1.PrismaClient; } });
+const client_1 = require("@prisma/client");
+Object.defineProperty(exports, "PrismaClient", { enumerable: true, get: function () { return client_1.PrismaClient; } });
 const ws_1 = __importDefault(require("ws"));
 // Required for Neon WebSocket connections in Node.js environments
 serverless_1.neonConfig.webSocketConstructor = ws_1.default;
@@ -20,7 +20,7 @@ function getPrismaClient() {
         }
         // PrismaNeon takes a PoolConfig object (connectionString is a valid PoolConfig field)
         const adapter = new adapter_neon_1.PrismaNeon({ connectionString });
-        _prisma = new index_js_1.PrismaClient({ adapter });
+        _prisma = new client_1.PrismaClient({ adapter });
     }
     return _prisma;
 }

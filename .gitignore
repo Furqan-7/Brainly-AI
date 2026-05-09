@@ -5,3 +5,6 @@ node_modules
 *node_modules
 .vscode
 /backend/uploads
+/db/generated
+/db/dist
+/backend/dist
