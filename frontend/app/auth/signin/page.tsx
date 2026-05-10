@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Brain, Search, MessageSquare, Database, Mail, Lock, ArrowRight } from "lucide-react";
+import { Brain, Search, MessageSquare, Database, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import axios from "axios";
@@ -36,30 +36,42 @@ type MyTokenPayload = {
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSignIn = async () => {
+    setError("");
+    setLoading(true);
     try {
       const Response = await axios.post(`${process.env.NEXT_PUBLIC_API}/signin`, {
         email,
         password
       });
-      console.log(Response.data);
 
       if (Response.data.success) {
         localStorage.setItem("token", Response.data.token);
         const user = jwtDecode<MyTokenPayload>(Response.data.token);
-        const username = user.username;
+        localStorage.setItem("username", user.username);
         router.push("/chat");
-      } else {
-        alert(Response.data.message ?? "Sign in failed");
       }
     } catch (err: any) {
-      // Show the actual error message returned by the backend
-      const serverMsg = err?.response?.data?.message;
       const status = err?.response?.status;
-      alert(`Error ${status}: ${serverMsg ?? err.message}`);
-      console.error("[SIGNIN ERROR]", err?.response?.data ?? err);
+      const serverMsg = err?.response?.data?.message;
+
+      if (status === 400) {
+        setError("No account found with that email address.");
+      } else if (status === 402) {
+        setError("Incorrect password. Please try again.");
+      } else if (status === 411) {
+        setError("Please enter a valid email and password (min 6 characters).");
+      } else if (!navigator.onLine) {
+        setError("You appear to be offline. Check your connection.");
+      } else {
+        setError(serverMsg ?? "Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -230,10 +242,31 @@ export default function SignInPage() {
               </div>
             </div>
 
+            {/* Inline error */}
+            {error && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <p className="text-xs text-red-400">{error}</p>
+              </div>
+            )}
+
             {/* Submit */}
-            <button onClick={handleSignIn} className="w-full bg-primary-container text-on-primary-container font-bold py-3 rounded-lg text-sm shadow-lg shadow-primary-container/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
-              Sign In
-              <ArrowRight className="w-4 h-4" />
+            <button
+              onClick={handleSignIn}
+              disabled={loading}
+              className="w-full bg-primary-container text-on-primary-container font-bold py-3 rounded-lg text-sm shadow-lg shadow-primary-container/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Signing in…
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </div>
 

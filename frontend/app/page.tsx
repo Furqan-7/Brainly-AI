@@ -23,24 +23,32 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const router = useRouter();
-
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      return;
+    if (token) {
+      router.replace("/chat");
+    } else {
+      setChecking(false);
     }
-    router.push("/chat");
   }, []);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Brain className="w-8 h-8 text-primary-container animate-pulse" />
+      </div>
+    );
+  }
 
   const handleGetStarted = () => {
     router.push("/auth/signup");
   };
-
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">

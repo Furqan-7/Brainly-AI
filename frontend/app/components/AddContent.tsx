@@ -13,6 +13,7 @@ import {
     Upload,
     Sparkles,
     Brain,
+    Loader2,
 } from "lucide-react";
 import axios from "axios";
 
@@ -88,6 +89,8 @@ export default function AddContent({
     const [note, setNote] = useState("");
     const [context, setContext] = useState("");
     const [dragOver, setDragOver] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,43 +123,50 @@ export default function AddContent({
     }
 
     async function handleSubmit() {
-        let payload;
-        let config = {
-            headers: {
-                token: localStorage.getItem("token"),
-            },
-        };
-
-        if (file) {
-            const formdata = new FormData();
-            formdata.append("type", activeType);
-            formdata.append("title", title);
-            formdata.append("file", file);
-            payload = formdata;
-        } else {
-            payload = {
-                type: activeType,
-                title,
-                source_url: url,
-                note,
-                metadata: context,
+        setSaving(true);
+        setSaveError("");
+        try {
+            let payload;
+            const config = {
+                headers: {
+                    token: localStorage.getItem("token"),
+                },
             };
+
+            if (file) {
+                const formdata = new FormData();
+                formdata.append("type", activeType);
+                formdata.append("title", title);
+                formdata.append("file", file);
+                payload = formdata;
+            } else {
+                payload = {
+                    type: activeType,
+                    title,
+                    source_url: url,
+                    note,
+                    metadata: context,
+                };
+            }
+
+            const Response = await axios.post(
+                `${process.env.NEXT_PUBLIC_API}/api/content`,
+                payload,
+                config
+            );
+
+            if (Response.status === 201) {
+                fetchMemories(); // fire-and-forget — polling handles refresh
+            }
+
+            setIsAddContentOpen(false);
+            handleClose();
+        } catch (err: any) {
+            const msg = err?.response?.data?.message ?? "Failed to save. Please try again.";
+            setSaveError(msg);
+        } finally {
+            setSaving(false);
         }
-
-        const Response = await axios.post(
-            `${process.env.NEXT_PUBLIC_API}/api/content`,
-            payload,
-            config
-        );
-
-        if (Response.status === 201) {
-            console.log("Content added successfully");
-            await fetchMemories();
-
-        }
-
-        setIsAddContentOpen(false);
-        handleClose();
     }
 
     if (!isAddContentOpen) return null;
@@ -379,24 +389,37 @@ export default function AddContent({
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 pb-6 pt-1 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-white/25">
-                        <Sparkles size={12} />
-                        <span className="text-[10px]">AI will auto-index this content</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={handleClose}
-                            className="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/6 transition-all hover:cursor-pointer"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSubmit}
-                            className="px-5 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-600/20 hover:cursor-pointer"
-                        >
-                            Save to Brain
-                        </button>
+                <div className="px-6 pb-6 pt-1 flex flex-col gap-2">
+                    {saveError && (
+                        <p className="text-xs text-red-400 text-right">{saveError}</p>
+                    )}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-white/25">
+                            <Sparkles size={12} />
+                            <span className="text-[10px]">AI will auto-index this content</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleClose}
+                                className="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/6 transition-all hover:cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={saving}
+                                className="px-5 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-600/20 disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        Saving…
+                                    </>
+                                ) : (
+                                    "Save to Brain"
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </motion.div>

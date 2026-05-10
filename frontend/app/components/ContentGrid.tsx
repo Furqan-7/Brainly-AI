@@ -28,6 +28,7 @@ interface Memory {
     title: string;
     source_url: string | null;
     file_path: string | null;
+    note: string | null;
     status: "pending" | "processing" | "ready" | "failed";
     metadata: any;
     createdAt: string;
@@ -273,9 +274,15 @@ export function MemoryCard({ memory }: { memory: Memory }) {
                         </span>
                     </div>
 
-                    <p className="text-sm font-medium leading-relaxed line-clamp-5">
+                    <h3 className="text-xs font-bold text-on-surface-variant/60 mb-1.5">
                         {memory.title}
-                    </p>
+                    </h3>
+
+                    {memory.note && (
+                        <p className="text-sm font-medium leading-relaxed line-clamp-5">
+                            {memory.note}
+                        </p>
+                    )}
                 </div>
 
                 <div className="mt-3 text-[9px] text-on-surface-variant/40">

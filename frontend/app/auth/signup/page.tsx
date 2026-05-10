@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "motion/react";
-import { Brain, Search, MessageSquare, Database, ArrowRight } from "lucide-react";
+import { Brain, Search, MessageSquare, Database, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import axios from "axios";
@@ -32,22 +32,40 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleCreateAccount = async () => {
-    console.log(process.env.NEXT_PUBLIC_API);
-    const Response = await axios.post(`${process.env.NEXT_PUBLIC_API}/signup`, {
-      username,
-      email,
-      password
-    });
+    setError("");
+    setLoading(true);
+    try {
+      const Response = await axios.post(`${process.env.NEXT_PUBLIC_API}/signup`, {
+        username,
+        email,
+        password
+      });
 
-    if (Response.data.success) {
-      localStorage.setItem("token", Response.data.token);
-      localStorage.setItem("username", Response.data.username);
-      router.push(`/chat`);
-    } else {
-      alert("User already exist");
+      if (Response.data.success) {
+        localStorage.setItem("token", Response.data.token);
+        localStorage.setItem("username", Response.data.username);
+        router.push(`/chat`);
+      }
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const serverMsg = err?.response?.data?.message;
+
+      if (status === 400) {
+        setError("An account with this email already exists. Try signing in.");
+      } else if (status === 411) {
+        setError("Please check your inputs: username (3–20 chars), valid email, password (min 6 chars).");
+      } else if (!navigator.onLine) {
+        setError("You appear to be offline. Check your connection.");
+      } else {
+        setError(serverMsg ?? "Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -214,9 +232,30 @@ export default function SignupPage() {
               </label>
             </div>
 
-            <button onClick={handleCreateAccount} className="w-full bg-primary-container text-on-primary-container font-bold py-4 rounded-lg shadow-lg shadow-primary-container/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
-              <span>Create Account</span>
-              <ArrowRight className="w-4 h-4" />
+            {/* Inline error */}
+            {error && (
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-400">{error}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleCreateAccount}
+              disabled={loading}
+              className="w-full bg-primary-container text-on-primary-container font-bold py-4 rounded-lg shadow-lg shadow-primary-container/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Creating account…
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </div>
 

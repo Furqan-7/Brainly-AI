@@ -46,6 +46,7 @@ interface Memory {
     title: string;
     source_url: string | null;
     file_path: string | null;
+    note: string | null;
     status: "pending" | "processing" | "ready" | "failed";
     metadata: any;
     createdAt: string;
@@ -62,6 +63,7 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [username, setUsername] = useState("");
+    const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -107,6 +109,31 @@ export default function ChatPage() {
         }
     };
 
+    /** Poll every 2 s for up to 30 s, stopping once a new memory appears. */
+    const pollUntilNewMemory = async () => {
+        const prevCount = memories.length;
+        setRefreshing(true);
+        const maxAttempts = 15; // 15 × 2 s = 30 s
+        for (let i = 0; i < maxAttempts; i++) {
+            await new Promise(r => setTimeout(r, 2000));
+            await fetchMemories();
+            // fetchMemories updates state — read the latest via a fresh fetch
+            const token = localStorage.getItem("token");
+            if (!token) break;
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API}/api/content`, {
+                    headers: { token }
+                });
+                const json = await res.json();
+                const latest: Memory[] = json.memories ?? [];
+                if (latest.length > prevCount) {
+                    setMemories(latest.filter(Boolean));
+                    break;
+                }
+            } catch { break; }
+        }
+        setRefreshing(false);
+    };
 
     if (loading) {
         return (
@@ -190,7 +217,7 @@ export default function ChatPage() {
             {/* Add Content Section  */}
             {isAddContentOpen && (
                 <div className="fixed inset-0 w-full h-screen z-[9999] rounded-xl overflow-hidden shadow-2xl relative z-10 bg-surface" >
-                    <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} fetchMemories={fetchMemories} />
+                    <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} fetchMemories={pollUntilNewMemory} />
                 </div>
             )}
 
@@ -300,6 +327,12 @@ export default function ChatPage() {
 
 
                 {/* ── BENTO GRID ── */}
+                {refreshing && (
+                    <div className="flex items-center gap-2 text-xs text-on-surface-variant/50">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>Processing your new memory…</span>
+                    </div>
+                )}
                 {memories.length > 0 ? (
                     <ContentGrid memories={memories} />
                 ) : (

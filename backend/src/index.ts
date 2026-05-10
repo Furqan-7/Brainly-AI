@@ -189,7 +189,7 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
     })
   }
 
-  const { type, title, source_url, file_path, metadata } = Response.data;
+  const { type, title, source_url, file_path, note, metadata } = Response.data;
 
   let thumbnail = null;
 
@@ -206,6 +206,7 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
         title,
         source_url,
         file_path,
+        note,
         metadata: {
           thumbnail_url: thumbnail
         }

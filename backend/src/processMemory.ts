@@ -33,7 +33,7 @@ export async function processMemory(memory: any) {
             text = await GetPdfText(memory.file_path);
         }
         else if (memory.type == "note") {
-            text = (memory.metadata as any)?.content ?? "";
+            text = memory.note ?? "";
         }
         else if (memory.type == "image" && memory.file_path) {
             text = await processImage(memory.file_path);
