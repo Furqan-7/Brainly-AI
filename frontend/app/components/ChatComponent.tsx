@@ -393,7 +393,7 @@ export function ChatComponent({
 
                                 <div className="flex flex-col gap-2">
 
-                                    {Sources.map(
+                                    {Sources.slice(0, 1).map(
                                         (
                                             source,
                                             index
@@ -410,9 +410,7 @@ export function ChatComponent({
                                                     scale: 1,
                                                 }}
                                                 transition={{
-                                                    delay:
-                                                        index *
-                                                        0.06,
+                                                    delay: 0,
                                                 }}
                                                 className="p-3 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 transition-all"
                                             >

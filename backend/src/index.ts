@@ -247,7 +247,7 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
     // Step 1 — Embed the question
     const Embedings = await GetEmbeddings(question);
 
-    // Step 2 — Vector search: find top 5 most similar chunks for this user
+    // Step 2 — Vector search: fetch top 10 chunks, then deduplicate to 1 per memory
     const similarChunks = await prisma.$queryRaw<{
       id: number;
       MemoryId: number;
@@ -272,7 +272,7 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
       WHERE m."userId" = ${userId}
         AND m.status = 'ready'
       ORDER BY c.embedding <=> ${JSON.stringify(Embedings)}::vector
-      LIMIT 5
+      LIMIT 10
     `;
 
     if (!similarChunks || similarChunks.length === 0) {
@@ -284,13 +284,21 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
       });
     }
 
-    // Step 3 — Build context from the top chunks
-    const context = similarChunks
+    // Step 3 — Deduplicate by memoryId, keeping the highest-similarity chunk per memory
+    const seenMemoryIds = new Set<number>();
+    const topChunks = similarChunks.filter(chunk => {
+      if (seenMemoryIds.has(chunk.MemoryId)) return false;
+      seenMemoryIds.add(chunk.MemoryId);
+      return true;
+    });
+
+    // Step 4 — Build context from the deduplicated top chunks
+    const context = topChunks
       .map((chunk, i) => `[Source ${i + 1} - ${chunk.type.toUpperCase()}: "${chunk.title}"]\n${chunk.content}`)
       .join("\n\n---\n\n");
 
-    // Step 4 — Build sources list for the response
-    const sources = similarChunks.map(chunk => ({
+    // Step 5 — Build sources list for the response (one entry per memory)
+    const sources = topChunks.map(chunk => ({
       memoryId: chunk.MemoryId,
       title: chunk.title,
       type: chunk.type,
