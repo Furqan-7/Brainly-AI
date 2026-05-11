@@ -415,14 +415,14 @@ export function ChatComponent({
                                                 className="p-3 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 transition-all"
                                             >
 
-                                                <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-2 mb-1 min-w-0">
 
                                                     <ExternalLink
                                                         size={12}
-                                                        className="text-indigo-400"
+                                                        className="text-indigo-400 shrink-0"
                                                     />
 
-                                                    <span className="text-sm font-medium text-white/80">
+                                                    <span className="text-sm font-medium text-white/80 truncate">
                                                         {source.title}
                                                     </span>
 

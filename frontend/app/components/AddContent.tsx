@@ -178,7 +178,7 @@ export default function AddContent({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 8 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="w-full max-w-lg bg-[#0f1117] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                className="w-full max-w-lg bg-[#0f1117] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
                 {/* Header */}
                 <div className="flex items-start justify-between px-6 pt-6 pb-4">
@@ -204,8 +204,8 @@ export default function AddContent({
                 </div>
 
                 {/* Type Selector */}
-                <div className="px-6 pb-4">
-                    <div className="grid grid-cols-6 gap-2">
+                <div className="px-5 sm:px-6 pb-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                         {CONTENT_TYPES.map(({ type, label, icon }) => {
                             const isActive = activeType === type;
                             return (
@@ -230,10 +230,10 @@ export default function AddContent({
                 </div>
 
                 {/* Divider */}
-                <div className="h-px bg-white/6 mx-6" />
+                <div className="h-px bg-white/6 mx-5 sm:mx-6" />
 
                 {/* Dynamic Form */}
-                <div className="px-6 py-5 space-y-4">
+                <div className="px-5 sm:px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     {/* Title — always shown */}
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-semibold uppercase tracking-widest text-white/30">
@@ -389,16 +389,16 @@ export default function AddContent({
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 pb-6 pt-1 flex flex-col gap-2">
+                <div className="px-5 sm:px-6 pb-6 pt-1 flex flex-col gap-2">
                     {saveError && (
                         <p className="text-xs text-red-400 text-right">{saveError}</p>
                     )}
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-1.5 text-white/25">
                             <Sparkles size={12} />
                             <span className="text-[10px]">AI will auto-index this content</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
                             <button
                                 onClick={handleClose}
                                 className="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/6 transition-all hover:cursor-pointer"

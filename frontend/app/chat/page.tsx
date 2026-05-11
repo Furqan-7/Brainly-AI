@@ -165,28 +165,12 @@ export default function ChatPage() {
         >
             {/* ── TOP NAV ── */}
             <header className="fixed top-0 w-full z-50 bg-[#121212]/80 backdrop-blur-xl border-b border-outline-variant/10">
-                <nav className="flex items-center justify-between px-6 md:px-10 h-12 max-w-5xl mx-auto">
+                <nav className="flex items-center justify-between px-4 md:px-10 h-12 max-w-5xl mx-auto">
 
                     {/* Logo */}
                     <div className="flex items-center gap-2 shrink-0">
                         <Brain className="w-4 h-4 text-primary-container" />
                         <span className="text-sm font-black tracking-tighter text-on-surface">Brainly AI</span>
-                    </div>
-
-                    {/* Nav links */}
-                    <div className="flex items-center gap-1">
-                        {navLinks.map((link) => (
-                            <button
-                                key={link.label}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${link.active
-                                    ? "bg-primary-container/15 text-primary-container"
-                                    : "text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container-high"
-                                    }`}
-                            >
-                                <link.icon className="w-3.5 h-3.5" />
-                                {link.label}
-                            </button>
-                        ))}
                     </div>
 
                     {/* Right actions */}
@@ -195,7 +179,8 @@ export default function ChatPage() {
                             setIsAddContentOpen(true);
                         }} className="flex items-center gap-1.5 bg-primary-container text-on-primary-container px-3 py-1.5 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all cursor-pointer">
                             <Plus className="w-3.5 h-3.5" />
-                            Add Memory
+                            <span className="hidden sm:inline">Add Memory</span>
+                            <span className="sm:hidden">Add</span>
                         </button>
                         <button onClick={() => {
                             setIsProfileOpen(prev => !prev);
@@ -209,7 +194,7 @@ export default function ChatPage() {
 
             {/* Profile Icon Section  */}
             {isProfileOpen && (
-                <div className="absolute right-10 top-12 z-50">
+                <div className="fixed right-4 md:right-10 top-12 z-50">
                     <UserProfileDropdown />
                 </div>
             )}
@@ -223,7 +208,7 @@ export default function ChatPage() {
 
 
             {/* ── MAIN ── */}
-            <main className="w-full max-w-5xl mx-auto px-6 md:px-10 pt-20 pb-10 space-y-8">
+            <main className="w-full max-w-5xl mx-auto px-4 md:px-10 pt-20 pb-24 space-y-8">
 
                 {/* ── GREETING ── */}
                 <motion.header
@@ -232,10 +217,10 @@ export default function ChatPage() {
                     transition={{ duration: 0.5 }}
                     className="text-center space-y-1.5 pt-4"
                 >
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-on-surface">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-on-surface">
                         Good Evening, {username || "User"}
                     </h1>
-                    <p className="text-on-surface-variant text-sm font-medium opacity-70">
+                    <p className="text-on-surface-variant text-xs sm:text-sm font-medium opacity-70">
                         Your digital mind is synchronized and ready.
                     </p>
                 </motion.header>
@@ -255,15 +240,18 @@ export default function ChatPage() {
                             <input onChange={(e) => {
                                 setSearchQuery(e.target.value);
                             }}
-                                className="bg-transparent border-none focus:ring-0 w-full text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none"
-                                placeholder="Search your memories, documents, or insights..."
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") setSubmittedQuery(searchQuery);
+                                }}
+                                className="bg-transparent border-none focus:ring-0 w-full text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none min-w-0"
+                                placeholder="Search memories..."
                                 type="text"
                             />
                             <button onClick={() => {
                                 setSubmittedQuery(searchQuery);
-                            }} className="flex items-center gap-1.5 bg-surface-container-highest px-3 py-1.5 rounded-lg border border-outline-variant/50 hover:bg-surface-bright transition-colors shrink-0 cursor-pointer">
+                            }} className="flex items-center gap-1.5 bg-surface-container-highest px-2.5 py-1.5 rounded-lg border border-outline-variant/50 hover:bg-surface-bright transition-colors shrink-0 cursor-pointer">
                                 <SlidersHorizontal className="w-3 h-3" />
-                                <span className="text-[10px] font-bold tracking-widest uppercase">Filter</span>
+                                <span className="hidden sm:inline text-[10px] font-bold tracking-widest uppercase">Search</span>
                             </button>
                         </div>
                     </div>
@@ -273,20 +261,18 @@ export default function ChatPage() {
 
 
                     {/* {Scroll Down Icon } */}
-                    <div className="mt-70 flex justify-center items-center flex-col gap-1  ">
+                    <div className="mt-12 sm:mt-24 md:mt-40 flex justify-center items-center flex-col gap-1">
                         <div className="flex justify-center items-center flex-col gap-1">
-                            <div className="text-on-surface-variant/60">
-                                <p>Scroll Down to see your Memories</p>
+                            <div className="text-on-surface-variant/60 text-center">
+                                <p className="text-xs sm:text-sm">Scroll Down to see your Memories</p>
                             </div>
                             <div className="justify-center flex">
-                                <ArrowDown className="w-5 h-5 text-on-surface-variant/70 " />
+                                <ArrowDown className="w-5 h-5 text-on-surface-variant/70" />
                             </div>
                         </div>
-
-
                     </div>
                     {/* View tabs — Recent / Starred / Archives */}
-                    <div className="flex justify-center gap-2  mt-20">
+                    <div className="flex justify-center gap-2 mt-8 sm:mt-12">
                         {viewTabs.map((tab) => (
                             <button
                                 key={tab}
@@ -308,13 +294,13 @@ export default function ChatPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.15 }}
-                    className="flex flex-wrap items-center gap-2"
+                    className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
                 >
                     {contentFilters.map((f) => (
                         <button
                             key={f}
                             onClick={() => setActiveFilter(f)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${activeFilter === f
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${activeFilter === f
                                 ? "bg-primary-container text-on-primary-container shadow-[0_0_12px_-2px_rgba(51,102,255,0.4)]"
                                 : "bg-surface-container-high border border-outline-variant/20 text-on-surface-variant hover:border-outline-variant/50 hover:text-on-surface"
                                 }`}
@@ -344,7 +330,7 @@ export default function ChatPage() {
             </main>
 
             {/* ── FAB BUTTONS ── */}
-            <div className="fixed bottom-6 right-6 flex flex-col gap-3">
+            <div className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 flex flex-col gap-3">
                 <button onClick={() => {
                     setIsAddContentOpen(true);
                 }} className="w-12 h-12 bg-primary-container text-on-primary-container rounded-full shadow-[0_0_24px_-4px_rgba(51,102,255,0.5)] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
