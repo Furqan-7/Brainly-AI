@@ -20,14 +20,58 @@ import {
   RefreshCw,
   Globe,
   Mail,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Search,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+
+const addcontentImg = "/assets/addcontent.png";
+const MemoriesImg = "/assets/b3.png";
+const ChatImg = "assets/b4.png";
+
+
+
+const HOW_IT_WORKS_STEPS = [
+  {
+    step: "01",
+    title: "Save Anything to Your Brain",
+    desc: "Add URLs, PDFs, YouTube videos, tweets, notes, or images in one click. Brainly auto-indexes everything so it's instantly searchable.",
+    label: "Add to Brain modal",
+    // Replace these src values with actual imported images or /public paths
+    imageSrc: addcontentImg,
+    accent: "primary-container",
+    badge: "+ Add Memory",
+    badgeIcon: <Plus className="w-3 h-3" />,
+  },
+  {
+    step: "02",
+    title: "Browse Your Knowledge Library",
+    desc: "See all your saved memories in one place — web pages, documents, tweets, and YouTube videos — organized and ready to explore.",
+    label: "Memory dashboard",
+    imageSrc: MemoriesImg,
+    accent: "secondary",
+    badge: "Recent  Starred  Archives",
+    badgeIcon: <Search className="w-3 h-3" />,
+  },
+  {
+    step: "03",
+    title: "Chat & Search Across Everything",
+    desc: "Ask questions in plain English. Brainly finds the right memory and gives you a verified answer with source attribution.",
+    label: "Semantic search with answer",
+    imageSrc: ChatImg,
+    accent: "tertiary",
+    badge: "Brainly Answer",
+    badgeIcon: <Sparkles className="w-3 h-3" />,
+  },
+];
+
 export default function Home() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -62,12 +106,9 @@ export default function Home() {
           <div className="hidden md:flex items-center gap-6 font-headline font-medium tracking-tight text-xs">
             <a className="text-primary-container font-bold border-b-2 border-primary-container pb-0.5 transition-all duration-300" href="#">HOME</a>
             <a className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300" href="#features">FEATURES</a>
-            <a onClick={() => {
-              router.push("/pricing");
-            }} className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300" >PRICING</a>
-            <a onClick={() => {
-              router.push("/about");
-            }} className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300">ABOUT</a>
+            <a className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300" href="#how-it-works">HOW IT WORKS</a>
+            <a onClick={() => router.push("/pricing")} className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300 cursor-pointer">PRICING</a>
+            <a onClick={() => router.push("/about")} className="text-[#E5E2E1] opacity-70 hover:opacity-100 hover:text-primary-container transition-all duration-300 cursor-pointer">ABOUT</a>
           </div>
           <div>
             <button onClick={handleGetStarted} className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg font-headline font-medium tracking-tight text-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer">
@@ -96,13 +137,13 @@ export default function Home() {
                 Transform any content into an interactive knowledge base. Summarize videos, chat with documents, and organize your digital life with atmospheric precision.
               </p>
               <div className="flex flex-col sm:flex-row items-center gap-3">
-                <button className="w-full sm:w-auto bg-primary-container text-on-primary-container px-6 py-3 rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <button onClick={() => router.push("/auth/signup")} className="w-full sm:w-auto bg-primary-container text-on-primary-container px-6 py-3 rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
                   Try for Free
                   <ArrowRight className="w-4 h-4" />
                 </button>
-                <button className="w-full sm:w-auto border border-outline-variant/30 text-on-surface px-6 py-3 rounded-xl font-bold text-sm hover:bg-surface-container-high active:scale-95 transition-all cursor-pointer">
+                <a href="#how-it-works" className="w-full sm:w-auto border border-outline-variant/30 text-on-surface px-6 py-3 rounded-xl font-bold text-sm hover:bg-surface-container-high active:scale-95 transition-all cursor-pointer text-center">
                   See How it Works
-                </button>
+                </a>
               </div>
               <div className="flex items-center gap-5 pt-1">
                 <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
@@ -166,6 +207,176 @@ export default function Home() {
           <div className="absolute top-0 right-0 -z-10 w-[400px] h-[400px] bg-primary-container/5 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
         </section>
 
+        {/* ─────────────────────────────────────────
+            HOW IT WORKS — New Section
+        ───────────────────────────────────────── */}
+        <section id="how-it-works" className="py-20 md:py-32 px-10 md:px-20 bg-background">
+          <div className="max-w-[1200px] mx-auto">
+            {/* Section Header */}
+            <div className="mb-16 text-center">
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-xs font-headline font-bold tracking-[0.2em] uppercase text-primary-container mb-3"
+              >
+                How It Works
+              </motion.p>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-3xl md:text-4xl font-headline font-black tracking-tight text-on-surface mb-4"
+              >
+                Three steps to a smarter you
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.15 }}
+                className="text-sm text-on-surface-variant max-w-lg mx-auto leading-relaxed"
+              >
+                From saving content to asking questions — Brainly turns scattered information into an always-available second brain.
+              </motion.p>
+            </div>
+
+            {/* Step tabs */}
+            <div className="flex justify-center gap-2 mb-12">
+              {HOW_IT_WORKS_STEPS.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveStep(i)}
+                  className={`px-4 py-2 rounded-full text-xs font-bold font-headline tracking-tight transition-all cursor-pointer ${activeStep === i
+                    ? "bg-primary-container text-on-primary-container"
+                    : "border border-outline-variant/20 text-on-surface-variant hover:border-primary-container/40 hover:text-on-surface"
+                    }`}
+                >
+                  {s.step} — {s.title.split(" ").slice(0, 2).join(" ")}
+                </button>
+              ))}
+            </div>
+
+            {/* Step Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              {/* Left: text */}
+              <motion.div
+                key={activeStep}
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-6 order-2 lg:order-1"
+              >
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-container/10 border border-primary-container/20">
+                  <span className="text-primary-container font-black font-headline text-xs tracking-widest">
+                    STEP {HOW_IT_WORKS_STEPS[activeStep].step}
+                  </span>
+                </div>
+                <h3 className="text-2xl md:text-3xl font-headline font-black tracking-tight text-on-surface leading-tight">
+                  {HOW_IT_WORKS_STEPS[activeStep].title}
+                </h3>
+                <p className="text-sm text-on-surface-variant leading-relaxed">
+                  {HOW_IT_WORKS_STEPS[activeStep].desc}
+                </p>
+
+                {/* Step navigation */}
+                <div className="flex gap-3 pt-2">
+                  {activeStep > 0 && (
+                    <button
+                      onClick={() => setActiveStep(activeStep - 1)}
+                      className="px-4 py-2 rounded-lg border border-outline-variant/20 text-xs font-bold text-on-surface-variant hover:border-primary-container/40 transition-all cursor-pointer"
+                    >
+                      ← Previous
+                    </button>
+                  )}
+                  {activeStep < HOW_IT_WORKS_STEPS.length - 1 ? (
+                    <button
+                      onClick={() => setActiveStep(activeStep + 1)}
+                      className="px-4 py-2 rounded-lg bg-primary-container/10 border border-primary-container/20 text-primary-container text-xs font-bold hover:bg-primary-container/20 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      Next Step <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleGetStarted}
+                      className="px-5 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold hover:brightness-110 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      Try it Free <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Progress dots */}
+                <div className="flex gap-2 pt-1">
+                  {HOW_IT_WORKS_STEPS.map((_, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setActiveStep(i)}
+                      className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${i === activeStep ? "w-6 bg-primary-container" : "w-1.5 bg-outline-variant/30"
+                        }`}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Right: screenshot */}
+              <motion.div
+                key={`img-${activeStep}`}
+                initial={{ opacity: 0, scale: 0.97, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="relative order-1 lg:order-2"
+              >
+                {/* Glow backdrop */}
+                <div className="absolute -inset-6 bg-primary-container/5 blur-[80px] rounded-full pointer-events-none"></div>
+
+                {/* Browser chrome frame */}
+                <div className="relative rounded-[1.25rem] overflow-hidden border border-outline-variant/15 bg-[#0e0e0e] shadow-2xl">
+                  {/* Title bar */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-outline-variant/10 bg-[#131313]">
+                    <div className="flex gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-error/50"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-tertiary/50"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-secondary/50"></div>
+                    </div>
+                    <div className="flex-1 mx-4">
+                      <div className="bg-surface-container-high rounded-md px-3 py-1 text-[10px] text-on-surface-variant/50 font-mono">
+                        brainly.ai/chat
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Screenshot image */}
+                  <div className="relative">
+                    <img
+                      src={HOW_IT_WORKS_STEPS[activeStep].imageSrc}
+                      alt={HOW_IT_WORKS_STEPS[activeStep].label}
+                      className="w-full h-auto object-cover object-top max-h-[480px]"
+                      style={{ display: "block" }}
+                    />
+                    {/* Subtle bottom fade so screenshot blends into dark bg */}
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0e0e0e] to-transparent pointer-events-none"></div>
+                  </div>
+                </div>
+
+                {/* Floating caption badge */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-surface-container border border-outline-variant/20 rounded-full px-4 py-1.5 flex items-center gap-2 shadow-lg whitespace-nowrap"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></div>
+                  <span className="text-[11px] font-medium text-on-surface-variant">
+                    {HOW_IT_WORKS_STEPS[activeStep].label}
+                  </span>
+                </motion.div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
         {/* Features Section */}
         <section className="py-16 md:py-28 px-10 md:px-20 bg-surface-container-low" id="features">
           <div className="max-w-[1200px] mx-auto">
@@ -213,21 +424,9 @@ export default function Home() {
                       <div className="flex-1 w-full h-32 bg-surface-container-high rounded-xl overflow-hidden relative border border-outline-variant/5">
                         <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent"></div>
                         <div className="p-5 space-y-2.5">
-                          <motion.div
-                            animate={{ width: ["75%", "80%", "75%"] }}
-                            transition={{ duration: 4, repeat: Infinity }}
-                            className="h-1.5 bg-on-surface-variant/20 rounded-full"
-                          ></motion.div>
-                          <motion.div
-                            animate={{ width: ["50%", "55%", "50%"] }}
-                            transition={{ duration: 3.5, repeat: Infinity }}
-                            className="h-1.5 bg-on-surface-variant/20 rounded-full"
-                          ></motion.div>
-                          <motion.div
-                            animate={{ width: ["66%", "70%", "66%"] }}
-                            transition={{ duration: 4.5, repeat: Infinity }}
-                            className="h-1.5 bg-on-surface-variant/20 rounded-full"
-                          ></motion.div>
+                          <motion.div animate={{ width: ["75%", "80%", "75%"] }} transition={{ duration: 4, repeat: Infinity }} className="h-1.5 bg-on-surface-variant/20 rounded-full"></motion.div>
+                          <motion.div animate={{ width: ["50%", "55%", "50%"] }} transition={{ duration: 3.5, repeat: Infinity }} className="h-1.5 bg-on-surface-variant/20 rounded-full"></motion.div>
+                          <motion.div animate={{ width: ["66%", "70%", "66%"] }} transition={{ duration: 4.5, repeat: Infinity }} className="h-1.5 bg-on-surface-variant/20 rounded-full"></motion.div>
                         </div>
                       </div>
                     )}

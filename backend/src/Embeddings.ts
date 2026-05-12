@@ -2,7 +2,7 @@ import axios from "axios";
 import { config } from "dotenv";
 config();
 
-console.log("Nomic APi Key " + process.env.NOMIC_API_KEY)
+
 
 export async function GetEmbeddings(content: string) {
     const response = await axios.post(
@@ -19,6 +19,5 @@ export async function GetEmbeddings(content: string) {
             },
         }
     );
-    console.log(response.data.embeddings[0]);
     return response.data.embeddings[0];
 }
