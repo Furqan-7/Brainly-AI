@@ -76,7 +76,7 @@ app.get(
       }
     );
     res.redirect(
-      `${process.env.CLIENT_URL}?token=${token}`
+      `${process.env.CLIENT_URL}/chat?token=${token}`
     );
   }
 );
