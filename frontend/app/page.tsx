@@ -30,7 +30,7 @@ import { useEffect, useState } from "react";
 
 const addcontentImg = "/assets/addcontent.png";
 const MemoriesImg = "/assets/b3.png";
-const ChatImg = "assets/b4.png";
+const ChatImg = "/assets/b4.png";
 
 
 

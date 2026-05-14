@@ -3,7 +3,6 @@ import { config } from "dotenv";
 
 config();
 
-console.log(process.env.GROQ_API_KEY);
 
 const client = new OpenAI({
     apiKey: process.env.GROQ_API_KEY,

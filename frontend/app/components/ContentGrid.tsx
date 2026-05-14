@@ -11,7 +11,9 @@ import {
     Globe,
     MessageSquare,
     StickyNote,
+    Trash2,
 } from "lucide-react";
+import axios from "axios";
 
 type MemoryType =
     | "youtube"
@@ -34,12 +36,38 @@ interface Memory {
     createdAt: string;
 }
 
-export function MemoryCard({ memory }: { memory: Memory }) {
+export function MemoryCard({
+    memory,
+    onDelete,
+}: {
+    memory: Memory;
+    onDelete?: (id: number) => void;
+}) {
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const token = localStorage.getItem("token");
+
+        console.log("Delete memory id:", memory.id);
+
+        const Response = await axios.delete(`${process.env.NEXT_PUBLIC_API}/api/content/delete`, { headers: { token: token }, data: { memoryId: memory.id } });
+
+        console.log("Delete memory response:", Response);
+        onDelete?.(memory.id);
+    };
     const meta = memory.metadata ?? {};
 
     if (memory.type === "youtube") {
         return (
-            <div className="md:row-span-2 flex flex-col bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all group">
+            <div className="md:row-span-2 flex flex-col bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all group relative">
+                {/* Delete button */}
+                <button
+                    onClick={handleDelete}
+                    className="absolute top-2 right-2 z-20 p-1.5 rounded-lg bg-surface-container/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                    title="Delete memory"
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
                 <div
                     className="relative overflow-hidden"
                     style={{ aspectRatio: "16/9" }}
@@ -109,7 +137,16 @@ export function MemoryCard({ memory }: { memory: Memory }) {
 
     if (memory.type === "tweet") {
         return (
-            <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group">
+            <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group relative">
+                {/* Delete button */}
+                <button
+                    onClick={handleDelete}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                    title="Delete memory"
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
                 <div>
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -160,6 +197,15 @@ export function MemoryCard({ memory }: { memory: Memory }) {
     if (memory.type === "pdf") {
         return (
             <div className="bg-surface-container-low border border-outline-variant/10 rounded-xl p-4 hover:border-secondary/40 transition-all group relative overflow-hidden">
+                {/* Delete button */}
+                <button
+                    onClick={handleDelete}
+                    className="absolute top-2 right-2 z-20 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                    title="Delete memory"
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
                 <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                     <FileText className="w-20 h-20" />
                 </div>
@@ -218,7 +264,16 @@ export function MemoryCard({ memory }: { memory: Memory }) {
 
     if (memory.type === "url") {
         return (
-            <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group">
+            <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group relative">
+                {/* Delete button */}
+                <button
+                    onClick={handleDelete}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                    title="Delete memory"
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
                 <div>
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-1.5">
@@ -262,7 +317,16 @@ export function MemoryCard({ memory }: { memory: Memory }) {
 
     if (memory.type === "note") {
         return (
-            <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group">
+            <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group relative">
+                {/* Delete button */}
+                <button
+                    onClick={handleDelete}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                    title="Delete memory"
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
                 <div>
                     <div className="flex items-center gap-1.5 mb-3">
                         <div className="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center">
@@ -293,7 +357,16 @@ export function MemoryCard({ memory }: { memory: Memory }) {
     }
 
     return (
-        <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between">
+        <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group relative">
+            {/* Delete button */}
+            <button
+                onClick={handleDelete}
+                className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                title="Delete memory"
+            >
+                <Trash2 className="w-3.5 h-3.5" />
+            </button>
+
             <div>
                 <div className="flex items-center gap-1.5 mb-3">
                     <MessageSquare className="w-3 h-3 text-on-surface-variant" />
@@ -317,8 +390,10 @@ export function MemoryCard({ memory }: { memory: Memory }) {
 
 export function ContentGrid({
     memories,
+    onDelete,
 }: {
     memories: Memory[];
+    onDelete?: (id: number) => void;
 }) {
     if (memories.length === 0) {
         return (
@@ -340,7 +415,7 @@ export function ContentGrid({
             className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto mt-10"
         >
             {memories.map((memory) => (
-                <MemoryCard key={memory.id} memory={memory} />
+                <MemoryCard key={memory.id} memory={memory} onDelete={onDelete} />
             ))}
 
             <div className="md:col-span-2 flex items-center gap-4 bg-surface-container-low border border-outline-variant/10 rounded-xl p-5 hover:bg-surface-container-low/80 transition-all cursor-pointer group">

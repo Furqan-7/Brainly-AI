@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import axios from "axios";
 
+
 const features = [
   {
     icon: Database,
@@ -67,6 +68,16 @@ export default function SignupPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  const handleOAuth = async (provider: string) => {
+    if (provider == "Google") {
+      provider = "google"
+    }
+    else {
+      provider = "github"
+    }
+    window.location.href = `${process.env.NEXT_PUBLIC_API}/auth/${provider}`;
   }
 
 
@@ -168,12 +179,12 @@ export default function SignupPage() {
 
 
           {/* Social Auth */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 rounded-[5px]">
             {[
-              { label: "Google", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuBKW_QwRfBfkOsOlY6fXT5xu-NQajISJk_J14SV0LBdT7cfE-mAL49eGqRo_Oq2Ewf8XKjdKpIiKxqLlCjrUvTiVMHuLtoPg7Ugn6EftgMA44CYLdqR00Jz13E5bsrvkamfvMXyuf85V3HuX1dKGcUWtiK_d4K5CTEMqZYF4ABWg4v8KNY66kHiLvSHW95_Bx5Uuf49e1BqrCWNKQKd-7KR_uqodh2suq1bRiCfY-A45Q3Ija8LcHo8Al9QWbKQUTwFm-VHaTfHEAbY", invert: false },
-              { label: "GitHub", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDBFCDGkUCamoPFpF6rmxcHsQRh3PNUNTRJ3FVrdNJTZiRd4MvKmDnCQV7YEGqdX0cpiIC5IoCD8luFVJFXGnQbWHq3VHUVOSujy76OuWW5TFHsCs3xpgdLOfpy0y1-HmLmSHNNROTuJ-vTt6b8e2fLaFZuQ6aKO_w61BRvaiP5ZV1Elc5IuBhecq8pcoud-Qy8nbgAp9JHFv2mmTRbthLM9xoeUIlr6xMwXzs1ywV-fyJ20XI0QTSigrNh4wHRbG_keOhxeuEpe8SC", invert: true },
+              { label: "Google", img: "/assets/googleicon.png", invert: false },
+              // { label: "GitHub", img: "/assets/githubicon.png", invert: true },
             ].map((btn) => (
-              <button
+              <button onClick={() => handleOAuth(btn.label)}
                 key={btn.label}
                 className="flex items-center justify-center gap-3 py-3 px-4 rounded-lg border border-outline-variant/20 bg-surface-container hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer"
               >

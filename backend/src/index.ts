@@ -17,6 +17,10 @@ import { getYoutubeThumbnail } from "./getYoutubeThumbnail";
 import { GetEmbeddings } from "./Embeddings";
 import axios from "axios";
 import { GetLLMResponse } from "./GetLLMResponse";
+import passport from "./config/passport";
+
+
+
 
 const storage = multer.diskStorage({
   destination: "./uploads/",
@@ -29,6 +33,8 @@ const uploads = multer({ storage });
 
 const app = express();
 
+
+app.use(passport.initialize());
 app.use(express.json());
 app.use(cors());
 
@@ -41,8 +47,77 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
+
+app.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+  })
+);
+
+app.get(
+  "/auth/google/callback",
+
+  passport.authenticate("google", {
+    session: false,
+  }),
+
+  async (req, res) => {
+    const user = req.user as any;
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+      },
+      process.env.JWT_TOKEN!,
+      {
+        expiresIn: "7d",
+      }
+    );
+    res.redirect(
+      `${process.env.CLIENT_URL}?token=${token}`
+    );
+  }
+);
+
+app.get(
+  "/auth/github",
+  passport.authenticate("github", {
+    scope: ["user:email"],
+  })
+);
+
+app.get(
+  "/auth/github/callback",
+
+  passport.authenticate("github", {
+    session: false,
+  }),
+
+  async (req, res) => {
+    const user = req.user as any;
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+      },
+      process.env.JWT_TOKEN!,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    res.redirect(
+      `${process.env.CLIENT_URL}/chat?token=${token}`
+    );
+  }
+);
+
+
 app.post("/signup", async (req, res) => {
-  console.log("Reached Signup");
+
   const Response = signupSchema.safeParse(req.body);
 
   if (!Response.success) {
@@ -135,7 +210,7 @@ app.post("/signin", async (require, res) => {
       })
     };
 
-    const hashedPassword = user.password;
+    const hashedPassword = user.password ? user.password : " ";
     const isPasswordCorrect = bcrypt.compareSync(password, hashedPassword);
 
     if (!isPasswordCorrect) {
@@ -170,7 +245,7 @@ app.post("/signin", async (require, res) => {
 
 app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) => {
   const userId = res.locals.userId;
-  console.log(req.body);
+
   if (req.body.type == "pdf") {
     if (!req.file) {
       return res.status(400).json({ error: "PDF file is required", success: false });
@@ -195,7 +270,6 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
 
   if (type === "youtube" && source_url) {
     thumbnail = getYoutubeThumbnail(source_url);
-    console.log(thumbnail);
   }
 
   try {
@@ -228,9 +302,10 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
   }
 });
 
+
 app.post("/api/chat", MiddleWhere, async (req, res) => {
 
-  console.log("Reached api/chat with question : " + req.body.question);
+
 
   const Response = ChatSchema.safeParse(req.body);
 
@@ -379,6 +454,62 @@ app.get("/api/content", MiddleWhere, async (req, res) => {
   }
 });
 
+app.delete("/api/content/delete", MiddleWhere, async (req, res) => {
+  const userId = res.locals.userId;
+  const id = Number(req.body.memoryId);
+
+
+
+
+  try {
+    const memory = await prisma.memories.findUnique({
+      where: {
+        id: id
+      }
+    });
+
+    if (!memory) {
+      return res.status(404).json({
+        message: "Memory not found",
+        success: false
+      })
+    };
+    if (memory.userId !== userId) {
+      return res.status(403).json({
+        message: "Unauthorized",
+        success: false
+      })
+    }
+
+    await prisma.chunks.deleteMany({
+      where: {
+        MemoryId: id
+      }
+    });
+
+    await prisma.memories.delete({
+      where: {
+        id
+      }
+    });
+
+
+
+    return res.status(200).json({
+      message: "Memory deleted successfully",
+      success: true
+    });
+
+  } catch (error) {
+    console.error("[DELETE /api/content/:id] Error:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    })
+  }
+})
+
+
 app.get("/api/content/url", MiddleWhere, async (req, res) => {
   const userId = res.locals.userId;
 
@@ -522,4 +653,4 @@ app.get("/api/content/note", MiddleWhere, async (req, res) => {
 
 app.listen(3001, () => {
   console.log("Server is running on port 3001");
-});
+});  

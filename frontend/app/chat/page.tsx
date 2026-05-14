@@ -65,16 +65,29 @@ export default function ChatPage() {
     const [username, setUsername] = useState("");
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
-
     const [searchQuery, setSearchQuery] = useState("");
     const [submittedQuery, setSubmittedQuery] = useState("");
 
 
 
-
-
     useEffect(() => {
+        // Read the OAuth token directly from the URL — no useSearchParams needed
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get("token");
+        if (tokenFromUrl) {
+            localStorage.setItem("token", tokenFromUrl);
+            // Decode the JWT payload to grab the username without a library
+            try {
+                const payload = JSON.parse(atob(tokenFromUrl.split(".")[1]!));
+                if (payload?.username) {
+                    localStorage.setItem("username", payload.username);
+                    setUsername(payload.username);
+                }
+            } catch { /* ignore malformed token */ }
+            window.history.replaceState({}, "", "/chat");
+        }
         fetchMemories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchMemories = async () => {
@@ -86,6 +99,7 @@ export default function ChatPage() {
             }
             if (!token) {
                 router.push("/");
+                return;
             }
             const res = await axios.get(`${process.env.NEXT_PUBLIC_API}/api/content`, {
                 headers: { token }

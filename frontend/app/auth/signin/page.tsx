@@ -181,8 +181,8 @@ export default function SignInPage() {
           {/* Social Auth */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Google", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAS2bE30DRVc_U8MCOZJtaGLcKcseBynd3Bhp1HzJcdSEIHy2S9EWh0M5McTJPkjAxRno0B71Rx_yrt4AHCZJ5E8odLfrWfmxW3wKdubwunIZ2XVV8qnWTvcXk7GyjxmuKUQO6bKcqFbE5LKxd6hY8AD3iSKB4fQzviz7_66oPa69-3n6MXSpP_jnpRahatInDTj-ItvSvGH2U96CW7HFkc3dcg3kCNbZuCJSZ6oNsVnwXcNShlALNvUVGfpll72mtX4KKpa2szgXF0", invert: false },
-              { label: "GitHub", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAk0nSh-e2wzQ7B9LrPuKCpj5SRDbMRWiDXIknF8QyQHGWknrgZZZWGESPbZdnMfIAXx246zjm7tAXHgqN9wy2FuTxnoseLJdK0kiY0HEbHMXgy4TCQldTQJGTMd8AqCPJ4Qc_LmE8EegpDGtywIJmYrrij2_rayZKGhIX1FW89PJ7SzHhL2FPAeFj49YKP7Bflxi-8Cql5Ba6I0I5YPX0T2bVksJK0tHetDm9N1_I-lzNHp5I8xXdQ-sc9Rw20B6_GwmIxU0nfMRY2", invert: true },
+              { label: "Google", img: "/assets/googleicon.png", invert: false },
+              { label: "GitHub", img: "/assets/githubicon.png", invert: true },
             ].map((btn) => (
               <button
                 key={btn.label}
