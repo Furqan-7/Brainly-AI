@@ -182,7 +182,7 @@ export default function SignInPage() {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Google", img: "/assets/googleicon.png", invert: false },
-              { label: "GitHub", img: "/assets/githubicon.png", invert: true },
+              // { label: "GitHub", img: "/assets/githubicon.png", invert: true },
             ].map((btn) => (
               <button
                 key={btn.label}

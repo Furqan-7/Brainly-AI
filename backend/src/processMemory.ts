@@ -17,7 +17,9 @@ export async function processMemory(memory: any) {
 
         let text: string | null = "";
 
-        console.log(memory);
+        text += "Type::" + memory.type + ":::";
+        text += "Title::" + memory.title + ":::";
+        text += "Description::" + memory.description + ":::";
 
         if (memory.type == "url" && memory.source_url) {
             text = await UrlToText(memory.source_url);
