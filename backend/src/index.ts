@@ -38,6 +38,9 @@ app.use(passport.initialize());
 app.use(express.json());
 app.use(cors());
 
+// Serve uploaded files (images, PDFs, etc.)
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 100,
   max: 100,
@@ -246,9 +249,9 @@ app.post("/signin", async (require, res) => {
 app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) => {
   const userId = res.locals.userId;
 
-  if (req.body.type == "pdf") {
+  if (req.body.type == "pdf" || req.body.type == "image") {
     if (!req.file) {
-      return res.status(400).json({ error: "PDF file is required", success: false });
+      return res.status(400).json({ error: " File is required", success: false });
     }
     req.body.file_path = req.file.path;
   }

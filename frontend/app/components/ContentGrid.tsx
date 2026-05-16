@@ -58,7 +58,7 @@ export function MemoryCard({
 
     if (memory.type === "youtube") {
         return (
-            <div className="md:row-span-2 flex flex-col bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all group relative">
+            <div className="flex flex-col bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all group relative">
                 {/* Delete button */}
                 <button
                     onClick={handleDelete}
@@ -84,12 +84,26 @@ export function MemoryCard({
                         </div>
                     )}
 
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Video
-                            className="w-10 h-10 text-white"
-                            fill="white"
-                        />
-                    </div>
+                    {memory.source_url && (
+                        <a
+                            href={memory.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                            <Video
+                                className="w-10 h-10 text-white"
+                                fill="white"
+                            />
+                        </a>
+                    )}
+
+                    {!memory.source_url && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Video className="w-10 h-10 text-white" fill="white" />
+                        </div>
+                    )}
 
                     {meta.duration && (
                         <div className="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[9px] font-bold">
@@ -98,16 +112,29 @@ export function MemoryCard({
                     )}
                 </div>
 
-                <div className="p-4 flex-grow flex flex-col justify-between">
+                <div className="p-4 flex flex-col gap-2">
                     <div>
-                        <div className="flex items-center gap-1.5 mb-2">
-                            <Video
-                                className="w-3 h-3 text-red-500"
-                                fill="#ef4444"
-                            />
-                            <span className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
-                                YouTube Memory
-                            </span>
+                        <div className="flex items-center justify-between gap-1.5 mb-2">
+                            <div className="flex items-center gap-1.5">
+                                <Video
+                                    className="w-3 h-3 text-red-500"
+                                    fill="#ef4444"
+                                />
+                                <span className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
+                                    YouTube Memory
+                                </span>
+                            </div>
+                            {memory.source_url && (
+                                <a
+                                    href={memory.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title="Open on YouTube"
+                                >
+                                    <ExternalLink className="w-3 h-3 text-on-surface-variant/40 hover:text-red-500 transition-colors" />
+                                </a>
+                            )}
                         </div>
 
                         <h3 className="text-sm font-bold leading-snug mb-1.5">
@@ -121,7 +148,7 @@ export function MemoryCard({
                         )}
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between border-t border-outline-variant/10 pt-3">
+                    <div className="flex items-center justify-between border-t border-outline-variant/10 pt-3 mt-1">
                         <span className="text-[9px] font-medium text-on-surface-variant/50">
                             {new Date(
                                 memory.createdAt
@@ -141,7 +168,7 @@ export function MemoryCard({
                 {/* Delete button */}
                 <button
                     onClick={handleDelete}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                    className="absolute top-2 right-8 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
                     title="Delete memory"
                 >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -265,10 +292,10 @@ export function MemoryCard({
     if (memory.type === "url") {
         return (
             <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group relative">
-                {/* Delete button */}
+                {/* Delete button — shifted left so it doesn't overlap the ExternalLink icon */}
                 <button
                     onClick={handleDelete}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                    className="absolute top-2 right-8 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
                     title="Delete memory"
                 >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -351,6 +378,56 @@ export function MemoryCard({
 
                 <div className="mt-3 text-[9px] text-on-surface-variant/40">
                     {new Date(memory.createdAt).toLocaleDateString()}
+                </div>
+            </div>
+        );
+    }
+
+    if (memory.type === "image") {
+        // Extract just the filename from the stored path (handles both / and \ separators)
+        const filename = memory.file_path
+            ? memory.file_path.replace(/\\/g, "/").split("/").pop()
+            : null;
+        const imgSrc = filename
+            ? `${process.env.NEXT_PUBLIC_API}/uploads/${filename}`
+            : null;
+
+        return (
+            <div className="bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all group relative flex flex-col">
+                {/* Delete button */}
+                <button
+                    onClick={handleDelete}
+                    className="absolute top-2 right-2 z-20 p-1.5 rounded-lg bg-surface-container/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                    title="Delete memory"
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Image area */}
+                <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
+                    {imgSrc ? (
+                        <img
+                            src={imgSrc}
+                            alt={memory.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-surface-container-highest flex items-center justify-center">
+                            <FileText className="w-10 h-10 text-on-surface-variant/30" />
+                        </div>
+                    )}
+                </div>
+
+                {/* Info */}
+                <div className="p-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <FileText className="w-3 h-3 text-primary shrink-0" />
+                        <span className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant shrink-0">Image</span>
+                        <h3 className="text-xs font-semibold leading-tight text-on-surface truncate">{memory.title}</h3>
+                    </div>
+                    <span className="text-[9px] text-on-surface-variant/40 shrink-0">
+                        {new Date(memory.createdAt).toLocaleDateString()}
+                    </span>
                 </div>
             </div>
         );
