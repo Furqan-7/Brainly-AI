@@ -452,7 +452,7 @@ export default function Home() {
                   Join over 50,000+ creators and researchers who are scaling their intelligence with Brainly AI.
                 </p>
                 <div className="flex justify-center pt-2">
-                  <button className="bg-white text-primary-container px-8 py-4 rounded-xl font-bold text-sm hover:shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                  <button onClick={()=>{router.push("/auth/signup")}} className="bg-white text-primary-container px-8 py-4 rounded-xl font-bold text-sm hover:shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer">
                     Start Free Trial Today
                   </button>
                 </div>

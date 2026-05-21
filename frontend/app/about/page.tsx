@@ -15,6 +15,7 @@ import {
     Globe,
     Mail,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const navLinks = [
     { label: "Home", href: "/" },
@@ -63,6 +64,7 @@ const integrationNodes = [
 ];
 
 export default function AboutPage() {
+    const router = useRouter();
     return (
         <div className="min-h-screen bg-background text-on-surface font-body">
 
@@ -340,13 +342,11 @@ export default function AboutPage() {
                                 links and documents into an intelligent second brain.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                                <button className="bg-primary-container text-on-primary-container px-7 py-3 rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                <button onClick={()=>{router.push("/auth/signup")}} className="bg-primary-container text-on-primary-container px-7 py-3 rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
                                     Get Started for Free
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
-                                <button className="bg-surface-container-highest text-on-surface px-7 py-3 rounded-xl font-bold text-sm border border-outline-variant/20 hover:bg-surface-container-high transition-all cursor-pointer">
-                                    Book a Demo
-                                </button>
+
                             </div>
                         </div>
                     </motion.div>
