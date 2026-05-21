@@ -1,82 +1,44 @@
 "use client";
 
-import { Profiler, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
     Search,
     SlidersHorizontal,
-    Video,
-    ExternalLink,
-    FileText,
-    Bookmark,
     Brain,
-    ArrowRight,
-    Plus,
-    Sparkles,
-    LayoutDashboard,
-    Lightbulb,
-    Settings,
-    UserCircle2,
-    ArrowDown,
     Loader2,
+    ArrowDown,
 } from "lucide-react";
-import AddContent from "../components/AddContent";
-import { ContentGrid, MemoryCard } from "../components/ContentGrid";
-import Profile from "../components/Profile";
-import UserProfileDropdown from "../components/Profile";
-import { useRouter } from "next/navigation";
-import axios from "axios";
-import { ChatComponent } from "../components/ChatComponent";
 
-const navLinks = [
-    { label: "Memories", icon: LayoutDashboard, active: true },
-    { label: "Insights", icon: Lightbulb, active: false },
-    { label: "Settings", icon: Settings, active: false },
-];
+import { useMemories } from "../hooks/useMemories";
+import { ContentGrid } from "../components/memory/ContentGrid";
+import { ChatComponent } from "../components/chat/ChatComponent";
+import AddContent from "../components/AddContent";
+import UserProfileDropdown from "../components/Profile";
+import { DashboardNav } from "../components/layout/DashboardNav";
+import { DashboardFAB } from "../components/layout/DashboardFAB";
 
 const viewTabs = ["Recent", "Starred", "Archives"];
-
 const contentFilters = ["All", "Web Pages", "Videos", "Tweets", "Documents", "Notes"];
-type MemoryType = "youtube" | "pdf" | "tweet" | "url" | "note" | "image";
-
-interface Memory {
-    id: number;
-    userId: number;
-    type: MemoryType;
-    title: string;
-    source_url: string | null;
-    file_path: string | null;
-    note: string | null;
-    status: "pending" | "processing" | "ready" | "failed";
-    metadata: any;
-    createdAt: string;
-}
-
-
 
 export default function ChatPage() {
     const [activeFilter, setActiveFilter] = useState("All");
     const [activeView, setActiveView] = useState("Recent");
     const [isAddContentOpen, setIsAddContentOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [memories, setMemories] = useState<Memory[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [username, setUsername] = useState("");
-    const [refreshing, setRefreshing] = useState(false);
-    const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
     const [submittedQuery, setSubmittedQuery] = useState("");
 
-
+    const { memories, loading, error, refreshing, fetchMemories, pollUntilNewMemory, handleDelete } =
+        useMemories();
 
     useEffect(() => {
-        // Read the OAuth token directly from the URL — no useSearchParams needed
+        // Handle OAuth token in URL (Google / GitHub redirect)
         const urlParams = new URLSearchParams(window.location.search);
         const tokenFromUrl = urlParams.get("token");
         if (tokenFromUrl) {
             localStorage.setItem("token", tokenFromUrl);
-            // Decode the JWT payload to grab the username without a library
             try {
                 const payload = JSON.parse(atob(tokenFromUrl.split(".")[1]!));
                 if (payload?.username) {
@@ -86,68 +48,13 @@ export default function ChatPage() {
             } catch { /* ignore malformed token */ }
             window.history.replaceState({}, "", "/chat");
         }
+
+        const savedName = localStorage.getItem("username");
+        if (savedName) setUsername(savedName);
+
         fetchMemories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    const fetchMemories = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const name = localStorage.getItem("username");
-            if (name) {
-                setUsername(name);
-            }
-            if (!token) {
-                router.push("/");
-                return;
-            }
-            const res = await axios.get(`${process.env.NEXT_PUBLIC_API}/api/content`, {
-                headers: { token }
-            });
-
-            // ✅ log this to see exact structure
-            console.log("API response:", res.data);
-
-            // ✅ adjust path to match your actual response
-            const data = res.data.memories        // try this first
-                ?? res.data.data?.memories  // fallback
-                ?? [];
-
-            setMemories(data.filter(Boolean));    // remove any undefined items
-
-        } catch (err) {
-            setError("Failed to load memories.");
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    /** Poll every 2 s for up to 30 s, stopping once a new memory appears. */
-    const pollUntilNewMemory = async () => {
-        const prevCount = memories.length;
-        setRefreshing(true);
-        const maxAttempts = 15; // 15 × 2 s = 30 s
-        for (let i = 0; i < maxAttempts; i++) {
-            await new Promise(r => setTimeout(r, 2000));
-            await fetchMemories();
-            // fetchMemories updates state — read the latest via a fresh fetch
-            const token = localStorage.getItem("token");
-            if (!token) break;
-            try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API}/api/content`, {
-                    headers: { token }
-                });
-                const json = await res.json();
-                const latest: Memory[] = json.memories ?? [];
-                if (latest.length > prevCount) {
-                    setMemories(latest.filter(Boolean));
-                    break;
-                }
-            } catch { break; }
-        }
-        setRefreshing(false);
-    };
 
     if (loading) {
         return (
@@ -165,8 +72,6 @@ export default function ChatPage() {
         );
     }
 
-
-
     return (
         <div
             className="min-h-screen text-on-surface font-body"
@@ -177,54 +82,34 @@ export default function ChatPage() {
                 backgroundSize: "40px 40px",
             }}
         >
-            {/* ── TOP NAV ── */}
-            <header className="fixed top-0 w-full z-50 bg-[#121212]/80 backdrop-blur-xl border-b border-outline-variant/10">
-                <nav className="flex items-center justify-between px-4 md:px-10 h-12 max-w-5xl mx-auto">
+            {/* Top Nav */}
+            <DashboardNav
+                onAddContent={() => setIsAddContentOpen(true)}
+                onProfileToggle={() => setIsProfileOpen((p) => !p)}
+            />
 
-                    {/* Logo */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Brain className="w-4 h-4 text-primary-container" />
-                        <span className="text-sm font-black tracking-tighter text-on-surface">Brainly AI</span>
-                    </div>
-
-                    {/* Right actions */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <button onClick={() => {
-                            setIsAddContentOpen(true);
-                        }} className="flex items-center gap-1.5 bg-primary-container text-on-primary-container px-3 py-1.5 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all cursor-pointer">
-                            <Plus className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Add Memory</span>
-                            <span className="sm:hidden">Add</span>
-                        </button>
-                        <button onClick={() => {
-                            setIsProfileOpen(prev => !prev);
-                        }} className="w-7 h-7 rounded-full bg-surface-container-high border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
-                            <UserCircle2 className="w-4 h-4" />
-                        </button>
-                    </div>
-                </nav>
-            </header>
-
-
-            {/* Profile Icon Section  */}
+            {/* Profile dropdown */}
             {isProfileOpen && (
                 <div className="fixed right-4 md:right-10 top-12 z-50">
                     <UserProfileDropdown />
                 </div>
             )}
 
-            {/* Add Content Section  */}
+            {/* Add Content modal */}
             {isAddContentOpen && (
-                <div className="fixed inset-0 w-full h-screen z-[9999] rounded-xl overflow-hidden shadow-2xl relative z-10 bg-surface" >
-                    <AddContent isAddContentOpen={isAddContentOpen} setIsAddContentOpen={setIsAddContentOpen} fetchMemories={pollUntilNewMemory} />
+                <div className="fixed inset-0 w-full h-screen z-[9999] rounded-xl overflow-hidden shadow-2xl relative z-10 bg-surface">
+                    <AddContent
+                        isAddContentOpen={isAddContentOpen}
+                        setIsAddContentOpen={setIsAddContentOpen}
+                        fetchMemories={pollUntilNewMemory}
+                    />
                 </div>
             )}
 
-
-            {/* ── MAIN ── */}
+            {/* Main content */}
             <main className="w-full max-w-5xl mx-auto px-4 md:px-10 pt-20 pb-24 space-y-8">
 
-                {/* ── GREETING ── */}
+                {/* Greeting */}
                 <motion.header
                     initial={{ opacity: 0, y: -16 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -239,21 +124,19 @@ export default function ChatPage() {
                     </p>
                 </motion.header>
 
-                {/* ── SEARCH ── */}
+                {/* Search + AI response */}
                 <motion.section
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 }}
                     className="w-full max-w-2xl mx-auto space-y-3"
                 >
-                    {/* Search bar */}
                     <div className="relative flex items-center group">
                         <div className="absolute -inset-1 bg-[#6366F1] rounded-xl blur-xl opacity-20 group-focus-within:opacity-40 transition-opacity" />
                         <div className="relative flex w-full items-center bg-surface-container-high border border-outline-variant/30 rounded-xl overflow-hidden px-4 h-12 shadow-2xl gap-3">
                             <Search className="w-4 h-4 text-primary-fixed-dim shrink-0" />
-                            <input onChange={(e) => {
-                                setSearchQuery(e.target.value);
-                            }}
+                            <input
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") setSubmittedQuery(searchQuery);
                                 }}
@@ -261,40 +144,39 @@ export default function ChatPage() {
                                 placeholder="Search memories..."
                                 type="text"
                             />
-                            <button onClick={() => {
-                                setSubmittedQuery(searchQuery);
-                            }} className="flex items-center gap-1.5 bg-surface-container-highest px-2.5 py-1.5 rounded-lg border border-outline-variant/50 hover:bg-surface-bright transition-colors shrink-0 cursor-pointer">
+                            <button
+                                onClick={() => setSubmittedQuery(searchQuery)}
+                                className="flex items-center gap-1.5 bg-surface-container-highest px-2.5 py-1.5 rounded-lg border border-outline-variant/50 hover:bg-surface-bright transition-colors shrink-0 cursor-pointer"
+                            >
                                 <SlidersHorizontal className="w-3 h-3" />
-                                <span className="hidden sm:inline text-[10px] font-bold tracking-widest uppercase">Search</span>
+                                <span className="hidden sm:inline text-[10px] font-bold tracking-widest uppercase">
+                                    Search
+                                </span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Querry Result Component  */}
                     <ChatComponent text={submittedQuery} />
 
-
-                    {/* {Scroll Down Icon } */}
+                    {/* Scroll hint */}
                     <div className="mt-12 sm:mt-24 md:mt-40 flex justify-center items-center flex-col gap-1">
-                        <div className="flex justify-center items-center flex-col gap-1">
-                            <div className="text-on-surface-variant/60 text-center">
-                                <p className="text-xs sm:text-sm">Scroll Down to see your Memories</p>
-                            </div>
-                            <div className="justify-center flex">
-                                <ArrowDown className="w-5 h-5 text-on-surface-variant/70" />
-                            </div>
-                        </div>
+                        <p className="text-xs sm:text-sm text-on-surface-variant/60 text-center">
+                            Scroll Down to see your Memories
+                        </p>
+                        <ArrowDown className="w-5 h-5 text-on-surface-variant/70" />
                     </div>
-                    {/* View tabs — Recent / Starred / Archives */}
+
+                    {/* View tabs */}
                     <div className="flex justify-center gap-2 mt-8 sm:mt-12">
                         {viewTabs.map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveView(tab)}
-                                className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer ${activeView === tab
-                                    ? "bg-secondary-container/30 border border-secondary-fixed-dim/20 text-secondary-fixed-dim"
-                                    : "bg-surface-container-high/50 border border-outline-variant/20 text-on-surface-variant/60 hover:text-on-surface-variant"
-                                    }`}
+                                className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer ${
+                                    activeView === tab
+                                        ? "bg-secondary-container/30 border border-secondary-fixed-dim/20 text-secondary-fixed-dim"
+                                        : "bg-surface-container-high/50 border border-outline-variant/20 text-on-surface-variant/60 hover:text-on-surface-variant"
+                                }`}
                             >
                                 {tab}
                             </button>
@@ -302,8 +184,7 @@ export default function ChatPage() {
                     </div>
                 </motion.section>
 
-                {/* ── CONTENT TYPE FILTER PILLS ── */}
-
+                {/* Filter pills */}
                 <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -314,46 +195,39 @@ export default function ChatPage() {
                         <button
                             key={f}
                             onClick={() => setActiveFilter(f)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${activeFilter === f
-                                ? "bg-primary-container text-on-primary-container shadow-[0_0_12px_-2px_rgba(51,102,255,0.4)]"
-                                : "bg-surface-container-high border border-outline-variant/20 text-on-surface-variant hover:border-outline-variant/50 hover:text-on-surface"
-                                }`}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                                activeFilter === f
+                                    ? "bg-primary-container text-on-primary-container shadow-[0_0_12px_-2px_rgba(51,102,255,0.4)]"
+                                    : "bg-surface-container-high border border-outline-variant/20 text-on-surface-variant hover:border-outline-variant/50 hover:text-on-surface"
+                            }`}
                         >
                             {f}
                         </button>
                     ))}
                 </motion.div>
 
-
-
-                {/* ── BENTO GRID ── */}
+                {/* Memory grid */}
                 {refreshing && (
                     <div className="flex items-center gap-2 text-xs text-on-surface-variant/50">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         <span>Processing your new memory…</span>
                     </div>
                 )}
+
                 {memories.length > 0 ? (
-                    <ContentGrid memories={memories} />
+                    <ContentGrid memories={memories} onDelete={handleDelete} />
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 gap-3">
                         <Brain className="w-10 h-10 text-on-surface-variant/20" />
-                        <p className="text-sm text-on-surface-variant/50">No memories yet. Add your first one!</p>
+                        <p className="text-sm text-on-surface-variant/50">
+                            No memories yet. Add your first one!
+                        </p>
                     </div>
                 )}
             </main>
 
-            {/* ── FAB BUTTONS ── */}
-            <div className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 flex flex-col gap-3">
-                <button onClick={() => {
-                    setIsAddContentOpen(true);
-                }} className="w-12 h-12 bg-primary-container text-on-primary-container rounded-full shadow-[0_0_24px_-4px_rgba(51,102,255,0.5)] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
-                    <Plus className="w-5 h-5" />
-                </button>
-                <button className="w-12 h-12 bg-surface-container-high text-on-surface rounded-full border border-outline-variant/30 flex items-center justify-center hover:bg-surface-bright transition-colors cursor-pointer">
-                    <Sparkles className="w-4 h-4" />
-                </button>
-            </div>
+            {/* FAB buttons */}
+            <DashboardFAB onAddContent={() => setIsAddContentOpen(true)} />
         </div>
     );
 }

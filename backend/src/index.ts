@@ -18,6 +18,7 @@ import { GetEmbeddings } from "./Embeddings";
 import axios from "axios";
 import { GetLLMResponse } from "./GetLLMResponse";
 import passport from "./config/passport";
+import { GetHypotheticalAnswer } from "./GetHypotheticalAnswer";
 
 
 
@@ -323,8 +324,11 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
   const userId = res.locals.userId;
 
   try {
+    
+    const HypotheticalAnswer = await GetHypotheticalAnswer(question);
+
     // Step 1 — Embed the question
-    const Embedings = await GetEmbeddings(question);
+    const Embedings = await GetEmbeddings(HypotheticalAnswer);
 
     // Step 2 — Vector search: fetch top 10 chunks, then deduplicate to 1 per memory
     const similarChunks = await prisma.$queryRaw<{
@@ -411,11 +415,6 @@ ANSWER:`;
       sources
     });
 
-
-
-
-
-
   } catch (error) {
     console.log("Chat Error " + error);
     return res.status(500).json({
@@ -423,8 +422,6 @@ ANSWER:`;
       success: false
     })
   }
-
-
 
 });
 

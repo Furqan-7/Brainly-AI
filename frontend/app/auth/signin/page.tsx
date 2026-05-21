@@ -75,6 +75,16 @@ export default function SignInPage() {
     }
   };
 
+  const handleOAuth = async (provider: string) => {
+    if (provider == "Google") {
+      provider = "google"
+    }
+    else {
+      provider = "github"
+    }
+    window.location.href = `${process.env.NEXT_PUBLIC_API}/auth/${provider}`;
+  }
+
 
 
 
@@ -184,7 +194,7 @@ export default function SignInPage() {
               { label: "Google", img: "/assets/googleicon.png", invert: false },
               // { label: "GitHub", img: "/assets/githubicon.png", invert: true },
             ].map((btn) => (
-              <button
+              <button onClick={() => handleOAuth(btn.label)}
                 key={btn.label}
                 className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border border-outline-variant/20 bg-surface-container hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer"
               >
