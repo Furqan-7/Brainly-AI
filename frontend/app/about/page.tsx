@@ -73,7 +73,7 @@ export default function AboutPage() {
                 <nav className="flex justify-between items-center px-10 md:px-20 py-3 max-w-[1200px] mx-auto">
                     <div className="flex items-center gap-8">
                         <div className="flex items-center gap-2">
-                            <Brain className="w-5 h-5 text-primary-container" fill="currentColor" />
+                            <Brain className="w-5 h-5 text-primary-container"/>
                             <span className="text-lg font-black tracking-tighter text-[#E5E2E1]">Brainly AI</span>
                         </div>
                         <div className="hidden md:flex items-center gap-6 text-xs font-medium">
@@ -93,10 +93,10 @@ export default function AboutPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button className="text-xs font-medium text-[#E5E2E1]/60 hover:text-[#E5E2E1] transition-colors">
+                        <button onClick={()=>{router.push("/auth/signin")}} className="text-xs font-medium text-[#E5E2E1]/60 hover:text-[#E5E2E1] transition-colors">
                             Sign In
                         </button>
-                        <button className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg text-xs font-medium hover:brightness-110 transition-all cursor-pointer">
+                        <button onClick={()=>{router.push("/auth/signup")}} className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg text-xs font-medium hover:brightness-110 transition-all cursor-pointer">
                             Get Started
                         </button>
                     </div>

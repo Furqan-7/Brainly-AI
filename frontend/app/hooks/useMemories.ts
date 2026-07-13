@@ -9,8 +9,17 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import { getMemories } from "../services/api";
 import type { Memory } from "../types/memory";
+
+/** Returns true if the Axios error is a 401 or 403 (token expired / invalid). */
+function isAuthError(err: unknown): boolean {
+    return (
+        axios.isAxiosError(err) &&
+        (err.response?.status === 401 || err.response?.status === 403)
+    );
+}
 
 export function useMemories() {
     const router = useRouter();
@@ -18,6 +27,13 @@ export function useMemories() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
+
+    /** Clear auth state and redirect to landing page. */
+    const handleAuthFailure = useCallback(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        router.push("/");
+    }, [router]);
 
     const fetchMemories = useCallback(async () => {
         try {
@@ -29,12 +45,17 @@ export function useMemories() {
             const data = await getMemories();
             setMemories(data.filter(Boolean));
         } catch (err) {
+            if (isAuthError(err)) {
+                // Token expired or invalid — send user back to landing page
+                handleAuthFailure();
+                return;
+            }
             setError("Failed to load memories.");
             console.error(err);
         } finally {
             setLoading(false);
         }
-    }, [router]);
+    }, [router, handleAuthFailure]);
 
     /** Poll every 2 s for up to 30 s, stopping once a new memory appears. */
     const pollUntilNewMemory = useCallback(async () => {
@@ -52,12 +73,15 @@ export function useMemories() {
                     setMemories(latest.filter(Boolean));
                     break;
                 }
-            } catch {
+            } catch (err) {
+                if (isAuthError(err)) {
+                    handleAuthFailure();
+                }
                 break;
             }
         }
         setRefreshing(false);
-    }, [memories.length]);
+    }, [memories.length, handleAuthFailure]);
 
     const handleDelete = useCallback((id: number) => {
         setMemories((prev) => prev.filter((m) => m.id !== id));

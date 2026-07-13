@@ -81,14 +81,14 @@ export default function PricingPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="hidden sm:flex items-center gap-1">
+                        {/* <div className="hidden sm:flex items-center gap-1">
                             <button className="text-[#E5E2E1]/60 hover:bg-white/5 p-2 rounded-full transition-all">
                                 <Bell className="w-4 h-4" />
                             </button>
                             <button className="text-[#E5E2E1]/60 hover:bg-white/5 p-2 rounded-full transition-all">
                                 <Settings className="w-4 h-4" />
                             </button>
-                        </div>
+                        </div> */}
                         <button onClick={() => {
                             router.push("/auth/signup");
                         }} className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg text-xs font-medium hover:brightness-110 transition-all cursor-pointer">

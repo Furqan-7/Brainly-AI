@@ -28,7 +28,6 @@ export async function processMemory(memory: any) {
             text = await getTranscript(memory.source_url);
         }
         else if (memory.type == "tweet" && memory.source_url) {
-            console.log("Called fetch tweet");
             text = await fetchTweet(memory.source_url);
         }
         else if (memory.type == "pdf" && memory.file_path) {
