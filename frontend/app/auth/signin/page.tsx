@@ -189,7 +189,7 @@ export default function SignInPage() {
           </div>
 
           {/* Social Auth */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {[
               { label: "Google", img: "/assets/googleicon.png", invert: false },
               // { label: "GitHub", img: "/assets/githubicon.png", invert: true },
