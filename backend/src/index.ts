@@ -120,6 +120,14 @@ app.get(
 );
 
 
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+
 app.post("/signup", async (req, res) => {
 
   const Response = signupSchema.safeParse(req.body);
