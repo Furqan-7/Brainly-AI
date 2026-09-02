@@ -1,30 +1,31 @@
-import { GoogleGenAI } from "@google/genai";
+// GetHypotheticalAnswer.ts
+import OpenAI from "openai";
 import { config } from "dotenv";
+
 config();
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+const client = new OpenAI({
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: "https://api.groq.com/openai/v1",
 });
 
 export async function GetHypotheticalAnswer(question: string): Promise<string> {
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: `
-You are simulating a personal knowledge base entry that a user might have saved.
-Generate a short, realistic note or document snippet that would directly answer:
-"${question}"
-
-Write it as if it's content the user themselves saved — like a note, article excerpt, or summary. Be concise and specific.
-      `,
-    });
-
-    if (!response.text) {
-      throw new Error("No text response from Google GenAI");
+    try {
+        // GetHypotheticalAnswer.ts
+        const completion = await client.chat.completions.create({
+            model: "openai/gpt-oss-20b",
+            messages: [
+                {
+                    role: "user",
+                    content: `Write a short, plausible-sounding paragraph that could answer this question. It doesn't need to be factually correct — it's used only to improve semantic search.\n\nQuestion: ${question}`,
+                },
+            ],
+            max_tokens: 150,
+            reasoning_effort: "low", // gpt-oss-20b requires low/medium/high, not "none"
+        });
+        return completion.choices[0].message.content ?? question;
+    } catch (error) {
+        console.error("HyDE Error:", error);
+        return question; // fallback: just use the raw question if HyDE fails
     }
-    return response.text;
-  } catch (error) {
-    console.error("Error in GetHypotheticalAnswer:", error);
-    throw new Error("Failed to get hypothetical answer");
-  }
 }

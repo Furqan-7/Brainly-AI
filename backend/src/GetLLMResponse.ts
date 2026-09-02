@@ -15,17 +15,13 @@ export async function GetLLMResponse(
 
     try {
 
-        const completion =
-            await client.chat.completions.create({
-                model: "qwen/qwen3.6-27b",
-
-                messages: [
-                    {
-                        role: "user",
-                        content: prompt,
-                    },
-                ],
-            });
+        const completion = await client.chat.completions.create({
+            model: "qwen/qwen3.6-27b",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 500,
+            temperature: 0.3,
+            reasoning_effort: "none", // disables thinking mode
+        } as any);
 
         return completion
             .choices[0]

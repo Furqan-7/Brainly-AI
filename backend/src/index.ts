@@ -18,7 +18,9 @@ import { GetEmbeddings } from "./Embeddings";
 import axios from "axios";
 import { GetLLMResponse } from "./GetLLMResponse";
 import passport from "./config/passport";
+import { hybridSearch, expandWithNeighbors } from "./Retrieval";
 import { GetHypotheticalAnswer } from "./GetHypotheticalAnswer";
+import { stripThinkingTags } from "./stripThinkingTags";
 
 
 
@@ -316,58 +318,23 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
 
 
 app.post("/api/chat", MiddleWhere, async (req, res) => {
-
-
-
+  const start = performance.now();
   const Response = ChatSchema.safeParse(req.body);
 
   if (!Response.success) {
-    return res.status(411).json({
-      message: "Invalid Input",
-      success: false
-    })
+    return res.status(411).json({ message: "Invalid Input", success: false });
   }
 
   const question = Response.data.question;
   const userId = res.locals.userId;
 
   try {
-    
     const HypotheticalAnswer = await GetHypotheticalAnswer(question);
 
-    // Step 1 — Embed the question
-    const Embedings = await GetEmbeddings(HypotheticalAnswer);
+    // Step 1 — Hybrid search (vector + keyword), already returns fused/ranked + deduped-per-query results
+    const results = await hybridSearch(HypotheticalAnswer, userId, 10);
 
-    // Step 2 — Vector search: fetch top 10 chunks, then deduplicate to 1 per memory
-    type SimilarChunk = {
-      id: number;
-      MemoryId: number;
-      content: string;
-      chunk_index: number;
-      similarity: number;
-      title: string;
-      type: string;
-      source_url: string | null;
-    };
-    const similarChunks = await prisma.$queryRaw<SimilarChunk[]>`
-      SELECT 
-        c.id,
-        c."MemoryId",
-        c.content,
-        c.chunk_index,
-        m.title,
-        m.type,
-        m.source_url,
-        1 - (c.embedding <=> ${JSON.stringify(Embedings)}::vector) AS similarity
-      FROM "Chunks" c
-      JOIN "Memories" m ON c."MemoryId" = m.id
-      WHERE m."userId" = ${userId}
-        AND m.status = 'ready'
-      ORDER BY c.embedding <=> ${JSON.stringify(Embedings)}::vector
-      LIMIT 10
-    `;
-
-    if (!similarChunks || similarChunks.length === 0) {
+    if (!results || results.length === 0) {
       return res.status(200).json({
         message: "No relevant memories found",
         success: true,
@@ -376,29 +343,33 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
       });
     }
 
-    // Step 3 — Deduplicate by memoryId, keeping the highest-similarity chunk per memory
+    // Step 2 — Deduplicate by memoryId, keeping the top-ranked chunk per memory
     const seenMemoryIds = new Set<number>();
-    const topChunks = similarChunks.filter((chunk: SimilarChunk) => {
-      if (seenMemoryIds.has(chunk.MemoryId)) return false;
-      seenMemoryIds.add(chunk.MemoryId);
+    const topChunks = results.filter((chunk) => {
+      if (seenMemoryIds.has(chunk.memoryId)) return false;
+      seenMemoryIds.add(chunk.memoryId);
       return true;
     });
 
-    // Step 4 — Build context from the deduplicated top chunks
-    const context = topChunks
-      .map((chunk: SimilarChunk, i: number) => `[Source ${i + 1} - ${chunk.type.toUpperCase()}: "${chunk.title}"]\n${chunk.content}`)
+    // Step 3 — Expand with neighboring chunks for more context
+    const expandedChunks = await expandWithNeighbors(topChunks);
+
+    // Step 4 — Build context
+    const context = expandedChunks
+      .map((chunk, i) => `[Source ${i + 1} - ${chunk.type.toUpperCase()}: "${chunk.title}"]\n${chunk.content}`)
       .join("\n\n---\n\n");
 
-    // Step 5 — Build sources list for the response (one entry per memory)
-    const sources = topChunks.map((chunk: SimilarChunk) => ({
-      memoryId: chunk.MemoryId,
+    // Step 5 — Build sources list, now including metadata (thumbnail, etc.)
+    const sources = expandedChunks.map((chunk) => ({
+      memoryId: chunk.memoryId,
       title: chunk.title,
       type: chunk.type,
       source_url: chunk.source_url,
-      similarity: Number(chunk.similarity).toFixed(2)
+      thumbnail: chunk.metadata?.thumbnail ?? null,
+      combined_score: Number(chunk.combined_score).toFixed(4)
     }));
 
-    // Step 5 — Call Ollama LLM with context + question
+    // Step 6 — Call LLM
     const prompt = `You are Brainly AI, a personal knowledge assistant.
 You have access to the user's saved content below. Answer the user's question using ONLY the provided context.
 If the answer is not in the context, say: "I couldn't find that in your saved content."
@@ -411,12 +382,13 @@ USER QUESTION: ${question}
 
 ANSWER:`;
 
-    const llmResponse = await GetLLMResponse(prompt);
+    const llmStart = performance.now();
+    const rawAnswer = await GetLLMResponse(prompt);
+    console.log("LLM:", performance.now() - llmStart);
 
-    const answer = llmResponse;
+    const answer = stripThinkingTags(rawAnswer as string);
 
-
-    // Step 6 — Return answer + sources
+    console.log("TOTAL:", performance.now() - start);
     return res.status(200).json({
       message: "Chat response generated",
       success: true,
@@ -426,12 +398,8 @@ ANSWER:`;
 
   } catch (error) {
     console.log("Chat Error " + error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    })
+    return res.status(500).json({ message: "Internal Server Error", success: false });
   }
-
 });
 
 
@@ -466,9 +434,6 @@ app.get("/api/content", MiddleWhere, async (req, res) => {
 app.delete("/api/content/delete", MiddleWhere, async (req, res) => {
   const userId = res.locals.userId;
   const id = Number(req.body.memoryId);
-
-
-
 
   try {
     const memory = await prisma.memories.findUnique({

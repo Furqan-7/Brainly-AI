@@ -4,9 +4,8 @@ import { UrlToText } from "./UrlToText";
 import { getTranscript } from "./getTranscript";
 import { fetchTweet } from "./fetchTweet";
 import { processImage } from "./processImage";
-import { splitIntoChunks } from "./splitIntoChunks";
+import { chunkMemory, ATOMIC_WORD_THRESHOLD } from "./chunking";
 import { GetEmbeddings } from "./Embeddings";
-
 
 export async function processMemory(memory: any) {
     try {
@@ -15,11 +14,7 @@ export async function processMemory(memory: any) {
             data: { status: "processing" }
         });
 
-        let text: string | null = "";
-
-        text += "Type::" + memory.type + ":::";
-        text += "Title::" + memory.title + ":::";
-        text += "Description::" + memory.description + ":::";
+        let text: string | null = null;
 
         if (memory.type == "url" && memory.source_url) {
             text = await UrlToText(memory.source_url);
@@ -40,27 +35,36 @@ export async function processMemory(memory: any) {
             text = await processImage(memory.file_path);
         }
 
-
         if (!text) {
-            console.log("Falied at Text" + text);
+            console.log("Failed at Text: " + text);
             await prisma.memories.update({
                 where: { id: memory.id },
                 data: { status: "failed" }
             });
             return;
         }
-        const chunks = splitIntoChunks(text);
+
+        const wordCount = text.trim().split(/\s+/).length;
+        const granularity = wordCount <= ATOMIC_WORD_THRESHOLD ? "atomic" : "long_form";
+
+        const chunks = chunkMemory(text, granularity, { memoryId: memory.id });
+
+        await prisma.memories.update({
+            where: { id: memory.id },
+            data: { granularity }
+        });
 
         for (let i = 0; i < chunks.length; i++) {
-            const embedding = await GetEmbeddings(chunks[i]);
+            const embedding = await GetEmbeddings(chunks[i].text);
 
             await prisma.$executeRaw`
-        INSERT INTO "Chunks" ("MemoryId", content, chunk_index, embedding)
+        INSERT INTO "Chunks" ("MemoryId", content, chunk_index, embedding, metadata)
         VALUES (
           ${memory.id},
-          ${chunks[i]},
+          ${chunks[i].text},
           ${i},
-          ${JSON.stringify(embedding)}::vector
+          ${JSON.stringify(embedding)}::vector,
+          ${JSON.stringify(chunks[i].metadata ?? {})}::jsonb
         )
       `;
         }
@@ -68,10 +72,10 @@ export async function processMemory(memory: any) {
         await prisma.memories.update({
             where: { id: memory.id },
             data: { status: "ready" }
-        })
+        });
     }
     catch (error) {
-        console.log("Failed at Embeddings" + error);
+        console.log("Failed at Embeddings: " + error);
         await prisma.memories.update({
             where: { id: memory.id },
             data: { status: "failed" }

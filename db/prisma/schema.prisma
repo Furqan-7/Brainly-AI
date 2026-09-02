@@ -8,31 +8,15 @@ datasource db {
   extensions = [vector]
 }
 
-enum ContentType {
-  pdf //done 
-  url //done
-  youtube //done
-  tweet //not done
-  note // done
-  image // not done
-}
-
-enum Status {
-  pending
-  processing
-  ready
-  failed
-}
-
 model User {
   id        Int        @id @default(autoincrement())
   username  String
   email     String     @unique
   password  String?
-  isPremium Boolean    @default(false)
   createdAt DateTime   @default(now())
-  memories  Memories[]
+  isPremium Boolean    @default(false)
   accounts  Account[]
+  memories  Memories[]
 }
 
 model Account {
@@ -42,33 +26,61 @@ model Account {
   providerAccountId String
   accessToken       String?
   refreshToken      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
 model Memories {
-  id         Int         @id @default(autoincrement())
-  userId     Int
-  type       ContentType
-  title      String
-  source_url String?
-  file_path  String?
-  note       String?
-  status     Status      @default(pending)
-  metadata   Json?
-  createdAt  DateTime    @default(now())
-  user       User        @relation(fields: [userId], references: [id])
-  chunks     Chunks[]
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  type        ContentType
+  title       String
+  source_url  String?
+  file_path   String?
+  status      Status      @default(pending)
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  note        String?
+  granularity Granularity @default(long_form)
+  chunks      Chunks[]
+  user        User        @relation(fields: [userId], references: [id])
 }
 
 model Chunks {
-  id          Int                        @id @default(autoincrement())
+  id          Int                      @id @default(autoincrement())
   MemoryId    Int
   content     String
   chunk_index Int
-  embedding   Unsupported("vector(768)")
-  createdAt   DateTime                   @default(now())
-  Memory      Memories                   @relation(fields: [MemoryId], references: [id])
+  createdAt   DateTime                 @default(now())
+  metadata    Json?
+  token_count Int?
+  embedding   Unsupported("vector")?
+  content_tsv Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, content)"))
+  Memory      Memories                 @relation(fields: [MemoryId], references: [id])
+
+  @@index([MemoryId])
+  @@index([content_tsv], map: "chunks_content_tsv_idx", type: Gin)
+  @@index([embedding], map: "chunks_embedding_idx")
+}
+
+enum ContentType {
+  pdf
+  url
+  youtube
+  tweet
+  note
+  image
+}
+
+enum Status {
+  pending
+  processing
+  ready
+  failed
+}
+
+enum Granularity {
+  long_form
+  atomic
 }
