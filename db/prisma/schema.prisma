@@ -64,6 +64,15 @@ model Chunks {
   @@index([embedding], map: "chunks_embedding_idx")
 }
 
+model ApiUsage {
+  id         Int    @id @default(autoincrement())
+  service    String
+  month_year String
+  call_count Int    @default(0)
+
+  @@unique([service, month_year])
+}
+
 enum ContentType {
   pdf
   url

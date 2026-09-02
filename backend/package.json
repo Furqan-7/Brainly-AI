@@ -28,6 +28,7 @@
     "axios": "^1.15.2",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.2.0",
+    "cohere-ai": "^8.1.0",
     "cors": "^2.8.6",
     "db": "workspace:*",
     "dotenv": "^17.4.2",

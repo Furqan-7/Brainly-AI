@@ -18,7 +18,7 @@ import { GetEmbeddings } from "./Embeddings";
 import axios from "axios";
 import { GetLLMResponse } from "./GetLLMResponse";
 import passport from "./config/passport";
-import { hybridSearch, expandWithNeighbors } from "./Retrieval";
+import { hybridSearch, expandWithNeighbors, rerankChunks } from "./Retrieval";
 import { GetHypotheticalAnswer } from "./GetHypotheticalAnswer";
 import { stripThinkingTags } from "./stripThinkingTags";
 
@@ -318,7 +318,7 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
 
 
 app.post("/api/chat", MiddleWhere, async (req, res) => {
-  const start = performance.now();
+  const start = Date.now();
   const Response = ChatSchema.safeParse(req.body);
 
   if (!Response.success) {
@@ -329,10 +329,14 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
   const userId = res.locals.userId;
 
   try {
+    const hydeStart = Date.now();
     const HypotheticalAnswer = await GetHypotheticalAnswer(question);
+    console.log("HyDE:", Date.now() - hydeStart);
 
     // Step 1 — Hybrid search (vector + keyword), already returns fused/ranked + deduped-per-query results
+    const retrievalStart = Date.now();
     const results = await hybridSearch(HypotheticalAnswer, userId, 10);
+    console.log("Retrieval:", Date.now() - retrievalStart);
 
     if (!results || results.length === 0) {
       return res.status(200).json({
@@ -351,8 +355,14 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
       return true;
     });
 
+    const rerankStart = Date.now();
+    const reranked = await rerankChunks(question, topChunks, 5);
+    console.log("Rerank:", Date.now() - rerankStart);
+
     // Step 3 — Expand with neighboring chunks for more context
-    const expandedChunks = await expandWithNeighbors(topChunks);
+    const expandStart = Date.now();
+    const expandedChunks = await expandWithNeighbors(reranked);
+    console.log("Expand:", Date.now() - expandStart);
 
     // Step 4 — Build context
     const context = expandedChunks
@@ -382,13 +392,13 @@ USER QUESTION: ${question}
 
 ANSWER:`;
 
-    const llmStart = performance.now();
+    const llmStart = Date.now();
     const rawAnswer = await GetLLMResponse(prompt);
-    console.log("LLM:", performance.now() - llmStart);
+    console.log("LLM:", Date.now() - llmStart);
 
     const answer = stripThinkingTags(rawAnswer as string);
 
-    console.log("TOTAL:", performance.now() - start);
+    console.log("TOTAL:", Date.now() - start);
     return res.status(200).json({
       message: "Chat response generated",
       success: true,

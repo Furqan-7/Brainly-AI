@@ -1,6 +1,8 @@
 // retrieval.ts
 import { prisma } from "db";
 import { GetEmbeddings } from "./Embeddings";
+import { CohereClient } from "cohere-ai";
+import { canUseCohere, incrementCohereUsage } from "./apiUsage";
 
 interface RetrievedChunk {
   id: number;
@@ -90,4 +92,42 @@ export async function expandWithNeighbors(chunks: RetrievedChunk[]): Promise<Ret
     })
   );
   return expanded;
+}
+
+
+
+
+const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+
+export async function rerankChunks(
+  query: string,
+  chunks: RetrievedChunk[],
+  topN: number = 5
+): Promise<RetrievedChunk[]> {
+  if (chunks.length === 0) return [];
+
+  const hasQuota = await canUseCohere();
+  if (!hasQuota) {
+    console.log("Cohere rerank limit reached this month — skipping reranking");
+    return chunks.slice(0, topN); // fallback: just take top-N from hybrid search
+  }
+
+  try {
+    const rerankResponse = await cohere.rerank({
+      model: "rerank-v3.5",
+      query,
+      documents: chunks.map((c) => c.content),
+      topN,
+    });
+
+    await incrementCohereUsage();
+
+    return rerankResponse.results.map((result) => ({
+      ...chunks[result.index],
+      rerank_score: result.relevanceScore,
+    }));
+  } catch (error) {
+    console.error("Cohere rerank error, falling back:", error);
+    return chunks.slice(0, topN); // fallback on any API error too, not just quota
+  }
 }
