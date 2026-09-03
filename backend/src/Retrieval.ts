@@ -109,25 +109,25 @@ export async function rerankChunks(
   const hasQuota = await canUseCohere();
   if (!hasQuota) {
     console.log("Cohere rerank limit reached this month — skipping reranking");
-    return chunks.slice(0, topN); // fallback: just take top-N from hybrid search
+    return chunks.slice(0, topN);
   }
 
   try {
     const rerankResponse = await cohere.rerank({
       model: "rerank-v3.5",
       query,
-      documents: chunks.map((c) => c.content),
+      documents: chunks.map((c) => c.content.slice(0, 800)), // cap ~150-200 words per doc for scoring
       topN,
     });
 
     await incrementCohereUsage();
 
     return rerankResponse.results.map((result) => ({
-      ...chunks[result.index],
+      ...chunks[result.index], // full original content preserved for the actual LLM context
       rerank_score: result.relevanceScore,
     }));
   } catch (error) {
     console.error("Cohere rerank error, falling back:", error);
-    return chunks.slice(0, topN); // fallback on any API error too, not just quota
+    return chunks.slice(0, topN);
   }
 }

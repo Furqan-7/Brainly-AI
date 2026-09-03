@@ -334,9 +334,7 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
     console.log("HyDE:", Date.now() - hydeStart);
 
     // Step 1 — Hybrid search (vector + keyword), already returns fused/ranked + deduped-per-query results
-    const retrievalStart = Date.now();
     const results = await hybridSearch(HypotheticalAnswer, userId, 10);
-    console.log("Retrieval:", Date.now() - retrievalStart);
 
     if (!results || results.length === 0) {
       return res.status(200).json({
