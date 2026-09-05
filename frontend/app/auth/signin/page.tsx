@@ -5,8 +5,8 @@ import { Brain, Search, MessageSquare, Database, Mail, Lock, ArrowRight, AlertCi
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import axios from "axios";
-import { jwtDecode, JwtPayload } from "jwt-decode";
 import ChatPage from "@/app/chat/page";
+import GoogleLogoAnimation from "@/app/components/GoogleLogoAnimation";
 
 
 const features = [
@@ -196,9 +196,13 @@ export default function SignInPage() {
             ].map((btn) => (
               <button onClick={() => handleOAuth(btn.label)}
                 key={btn.label}
-                className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border border-outline-variant/20 bg-surface-container hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer"
+                className="group flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border border-outline-variant/20 bg-surface-container hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer"
               >
-                <img src={btn.img} alt={btn.label} className={`w-4 h-4 ${btn.invert ? "invert" : ""}`} />
+                {btn.label === "Google" ? (
+                  <GoogleLogoAnimation className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" scale={1.8} />
+                ) : (
+                  <img src={btn.img} alt={btn.label} className={`w-4 h-4 ${btn.invert ? "invert" : ""}`} />
+                )}
                 <span className="text-sm font-medium">{btn.label}</span>
               </button>
             ))}
