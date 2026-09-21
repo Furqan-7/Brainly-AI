@@ -14,13 +14,11 @@ const client = new openai_1.default({
 async function GetLLMResponse(prompt) {
     try {
         const completion = await client.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-                {
-                    role: "user",
-                    content: prompt,
-                },
-            ],
+            model: "qwen/qwen3.6-27b",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 500,
+            temperature: 0.3,
+            reasoning_effort: "none", // disables thinking mode
         });
         return completion
             .choices[0]

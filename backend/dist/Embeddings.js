@@ -5,14 +5,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetEmbeddings = GetEmbeddings;
 const axios_1 = __importDefault(require("axios"));
-async function GetEmbeddings(content) {
-    const Response = await axios_1.default.post("http://localhost:11434/api/embeddings", {
+const dotenv_1 = require("dotenv");
+(0, dotenv_1.config)();
+async function GetEmbeddings(content, taskType = "search_document") {
+    const response = await axios_1.default.post("https://api-atlas.nomic.ai/v1/embedding/text", {
+        model: "nomic-embed-text-v1.5",
+        texts: [content],
+        task_type: taskType,
+    }, {
         headers: {
-            "Content-Type": "application/json"
+            "Authorization": `Bearer ${process.env.NOMIC_API_KEY}`,
+            "Content-Type": "application/json",
         },
-        model: "nomic-embed-text",
-        prompt: content,
     });
-    return Response.data.embedding;
+    return response.data.embeddings[0];
 }
 //# sourceMappingURL=Embeddings.js.map

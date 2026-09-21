@@ -16,6 +16,7 @@ exports.addContentSchema = zod_1.z.object({
     title: zod_1.z.string().min(1),
     source_url: zod_1.z.string().optional().nullable(),
     file_path: zod_1.z.string().optional().nullable(),
+    note: zod_1.z.string().optional().nullable(),
     status: zod_1.z.enum(["pending", "processing", "ready", "failed"]).default("pending"),
     metadata: zod_1.z.any().optional(),
 });

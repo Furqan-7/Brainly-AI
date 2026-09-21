@@ -6,12 +6,15 @@ async function getTranscript(url) {
     try {
         const transcript = await youtube_transcript_1.YoutubeTranscript.fetchTranscript(url);
         console.log("Transcript fetched successfully");
-        return String(transcript);
+        let Response = transcript.map((item) => {
+            return item.text;
+        });
+        return Response.join(" ");
     }
     catch (error) {
         console.log("Error fetching transcript");
         console.log(error);
-        return null;
+        return "";
     }
 }
 //# sourceMappingURL=getTranscript.js.map

@@ -7,7 +7,7 @@ const UrlToText_1 = require("./UrlToText");
 const getTranscript_1 = require("./getTranscript");
 const fetchTweet_1 = require("./fetchTweet");
 const processImage_1 = require("./processImage");
-const splitIntoChunks_1 = require("./splitIntoChunks");
+const chunking_1 = require("./chunking");
 const Embeddings_1 = require("./Embeddings");
 async function processMemory(memory) {
     try {
@@ -15,8 +15,7 @@ async function processMemory(memory) {
             where: { id: memory.id },
             data: { status: "processing" }
         });
-        let text = "";
-        console.log(memory);
+        let text = null;
         if (memory.type == "url" && memory.source_url) {
             text = await (0, UrlToText_1.UrlToText)(memory.source_url);
         }
@@ -24,36 +23,42 @@ async function processMemory(memory) {
             text = await (0, getTranscript_1.getTranscript)(memory.source_url);
         }
         else if (memory.type == "tweet" && memory.source_url) {
-            console.log("Called fetch tweet");
             text = await (0, fetchTweet_1.fetchTweet)(memory.source_url);
         }
         else if (memory.type == "pdf" && memory.file_path) {
             text = await (0, pdfToText_1.GetPdfText)(memory.file_path);
         }
         else if (memory.type == "note") {
-            text = memory.metadata?.content ?? "";
+            text = memory.note ?? "";
         }
         else if (memory.type == "image" && memory.file_path) {
             text = await (0, processImage_1.processImage)(memory.file_path);
         }
         if (!text) {
-            console.log("Falied at Text" + text);
+            console.log("Failed at Text: " + text);
             await db_1.prisma.memories.update({
                 where: { id: memory.id },
                 data: { status: "failed" }
             });
             return;
         }
-        const chunks = (0, splitIntoChunks_1.splitIntoChunks)(text);
+        const wordCount = text.trim().split(/\s+/).length;
+        const granularity = wordCount <= chunking_1.ATOMIC_WORD_THRESHOLD ? "atomic" : "long_form";
+        const chunks = (0, chunking_1.chunkMemory)(text, granularity, { memoryId: memory.id });
+        await db_1.prisma.memories.update({
+            where: { id: memory.id },
+            data: { granularity }
+        });
         for (let i = 0; i < chunks.length; i++) {
-            const embedding = await (0, Embeddings_1.GetEmbeddings)(chunks[i]);
+            const embedding = await (0, Embeddings_1.GetEmbeddings)(chunks[i].text);
             await db_1.prisma.$executeRaw `
-        INSERT INTO "Chunks" ("MemoryId", content, chunk_index, embedding)
+        INSERT INTO "Chunks" ("MemoryId", content, chunk_index, embedding, metadata)
         VALUES (
           ${memory.id},
-          ${chunks[i]},
+          ${chunks[i].text},
           ${i},
-          ${JSON.stringify(embedding)}::vector
+          ${JSON.stringify(embedding)}::vector,
+          ${JSON.stringify(chunks[i].metadata ?? {})}::jsonb
         )
       `;
         }
@@ -63,7 +68,7 @@ async function processMemory(memory) {
         });
     }
     catch (error) {
-        console.log("Failed at Embeddings" + error);
+        console.log("Failed at Embeddings: " + error);
         await db_1.prisma.memories.update({
             where: { id: memory.id },
             data: { status: "failed" }

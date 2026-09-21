@@ -20,6 +20,7 @@ export declare const addContentSchema: z.ZodObject<{
     title: z.ZodString;
     source_url: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     file_path: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    note: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     status: z.ZodDefault<z.ZodEnum<{
         pending: "pending";
         processing: "processing";

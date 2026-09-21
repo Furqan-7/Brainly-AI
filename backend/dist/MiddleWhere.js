@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MiddleWhere = MiddleWhere;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const dotenv_1 = require("dotenv");
+(0, dotenv_1.config)();
 function MiddleWhere(req, res, next) {
     const token = req.headers.token;
     if (!token || typeof token !== 'string') {
@@ -15,16 +17,18 @@ function MiddleWhere(req, res, next) {
     try {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_TOKEN);
         if (!decoded || typeof decoded !== 'object' || !('userId' in decoded)) {
-            return res.status(403).json({
-                message: "Invalid Token"
+            return res.status(404).json({
+                message: "Invalid Token",
             });
         }
         res.locals.userId = decoded.userId;
         next();
     }
     catch (e) {
+        console.log("Failed Here");
         return res.status(403).json({
-            message: "Invalid or Expired Token"
+            message: "Invalid or Expired Token",
+            error: e
         });
     }
 }
