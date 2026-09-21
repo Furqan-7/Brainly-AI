@@ -5,7 +5,7 @@ import { Brain, Search, MessageSquare, Database, Mail, Lock, ArrowRight, AlertCi
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import axios from "axios";
-import ChatPage from "@/app/chat/page";
+import { jwtDecode } from "jwt-decode";
 import GoogleLogoAnimation from "@/app/components/GoogleLogoAnimation";
 
 
