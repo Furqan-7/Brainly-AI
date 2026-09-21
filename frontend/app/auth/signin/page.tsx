@@ -5,7 +5,6 @@ import { Brain, Search, MessageSquare, Database, Mail, Lock, ArrowRight, AlertCi
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 import GoogleLogoAnimation from "@/app/components/GoogleLogoAnimation";
 
 
@@ -27,12 +26,6 @@ const features = [
   },
 ];
 
-type MyTokenPayload = {
-  userId: string;
-  username: string;
-  exp: number;
-};
-
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,8 +44,16 @@ export default function SignInPage() {
 
       if (Response.data.success) {
         localStorage.setItem("token", Response.data.token);
-        const user = jwtDecode<MyTokenPayload>(Response.data.token);
-        localStorage.setItem("username", user.username);
+        let username = Response.data.username;
+        if (!username && Response.data.token) {
+          try {
+            const payload = JSON.parse(atob(Response.data.token.split(".")[1]));
+            username = payload?.username;
+          } catch {}
+        }
+        if (username) {
+          localStorage.setItem("username", username);
+        }
         router.push("/chat");
       }
     } catch (err: any) {
