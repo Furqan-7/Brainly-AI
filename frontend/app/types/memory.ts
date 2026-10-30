@@ -8,7 +8,8 @@ export type MemoryType =
     | "tweet"
     | "url"
     | "note"
-    | "image";
+    | "image"
+    | "reel";
 
 export interface Memory {
     id: number;
@@ -32,7 +33,9 @@ export interface Source {
     title: string;
     type: string;
     source_url: string | null;
-    similarity: number;
+    file_path: string | null;
+    thumbnail: string | null;
+    combined_score: string;
 }
 
 export interface AIResponse {

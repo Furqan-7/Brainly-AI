@@ -13,6 +13,8 @@ interface RetrievedChunk {
   title: string;
   type: string;
   source_url: string | null;
+  file_path: string | null;
+  memory_metadata: Record<string, any> | null;
   vector_score: number;
   keyword_score: number;
   combined_score: number;
@@ -21,7 +23,8 @@ interface RetrievedChunk {
 export async function hybridSearch(
   query: string,
   userId: number,
-  topK: number = 6
+  topK: number = 6,
+  keywordQuery: string = query
 ): Promise<RetrievedChunk[]> {
   const embeddingStart = performance.now();
   const queryEmbedding = await GetEmbeddings(query);
@@ -33,7 +36,7 @@ export async function hybridSearch(
   const results = await prisma.$queryRaw<RetrievedChunk[]>`
     WITH vector_search AS (
       SELECT c.id, c.content, c."MemoryId" as "memoryId", c.chunk_index, c.metadata,
-             m.title, m.type, m.source_url,
+             m.title, m.type, m.source_url, m.file_path, m.metadata as memory_metadata,
              ROW_NUMBER() OVER (ORDER BY c.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as rank
       FROM "Chunks" c
       JOIN "Memories" m ON m.id = c."MemoryId"
@@ -43,13 +46,13 @@ export async function hybridSearch(
     ),
     keyword_search AS (
       SELECT c.id, c.content, c."MemoryId" as "memoryId", c.chunk_index, c.metadata,
-             m.title, m.type, m.source_url,
-             ROW_NUMBER() OVER (ORDER BY ts_rank(c.content_tsv, plainto_tsquery('english', ${query})) DESC) as rank
+             m.title, m.type, m.source_url, m.file_path, m.metadata as memory_metadata,
+             ROW_NUMBER() OVER (ORDER BY ts_rank(c.content_tsv, plainto_tsquery('english', ${keywordQuery})) DESC) as rank
       FROM "Chunks" c
       JOIN "Memories" m ON m.id = c."MemoryId"
       WHERE m."userId" = ${userId}
-        AND c.content_tsv @@ plainto_tsquery('english', ${query})
-      ORDER BY ts_rank(c.content_tsv, plainto_tsquery('english', ${query})) DESC
+        AND c.content_tsv @@ plainto_tsquery('english', ${keywordQuery})
+      ORDER BY ts_rank(c.content_tsv, plainto_tsquery('english', ${keywordQuery})) DESC
       LIMIT 20
     )
     SELECT
@@ -61,6 +64,8 @@ export async function hybridSearch(
       COALESCE(v.title, k.title) as title,
       COALESCE(v.type, k.type) as type,
       COALESCE(v.source_url, k.source_url) as source_url,
+      COALESCE(v.file_path, k.file_path) as file_path,
+      COALESCE(v.memory_metadata, k.memory_metadata) as memory_metadata,
       (1.0 / (60 + COALESCE(v.rank, 1000))) + (1.0 / (60 + COALESCE(k.rank, 1000))) as combined_score
     FROM vector_search v
     FULL OUTER JOIN keyword_search k ON v.id = k.id

@@ -2,6 +2,7 @@
 
 import type { Memory } from "../../types/memory";
 import { YoutubeCard } from "./YoutubeCard";
+import { ReelCard } from "./ReelCard";
 import { UrlCard } from "./UrlCard";
 import { TweetCard } from "./TweetCard";
 import { PdfCard } from "./PdfCard";
@@ -23,6 +24,8 @@ export function MemoryCard({ memory, onDelete }: MemoryCardProps) {
     switch (memory.type) {
         case "youtube":
             return <YoutubeCard memory={memory} onDelete={onDelete} />;
+        case "reel":
+            return <ReelCard memory={memory} onDelete={onDelete} />;
         case "url":
             return <UrlCard memory={memory} onDelete={onDelete} />;
         case "tweet":

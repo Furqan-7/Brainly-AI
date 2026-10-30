@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, AlertCircle, ExternalLink } from "lucide-react";
+import { Sparkles, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { chatWithBrain } from "../../services/api";
 import { BrainLogo } from "./BrainLogo";
 import { ThinkingDots } from "./ThinkingDots";
+import { SourceCard } from "./SourceCard";
 import type { AIResponse, Source } from "../../types/memory";
 
 type ThinkingState = "idle" | "thinking" | "done";
@@ -143,26 +144,8 @@ export function ChatComponent({ text }: { text: string }) {
                                     Sources from your brain
                                 </p>
                                 <div className="flex flex-col gap-2">
-                                    {sources.slice(0, 1).map((source, i) => (
-                                        <motion.div
-                                            key={i}
-                                            initial={{ opacity: 0, scale: 0.96 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            className="p-3 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 transition-all"
-                                        >
-                                            <div className="flex items-center gap-2 mb-1 min-w-0">
-                                                <ExternalLink size={12} className="text-indigo-400 shrink-0" />
-                                                <span className="text-sm font-medium text-white/80 truncate">
-                                                    {source.title}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-3 text-[11px] text-white/35">
-                                                <span>{source.type}</span>
-                                                <span>
-                                                    {(source.similarity * 100).toFixed(1)}% match
-                                                </span>
-                                            </div>
-                                        </motion.div>
+                                    {sources.map((source) => (
+                                        <SourceCard key={source.memoryId} source={source} />
                                     ))}
                                 </div>
                             </div>
