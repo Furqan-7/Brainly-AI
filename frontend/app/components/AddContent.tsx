@@ -14,10 +14,11 @@ import {
     Sparkles,
     Brain,
     Loader2,
+    Clapperboard,
 } from "lucide-react";
 import axios from "axios";
 
-type ContentType = "url" | "pdf" | "youtube" | "tweet" | "note" | "image";
+type ContentType = "url" | "pdf" | "youtube" | "reel" | "tweet" | "note" | "image";
 
 const CONTENT_TYPES: {
     type: ContentType;
@@ -50,6 +51,14 @@ const CONTENT_TYPES: {
             urlPlaceholder: "https://youtube.com/watch?v=...",
         },
         {
+            type: "reel",
+            label: "Reel",
+            icon: <Clapperboard size={20} />,
+            placeholder: "e.g., Project ideas for my portfolio",
+            urlLabel: "Instagram Reel URL",
+            urlPlaceholder: "https://instagram.com/reel/...",
+        },
+        {
             type: "tweet",
             label: "Tweet",
             icon: <MessageSquare size={20} />,
@@ -72,7 +81,7 @@ const CONTENT_TYPES: {
     ];
 
 const FILE_TYPES: ContentType[] = ["pdf", "image"];
-const URL_TYPES: ContentType[] = ["url", "youtube", "tweet"];
+const URL_TYPES: ContentType[] = ["url", "youtube", "reel", "tweet"];
 
 export default function AddContent({
     isAddContentOpen,
@@ -205,7 +214,7 @@ export default function AddContent({
 
                 {/* Type Selector */}
                 <div className="px-5 sm:px-6 pb-4">
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                         {CONTENT_TYPES.map(({ type, label, icon }) => {
                             const isActive = activeType === type;
                             return (
@@ -248,7 +257,7 @@ export default function AddContent({
                         />
                     </div>
 
-                    {/* URL input — for url / youtube / tweet */}
+                    {/* URL input — for url / youtube / reel / tweet */}
                     <AnimatePresence mode="wait">
                         {isUrlType && (
                             <motion.div

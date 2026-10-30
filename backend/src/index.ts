@@ -21,6 +21,7 @@ import passport from "./config/passport";
 import { hybridSearch, expandWithNeighbors, rerankChunks } from "./Retrieval";
 import { GetHypotheticalAnswer } from "./GetHypotheticalAnswer";
 import { stripThinkingTags } from "./stripThinkingTags";
+import { isInstagramReelUrl } from "./fetchReel";
 
 
 
@@ -286,6 +287,16 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
     thumbnail = getYoutubeThumbnail(source_url);
   }
 
+  if (type === "reel" && (!source_url || !isInstagramReelUrl(source_url))) {
+    return res.status(411).json({
+      message: "Please provide a valid Instagram Reel URL",
+      success: false
+    });
+  }
+
+  // The "Personal Context" field from the client arrives as a plain string in `metadata`
+  const context = typeof metadata === "string" && metadata.trim() ? metadata.trim() : null;
+
   try {
     const memory = await prisma.memories.create({
       data: {
@@ -296,7 +307,8 @@ app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) =
         file_path,
         note,
         metadata: {
-          thumbnail_url: thumbnail
+          thumbnail_url: thumbnail,
+          context
         }
       }
     });
@@ -334,7 +346,9 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
     console.log("HyDE:", Date.now() - hydeStart);
 
     // Step 1 — Hybrid search (vector + keyword), already returns fused/ranked + deduped-per-query results
-    const results = await hybridSearch(HypotheticalAnswer, userId, 10);
+    // Vector search uses the HyDE answer; keyword search uses the user's own words so
+    // short queries like "project" still match titles and captions literally.
+    const results = await hybridSearch(HypotheticalAnswer, userId, 10, question);
 
     if (!results || results.length === 0) {
       return res.status(200).json({
@@ -373,7 +387,8 @@ app.post("/api/chat", MiddleWhere, async (req, res) => {
       title: chunk.title,
       type: chunk.type,
       source_url: chunk.source_url,
-      thumbnail: chunk.metadata?.thumbnail ?? null,
+      file_path: chunk.file_path,
+      thumbnail: chunk.memory_metadata?.thumbnail_url ?? null,
       combined_score: Number(chunk.combined_score).toFixed(4)
     }));
 

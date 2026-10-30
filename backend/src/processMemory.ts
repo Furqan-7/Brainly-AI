@@ -4,6 +4,7 @@ import { UrlToText } from "./UrlToText";
 import { getTranscript } from "./getTranscript";
 import { fetchTweet } from "./fetchTweet";
 import { processImage } from "./processImage";
+import { fetchReel } from "./fetchReel";
 import { chunkMemory, ATOMIC_WORD_THRESHOLD } from "./chunking";
 import { GetEmbeddings } from "./Embeddings";
 
@@ -33,6 +34,34 @@ export async function processMemory(memory: any) {
         }
         else if (memory.type == "image" && memory.file_path) {
             text = await processImage(memory.file_path);
+        }
+        else if (memory.type == "reel" && memory.source_url) {
+            const reel = await fetchReel(memory.source_url);
+
+            await prisma.memories.update({
+                where: { id: memory.id },
+                data: {
+                    metadata: {
+                        ...(memory.metadata ?? {}),
+                        thumbnail_url: reel.thumbnail,
+                        author: reel.author || null,
+                        description: reel.caption || null,
+                    }
+                }
+            });
+
+            // Reels have little text of their own, so the title the user gave is part of
+            // what makes them findable (e.g. saving "Project ideas" and later searching "project").
+            text = [
+                `Instagram Reel: ${memory.title}`,
+                reel.author && `By @${reel.author}`,
+                reel.caption,
+            ].filter(Boolean).join("\n\n");
+        }
+
+        const context = memory.metadata?.context;
+        if (text && context) {
+            text = `${text}\n\nPersonal note: ${context}`;
         }
 
         if (!text) {

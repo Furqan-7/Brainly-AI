@@ -19,7 +19,16 @@ import { DashboardNav } from "../components/layout/DashboardNav";
 import { DashboardFAB } from "../components/layout/DashboardFAB";
 
 const viewTabs = ["Recent", "Starred", "Archives"];
-const contentFilters = ["All", "Web Pages", "Videos", "Tweets", "Documents", "Notes"];
+const contentFilters = ["All", "Web Pages", "Videos", "Reels", "Tweets", "Documents", "Notes"];
+
+const filterTypes: Record<string, string[]> = {
+    "Web Pages": ["url"],
+    Videos: ["youtube"],
+    Reels: ["reel"],
+    Tweets: ["tweet"],
+    Documents: ["pdf", "image"],
+    Notes: ["note"],
+};
 
 export default function ChatPage() {
     const [activeFilter, setActiveFilter] = useState("All");
@@ -32,6 +41,11 @@ export default function ChatPage() {
 
     const { memories, loading, error, refreshing, fetchMemories, pollUntilNewMemory, handleDelete } =
         useMemories();
+
+    const visibleMemories =
+        activeFilter === "All"
+            ? memories
+            : memories.filter((m) => filterTypes[activeFilter]?.includes(m.type));
 
     useEffect(() => {
         // Handle OAuth token in URL (Google / GitHub redirect)
@@ -214,8 +228,8 @@ export default function ChatPage() {
                     </div>
                 )}
 
-                {memories.length > 0 ? (
-                    <ContentGrid memories={memories} onDelete={handleDelete} />
+                {visibleMemories.length > 0 ? (
+                    <ContentGrid memories={visibleMemories} onDelete={handleDelete} />
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 gap-3">
                         <Brain className="w-10 h-10 text-on-surface-variant/20" />
