@@ -1,0 +1,53 @@
+# Full local stack: Postgres + pgvector, the API (with its job worker) and the web app.
+#   cp backend/.env.example backend/.env   # fill in the AI API keys
+#   docker compose up --build
+# Then open http://localhost:3000
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: brainly
+      POSTGRES_PASSWORD: brainly
+      POSTGRES_DB: brainly
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brainly"]
+      interval: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: backend/.env
+    environment:
+      DATABASE_URL: postgresql://brainly:brainly@db:5432/brainly
+      DIRECT_URL: postgresql://brainly:brainly@db:5432/brainly
+      DB_DRIVER: pg
+      CLIENT_URL: http://localhost:3000
+      # Browser and API are both on localhost over plain HTTP here
+      COOKIE_SAMESITE: lax
+      NODE_ENV: development
+    volumes:
+      - uploads:/app/backend/uploads
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API: http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:

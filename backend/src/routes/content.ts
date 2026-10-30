@@ -68,11 +68,13 @@ function validateUrlForType(type: string, url: string): string | null {
     return null;
 }
 
+/** Compares normalized URLs, so it also catches memories saved before canonical_url was stored. */
 async function findDuplicate(userId: number, canonicalUrl: string) {
-    return prisma.memories.findFirst({
-        where: { userId, metadata: { path: ["canonical_url"], equals: canonicalUrl } },
-        select: { id: true, title: true },
+    const saved = await prisma.memories.findMany({
+        where: { userId, source_url: { not: null } },
+        select: { id: true, title: true, source_url: true },
     });
+    return saved.find((m) => normalizeUrl(m.source_url!) === canonicalUrl) ?? null;
 }
 
 async function ownedMemory(userId: number, id: number) {
@@ -94,7 +96,13 @@ contentRouter.post("/api/content", MiddleWhere, upload.single("file"), async (re
     const parsed = addContentSchema.safeParse(req.body);
     if (!parsed.success) {
         await removeTmp(file);
-        return res.status(411).json({ message: "Invalid Input", success: false, issues: parsed.error.issues.map((i) => i.message) });
+        const issue = parsed.error.issues[0];
+        const field = issue?.path.join(".");
+        return res.status(411).json({
+            message: field ? `Invalid ${field}: ${issue.message}` : "Invalid Input",
+            success: false,
+            issues: parsed.error.issues.map((i) => i.message),
+        });
     }
     const input = parsed.data;
     let type = input.type;

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Clapperboard, ExternalLink, Play, Trash2 } from "lucide-react";
+import { ExternalLink, Play, Trash2 } from "lucide-react";
 import type { Memory } from "../../types/memory";
 import { deleteMemory } from "../../services/api";
+import { TYPE_META } from "./typeMeta";
 
+/** Short vertical videos: Instagram Reels and TikToks. */
 export function ReelCard({
     memory,
     onDelete,
@@ -13,6 +15,7 @@ export function ReelCard({
     onDelete?: (id: number) => void;
 }) {
     const meta = memory.metadata ?? {};
+    const { label, icon: Icon } = TYPE_META[memory.type];
     // Instagram CDN thumbnails expire, so fall back to the icon if the image fails
     const [thumbFailed, setThumbFailed] = useState(false);
 
@@ -51,7 +54,7 @@ export function ReelCard({
                     />
                 ) : (
                     <div className="w-full h-full bg-gradient-to-br from-purple-600/30 via-pink-500/20 to-orange-400/30 flex items-center justify-center">
-                        <Clapperboard className="w-10 h-10 text-white/40" />
+                        <Icon className="w-10 h-10 text-white/40" />
                     </div>
                 )}
 
@@ -65,9 +68,9 @@ export function ReelCard({
                 <div>
                     <div className="flex items-center justify-between gap-1.5 mb-2">
                         <div className="flex items-center gap-1.5">
-                            <Clapperboard className="w-3 h-3 text-pink-500" />
+                            <Icon className="w-3 h-3 text-pink-500" />
                             <span className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
-                                Instagram Reel{meta.author ? ` · @${meta.author}` : ""}
+                                {label}{meta.author ? ` · @${meta.author}` : ""}
                             </span>
                         </div>
                         {memory.source_url && (
@@ -75,7 +78,7 @@ export function ReelCard({
                                 href={memory.source_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Open on Instagram"
+                                title="Open original"
                             >
                                 <ExternalLink className="w-3 h-3 text-on-surface-variant/40 hover:text-pink-500 transition-colors" />
                             </a>
@@ -84,9 +87,9 @@ export function ReelCard({
 
                     <h3 className="text-sm font-bold leading-snug mb-1.5">{memory.title}</h3>
 
-                    {(meta.context || meta.description) && (
+                    {(meta.context || memory.summary || meta.description) && (
                         <p className="text-xs text-on-surface-variant/70 line-clamp-3">
-                            {meta.context || meta.description}
+                            {meta.context || memory.summary || meta.description}
                         </p>
                     )}
                 </div>

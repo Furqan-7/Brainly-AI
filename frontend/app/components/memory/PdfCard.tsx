@@ -2,7 +2,7 @@
 
 import { FileText, Trash2 } from "lucide-react";
 import type { Memory } from "../../types/memory";
-import { deleteMemory } from "../../services/api";
+import { deleteMemory, fileUrl } from "../../services/api";
 
 export function PdfCard({
     memory,
@@ -45,6 +45,10 @@ export function PdfCard({
 
                     <h3 className="text-sm font-bold leading-snug">{memory.title}</h3>
 
+                    {memory.summary && (
+                        <p className="text-xs text-on-surface-variant/70 line-clamp-3">{memory.summary}</p>
+                    )}
+
                     <div className="space-y-1">
                         <div className="h-1 w-full bg-surface-container-highest rounded-full overflow-hidden">
                             <div
@@ -68,9 +72,14 @@ export function PdfCard({
                     </div>
                 </div>
 
-                <button className="flex items-center justify-center gap-1.5 py-2 bg-surface-container-highest rounded-lg border border-outline-variant/30 text-[10px] font-bold tracking-widest uppercase hover:bg-primary-container hover:text-on-primary-container transition-all cursor-pointer">
+                <a
+                    href={fileUrl(memory.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 bg-surface-container-highest rounded-lg border border-outline-variant/30 text-[10px] font-bold tracking-widest uppercase hover:bg-primary-container hover:text-on-primary-container transition-all cursor-pointer"
+                >
                     Open Document
-                </button>
+                </a>
             </div>
         </div>
     );

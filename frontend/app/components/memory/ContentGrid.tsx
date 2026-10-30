@@ -1,68 +1,79 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { Brain, ArrowRight } from "lucide-react";
-import type { Memory } from "../../types/memory";
+import { Brain, Loader2 } from "lucide-react";
+import type { Collection, Memory } from "../../types/memory";
 import { MemoryCard } from "./MemoryCard";
 
 interface ContentGridProps {
     memories: Memory[];
+    collections?: Collection[];
     onDelete?: (id: number) => void;
+    onUpdate?: (memory: Memory) => void;
+    onTagClick?: (tag: string) => void;
+    onCollectionsChanged?: () => void;
+    hasMore?: boolean;
+    loadingMore?: boolean;
+    onLoadMore?: () => void;
+    emptyMessage?: string;
 }
 
-export function ContentGrid({ memories, onDelete }: ContentGridProps) {
+export function ContentGrid({
+    memories, collections, onDelete, onUpdate, onTagClick, onCollectionsChanged,
+    hasMore, loadingMore, onLoadMore, emptyMessage = "No memories yet. Add your first one!",
+}: ContentGridProps) {
+    const sentinel = useRef<HTMLDivElement>(null);
+
+    // Infinite scroll: load the next page when the sentinel comes into view
+    useEffect(() => {
+        const el = sentinel.current;
+        if (!el || !hasMore || !onLoadMore) return;
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0]?.isIntersecting) onLoadMore();
+        }, { rootMargin: "400px" });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasMore, onLoadMore]);
+
     if (memories.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <Brain className="w-10 h-10 text-on-surface-variant/20" />
-                <p className="text-sm text-on-surface-variant/50">
-                    No memories yet. Add your first one!
-                </p>
+                <p className="text-sm text-on-surface-variant/50">{emptyMessage}</p>
             </div>
         );
     }
 
     return (
-        <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto mt-10"
-        >
-            {memories.map((memory) => (
-                <MemoryCard key={memory.id} memory={memory} onDelete={onDelete} />
-            ))}
-
-            {/* Brainly Insights prompt */}
-            <div className="md:col-span-2 flex items-center gap-4 bg-surface-container-low border border-outline-variant/10 rounded-xl p-5 hover:bg-surface-container-low/80 transition-all cursor-pointer group">
-                <div className="hidden md:flex w-12 h-12 shrink-0 items-center justify-center bg-primary-container/10 rounded-xl border border-primary-container/20">
-                    <Brain
-                        className="w-6 h-6 text-primary-container"
-                        fill="currentColor"
-                        fillOpacity={0.3}
+        <>
+            <motion.section
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto mt-6 items-start"
+            >
+                {memories.map((memory) => (
+                    <MemoryCard
+                        key={memory.id}
+                        memory={memory}
+                        collections={collections}
+                        onDelete={onDelete}
+                        onUpdate={onUpdate}
+                        onTagClick={onTagClick}
+                        onCollectionsChanged={onCollectionsChanged}
                     />
-                </div>
+                ))}
+            </motion.section>
 
-                <div className="flex-grow space-y-1">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[9px] font-bold tracking-widest uppercase text-primary">
-                            Brainly Insights
-                        </span>
-                    </div>
-
-                    <h3 className="text-sm font-bold leading-snug">
-                        You have {memories.length}{" "}
-                        {memories.length === 1 ? "memory" : "memories"} in your second brain.
-                    </h3>
-
-                    <p className="text-xs text-on-surface-variant/70">
-                        Ask me anything about your saved content. Want a summary or insights?
-                    </p>
-                </div>
-
-                <ArrowRight className="w-4 h-4 text-on-surface-variant/40 group-hover:translate-x-1 transition-transform shrink-0" />
+            <div ref={sentinel} className="flex justify-center py-6">
+                {loadingMore && <Loader2 className="w-5 h-5 text-on-surface-variant/40 animate-spin" />}
+                {hasMore && !loadingMore && onLoadMore && (
+                    <button onClick={onLoadMore} className="text-xs text-on-surface-variant/60 hover:text-on-surface cursor-pointer">
+                        Load more
+                    </button>
+                )}
             </div>
-        </motion.section>
+        </>
     );
 }

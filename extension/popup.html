@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header><strong>🧠 Brainly AI</strong><a id="options" href="#">Settings</a></header>
+
+  <section id="save">
+    <label>Title <input id="title" /></label>
+    <label>Why are you saving this? <textarea id="context" rows="2" placeholder="Optional — makes it easier to find later"></textarea></label>
+    <button id="saveBtn">Save this page</button>
+    <p id="status"></p>
+  </section>
+
+  <section id="find">
+    <form id="searchForm"><input id="q" placeholder="Search your brain…" /></form>
+    <ul id="results"></ul>
+  </section>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

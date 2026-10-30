@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { Brain, Search, MessageSquare, Database, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import axios from "axios";
+import { signup } from "@/app/services/api";
 import GoogleLogoAnimation from "@/app/components/GoogleLogoAnimation";
 
 
@@ -42,18 +42,13 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
     try {
-      const Response = await axios.post(`${process.env.NEXT_PUBLIC_API}/signup`, {
-        username,
-        email,
-        password
-      });
-
-      if (Response.data.success) {
-        localStorage.setItem("token", Response.data.token);
-        localStorage.setItem("username", Response.data.username);
+      const data = await signup(username, email, password);
+      if (data.success) {
+        // The session lives in an httpOnly cookie set by the server
         router.push(`/chat`);
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught as { response?: { status?: number; data?: { message?: string } } };
       const status = err?.response?.status;
       const serverMsg = err?.response?.data?.message;
 
@@ -71,14 +66,9 @@ export default function SignupPage() {
     }
   }
 
-  const handleOAuth = async (provider: string) => {
-    if (provider == "Google") {
-      provider = "google"
-    }
-    else {
-      provider = "github"
-    }
-    window.location.href = `${process.env.NEXT_PUBLIC_API}/auth/${provider}`;
+  const handleOAuth = (label: string) => {
+    const provider = label === "Google" ? "google" : "github";
+    window.location.assign(`${process.env.NEXT_PUBLIC_API}/auth/${provider}`);
   }
 
 
@@ -111,7 +101,7 @@ export default function SignupPage() {
               <span className="text-primary-container">digital black holes.</span>
             </h1>
             <p className="text-on-surface-variant leading-relaxed text-xs">
-              Links saved to WhatsApp, bookmarks buried in folders, PDFs you'll "read later" —
+              Links saved to WhatsApp, bookmarks buried in folders, PDFs you’ll “read later” —
               Brainly turns scattered information into an intelligent second brain you can
               actually talk to.
             </p>
@@ -144,7 +134,7 @@ export default function SignupPage() {
               The Brainly Fix
             </p>
             <p className="text-sm text-on-surface-variant leading-relaxed">
-              Brainly doesn't just <span className="text-on-surface font-medium">store</span> data —
+              Brainly doesn’t just <span className="text-on-surface font-medium">store</span> data —
               it <span className="text-on-surface font-medium">understands</span> it. No more
               scrolling through months of chat history. Just ask.
             </p>
