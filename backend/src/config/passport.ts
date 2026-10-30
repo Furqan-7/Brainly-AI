@@ -15,138 +15,144 @@ passport.deserializeUser((user: Express.User, done) => done(null, user));
 
 // ─── Google ───────────────────────────────────────────────────────────────────
 
-passport.use(
-    new GoogleStrategy(
-        {
-            clientID: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-            callbackURL: `${process.env.GOOGLE_CALLBACK_URL}`!,
-            scope: ["profile", "email"],
-        },
-        async (accessToken: string, refreshToken: string, profile: GoogleProfile, done: VerifyCallback) => {
-            try {
-                const email = profile.emails?.[0]?.value;
-                if (!email) return done(new Error("No email returned from Google"), undefined);
+// Only enabled when configured, so the app also runs without this OAuth provider
+if (process.env.GOOGLE_CLIENT_ID) {
+    passport.use(
+        new GoogleStrategy(
+            {
+                clientID: process.env.GOOGLE_CLIENT_ID!,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+                callbackURL: `${process.env.GOOGLE_CALLBACK_URL}`!,
+                scope: ["profile", "email"],
+            },
+            async (accessToken: string, refreshToken: string, profile: GoogleProfile, done: VerifyCallback) => {
+                try {
+                    const email = profile.emails?.[0]?.value;
+                    if (!email) return done(new Error("No email returned from Google"), undefined);
 
-                // 1. check if this Google account is already linked
-                const existingAccount = await prisma.account.findUnique({
-                    where: {
-                        provider_providerAccountId: {
+                    // 1. check if this Google account is already linked
+                    const existingAccount = await prisma.account.findUnique({
+                        where: {
+                            provider_providerAccountId: {
+                                provider: "google",
+                                providerAccountId: profile.id,
+                            },
+                        },
+                        include: { user: true },
+                    });
+
+                    if (existingAccount) {
+                        // already linked — update tokens and return user
+                        await prisma.account.update({
+                            where: { id: existingAccount.id },
+                            data: { accessToken, refreshToken: refreshToken ?? null },
+                        });
+
+                        const token = signToken(existingAccount.user.id, existingAccount.user.username);
+                        return done(null, { id: existingAccount.user.id, username: existingAccount.user.username, token });
+                    }
+
+                    // 2. check if a user with this email already exists (registered with password)
+                    let user = await prisma.user.findUnique({ where: { email } });
+
+                    if (!user) {
+                        // 3. brand new user — create them
+                        user = await prisma.user.create({
+                            data: {
+                                email,
+                                username: profile.displayName ?? `google_${profile.id}`,
+                            },
+                        });
+                    }
+
+                    // 4. link the Google account to the user
+                    await prisma.account.create({
+                        data: {
+                            userId: user.id,
                             provider: "google",
                             providerAccountId: profile.id,
-                        },
-                    },
-                    include: { user: true },
-                });
-
-                if (existingAccount) {
-                    // already linked — update tokens and return user
-                    await prisma.account.update({
-                        where: { id: existingAccount.id },
-                        data: { accessToken, refreshToken: refreshToken ?? null },
-                    });
-
-                    const token = signToken(existingAccount.user.id, existingAccount.user.username);
-                    return done(null, { id: existingAccount.user.id, username: existingAccount.user.username, token });
-                }
-
-                // 2. check if a user with this email already exists (registered with password)
-                let user = await prisma.user.findUnique({ where: { email } });
-
-                if (!user) {
-                    // 3. brand new user — create them
-                    user = await prisma.user.create({
-                        data: {
-                            email,
-                            username: profile.displayName ?? `google_${profile.id}`,
+                            accessToken,
+                            refreshToken: refreshToken ?? null,
                         },
                     });
+
+                    const token = signToken(user.id, user.username);
+                    return done(null, { id: user.id, username: user.username, token });
+                } catch (error) {
+                    return done(error as Error, undefined);
                 }
-
-                // 4. link the Google account to the user
-                await prisma.account.create({
-                    data: {
-                        userId: user.id,
-                        provider: "google",
-                        providerAccountId: profile.id,
-                        accessToken,
-                        refreshToken: refreshToken ?? null,
-                    },
-                });
-
-                const token = signToken(user.id, user.username);
-                return done(null, { id: user.id, username: user.username, token });
-            } catch (error) {
-                return done(error as Error, undefined);
             }
-        }
-    )
-);
+        )
+    );
+}
 
 // ─── GitHub ───────────────────────────────────────────────────────────────────
 
-passport.use(
-    new GitHubStrategy(
-        {
-            clientID: process.env.GITHUB_CLIENT_ID!,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-            callbackURL: `${process.env.GITHUB_CALLBACK_URL}`,
-            scope: ["user:email"],
-        },
-        async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: VerifyCallback) => {
-            try {
-                const email = profile.emails?.[0]?.value;
-                if (!email) return done(new Error("No email returned from GitHub"), undefined);
+// Only enabled when configured, so the app also runs without this OAuth provider
+if (process.env.GITHUB_CLIENT_ID) {
+    passport.use(
+        new GitHubStrategy(
+            {
+                clientID: process.env.GITHUB_CLIENT_ID!,
+                clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+                callbackURL: `${process.env.GITHUB_CALLBACK_URL}`,
+                scope: ["user:email"],
+            },
+            async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: VerifyCallback) => {
+                try {
+                    const email = profile.emails?.[0]?.value;
+                    if (!email) return done(new Error("No email returned from GitHub"), undefined);
 
-                const existingAccount = await prisma.account.findUnique({
-                    where: {
-                        provider_providerAccountId: {
+                    const existingAccount = await prisma.account.findUnique({
+                        where: {
+                            provider_providerAccountId: {
+                                provider: "github",
+                                providerAccountId: profile.id,
+                            },
+                        },
+                        include: { user: true },
+                    });
+
+                    if (existingAccount) {
+                        await prisma.account.update({
+                            where: { id: existingAccount.id },
+                            data: { accessToken, refreshToken: refreshToken ?? null },
+                        });
+
+                        const token = signToken(existingAccount.user.id, existingAccount.user.username);
+                        return done(null, { id: existingAccount.user.id, username: existingAccount.user.username, token });
+                    }
+
+                    let user = await prisma.user.findUnique({ where: { email } });
+
+                    if (!user) {
+                        user = await prisma.user.create({
+                            data: {
+                                email,
+                                username: profile.username ?? `github_${profile.id}`,
+                            },
+                        });
+                    }
+
+                    await prisma.account.create({
+                        data: {
+                            userId: user.id,
                             provider: "github",
                             providerAccountId: profile.id,
-                        },
-                    },
-                    include: { user: true },
-                });
-
-                if (existingAccount) {
-                    await prisma.account.update({
-                        where: { id: existingAccount.id },
-                        data: { accessToken, refreshToken: refreshToken ?? null },
-                    });
-
-                    const token = signToken(existingAccount.user.id, existingAccount.user.username);
-                    return done(null, { id: existingAccount.user.id, username: existingAccount.user.username, token });
-                }
-
-                let user = await prisma.user.findUnique({ where: { email } });
-
-                if (!user) {
-                    user = await prisma.user.create({
-                        data: {
-                            email,
-                            username: profile.username ?? `github_${profile.id}`,
+                            accessToken,
+                            refreshToken: refreshToken ?? null,
                         },
                     });
+
+                    const token = signToken(user.id, user.username);
+                    return done(null, { id: user.id, username: user.username, token });
+                } catch (error) {
+                    return done(error as Error, undefined);
                 }
-
-                await prisma.account.create({
-                    data: {
-                        userId: user.id,
-                        provider: "github",
-                        providerAccountId: profile.id,
-                        accessToken,
-                        refreshToken: refreshToken ?? null,
-                    },
-                });
-
-                const token = signToken(user.id, user.username);
-                return done(null, { id: user.id, username: user.username, token });
-            } catch (error) {
-                return done(error as Error, undefined);
             }
-        }
-    )
-);
+        )
+    );
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

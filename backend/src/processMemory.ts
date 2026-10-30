@@ -1,114 +1,141 @@
 import { prisma } from "db";
 import { GetPdfText } from "./pdfToText";
-import { UrlToText } from "./UrlToText";
-import { getTranscript } from "./getTranscript";
 import { fetchTweet } from "./fetchTweet";
 import { processImage } from "./processImage";
-import { fetchReel } from "./fetchReel";
 import { chunkMemory, ATOMIC_WORD_THRESHOLD } from "./chunking";
-import { GetEmbeddings } from "./Embeddings";
+import { GetEmbeddingsBatch } from "./Embeddings";
+import { fetchWebPage } from "./ingest/web";
+import { fetchYoutube } from "./ingest/youtube";
+import { fetchReel } from "./ingest/reel";
+import { fetchTikTok } from "./ingest/tiktok";
+import { transcribeFile } from "./ingest/transcribe";
+import { enrichMemory, cleanTags } from "./ingest/enrich";
+import { withLocalFile } from "./lib/storage";
 
-export async function processMemory(memory: any) {
-    try {
-        await prisma.memories.update({
-            where: { id: memory.id },
-            data: { status: "processing" }
-        });
+interface Extracted {
+    text: string;
+    metadata?: Record<string, unknown>;
+}
 
-        let text: string | null = null;
+/** Turns a memory's source (URL, file or note) into indexable text plus display metadata. */
+async function extractText(memory: any): Promise<Extracted> {
+    const url: string | null = memory.source_url;
 
-        if (memory.type == "url" && memory.source_url) {
-            text = await UrlToText(memory.source_url);
+    switch (memory.type) {
+        case "url": {
+            const page = await fetchWebPage(url!);
+            return {
+                text: page.text,
+                metadata: { description: page.description, thumbnail_url: page.image, site_name: page.siteName },
+            };
         }
-        else if (memory.type == "youtube" && memory.source_url) {
-            text = await getTranscript(memory.source_url);
+        case "youtube": {
+            const video = await fetchYoutube(url!);
+            return {
+                text: video.text,
+                metadata: { thumbnail_url: video.thumbnail, duration: video.duration, author: video.author, video_title: video.title },
+            };
         }
-        else if (memory.type == "tweet" && memory.source_url) {
-            text = await fetchTweet(memory.source_url);
-        }
-        else if (memory.type == "pdf" && memory.file_path) {
-            text = await GetPdfText(memory.file_path);
-        }
-        else if (memory.type == "note") {
-            text = memory.note ?? "";
-        }
-        else if (memory.type == "image" && memory.file_path) {
-            text = await processImage(memory.file_path);
-        }
-        else if (memory.type == "reel" && memory.source_url) {
-            const reel = await fetchReel(memory.source_url);
-
-            await prisma.memories.update({
-                where: { id: memory.id },
-                data: {
-                    metadata: {
-                        ...(memory.metadata ?? {}),
-                        thumbnail_url: reel.thumbnail,
-                        author: reel.author || null,
-                        description: reel.caption || null,
-                    }
-                }
-            });
-
-            // Reels have little text of their own, so the title the user gave is part of
+        case "reel":
+        case "tiktok": {
+            const info = memory.type === "reel" ? await fetchReel(url!) : await fetchTikTok(url!);
+            const label = memory.type === "reel" ? "Instagram Reel" : "TikTok video";
+            // Short videos have little text of their own, so the title the user gave is part of
             // what makes them findable (e.g. saving "Project ideas" and later searching "project").
-            text = [
-                `Instagram Reel: ${memory.title}`,
-                reel.author && `By @${reel.author}`,
-                reel.caption,
-            ].filter(Boolean).join("\n\n");
+            return {
+                text: [
+                    `${label}: ${memory.title}`,
+                    info.author && `By @${info.author}`,
+                    info.caption,
+                    info.transcript && `Transcript: ${info.transcript}`,
+                ].filter(Boolean).join("\n\n"),
+                metadata: {
+                    thumbnail_url: info.thumbnail,
+                    author: info.author || null,
+                    description: info.caption || null,
+                    has_transcript: Boolean(info.transcript),
+                },
+            };
         }
-
-        const context = memory.metadata?.context;
-        if (text && context) {
-            text = `${text}\n\nPersonal note: ${context}`;
+        case "tweet":
+            return { text: await fetchTweet(url!) };
+        case "pdf":
+            return { text: await withLocalFile(memory.file_path, GetPdfText) };
+        case "image":
+            return { text: await withLocalFile(memory.file_path, processImage) };
+        case "audio": {
+            const transcript = await withLocalFile(memory.file_path, transcribeFile);
+            return { text: transcript ? `Voice note: ${memory.title}\n\n${transcript}` : "", metadata: { description: transcript.slice(0, 280) || null } };
         }
-
-        if (!text) {
-            console.log("Failed at Text: " + text);
-            await prisma.memories.update({
-                where: { id: memory.id },
-                data: { status: "failed" }
-            });
-            return;
-        }
-
-        const wordCount = text.trim().split(/\s+/).length;
-        const granularity = wordCount <= ATOMIC_WORD_THRESHOLD ? "atomic" : "long_form";
-
-        const chunks = chunkMemory(text, granularity, { memoryId: memory.id });
-
-        await prisma.memories.update({
-            where: { id: memory.id },
-            data: { granularity }
-        });
-
-        for (let i = 0; i < chunks.length; i++) {
-            const embedding = await GetEmbeddings(chunks[i].text);
-
-            await prisma.$executeRaw`
-        INSERT INTO "Chunks" ("MemoryId", content, chunk_index, embedding, metadata)
-        VALUES (
-          ${memory.id},
-          ${chunks[i].text},
-          ${i},
-          ${JSON.stringify(embedding)}::vector,
-          ${JSON.stringify(chunks[i].metadata ?? {})}::jsonb
-        )
-      `;
-        }
-
-        await prisma.memories.update({
-            where: { id: memory.id },
-            data: { status: "ready" }
-        });
+        case "note":
+            return { text: memory.note ?? "" };
+        default:
+            throw new Error(`Unsupported memory type: ${memory.type}`);
     }
-    catch (error) {
-        console.log("Failed at Embeddings: " + error);
-        await prisma.memories.update({
-            where: { id: memory.id },
-            data: { status: "failed" }
-        });
-        return;
+}
+
+/**
+ * Extracts, chunks, embeds and enriches a memory. Throws on failure so the worker can retry;
+ * the worker owns status transitions for failures.
+ */
+export async function processMemory(memory: any) {
+    const extracted = await extractText(memory);
+    let text = extracted.text?.trim() ?? "";
+
+    if (!text) {
+        throw new Error("Could not extract any text from this content");
     }
+
+    const context = memory.metadata?.context;
+    if (context) {
+        text = `${text}\n\nPersonal note: ${context}`;
+    }
+
+    const wordCount = text.split(/\s+/).length;
+    const granularity = wordCount <= ATOMIC_WORD_THRESHOLD ? "atomic" : "long_form";
+    const chunks = chunkMemory(text, granularity, { memoryId: memory.id });
+
+    const [embeddings, enrichment] = await Promise.all([
+        GetEmbeddingsBatch(chunks.map((c) => c.text)),
+        enrichMemory(memory.title, text),
+    ]);
+
+    // Fill gaps in fetched metadata, but never overwrite what the user or an earlier run set
+    const metadata: Record<string, unknown> = { ...(memory.metadata ?? {}) };
+    for (const [key, value] of Object.entries(extracted.metadata ?? {})) {
+        if (value !== null && value !== undefined && value !== "") metadata[key] = value;
+    }
+    if (!metadata.description && enrichment.summary) metadata.description = enrichment.summary;
+
+    const tags = cleanTags([...(memory.tags ?? []), ...enrichment.tags], 10);
+    const nextReviewAt = memory.nextReviewAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.$transaction([
+        // Re-processing (edit, retry) replaces the old chunks
+        prisma.chunks.deleteMany({ where: { MemoryId: memory.id } }),
+        ...chunks.map((chunk, i) => prisma.$executeRaw`
+            INSERT INTO "Chunks" ("MemoryId", content, chunk_index, embedding, metadata, token_count)
+            VALUES (
+              ${memory.id},
+              ${chunk.text},
+              ${i},
+              ${JSON.stringify(embeddings[i])}::vector,
+              ${JSON.stringify(chunk.metadata ?? {})}::jsonb,
+              ${chunk.text.split(/\s+/).length}
+            )
+        `),
+        prisma.memories.update({
+            where: { id: memory.id },
+            data: {
+                granularity,
+                metadata: metadata as any,
+                summary: enrichment.summary || null,
+                tags,
+                status: "ready",
+                error: null,
+                nextAttemptAt: null,
+                nextReviewAt,
+            },
+        }),
+    ]);
 }

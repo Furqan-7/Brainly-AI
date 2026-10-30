@@ -1,6 +1,7 @@
 import { neonConfig } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient, Prisma } from "@prisma/client";
 import ws from "ws";
 
 // Required for Neon WebSocket connections in Node.js environments
@@ -14,8 +15,13 @@ function getPrismaClient(): PrismaClient {
     if (!connectionString) {
       throw new Error("DATABASE_URL environment variable is not set!");
     }
+    // Neon (serverless, over WebSockets) in hosted environments; plain node-postgres for
+    // local / Docker Postgres. DB_DRIVER=pg|neon overrides the guess from the URL.
+    const driver = process.env.DB_DRIVER ?? (connectionString.includes("neon.tech") ? "neon" : "pg");
     // PrismaNeon takes a PoolConfig object (connectionString is a valid PoolConfig field)
-    const adapter = new PrismaNeon({ connectionString });
+    const adapter = driver === "neon"
+      ? new PrismaNeon({ connectionString })
+      : new PrismaPg({ connectionString });
     _prisma = new PrismaClient({ adapter });
   }
   return _prisma;
@@ -30,4 +36,4 @@ export const prisma = new Proxy({} as PrismaClient, {
   },
 });
 
-export { PrismaClient };
+export { PrismaClient, Prisma };

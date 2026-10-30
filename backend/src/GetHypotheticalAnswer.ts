@@ -1,19 +1,10 @@
 // GetHypotheticalAnswer.ts
-import OpenAI from "openai";
-import { config } from "dotenv";
-
-config();
-
-const client = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY,
-    baseURL: "https://api.groq.com/openai/v1",
-});
+import { groq, FAST_MODEL } from "./lib/llm";
 
 export async function GetHypotheticalAnswer(question: string): Promise<string> {
     try {
-        // GetHypotheticalAnswer.ts
-        const completion = await client.chat.completions.create({
-            model: "openai/gpt-oss-20b",
+        const completion = await groq.chat.completions.create({
+            model: FAST_MODEL,
             messages: [
                 {
                     role: "user",

@@ -1,35 +1,40 @@
-import { error } from "console";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { config } from "dotenv";
-config();
+import { AUTH_COOKIE } from "./lib/auth";
 
+/**
+ * The web app authenticates with an httpOnly cookie. The browser extension and other API
+ * clients send the token in an `Authorization: Bearer` header (or the legacy `token` header).
+ */
+function readToken(req: Request): string | null {
+    const cookieToken = req.cookies?.[AUTH_COOKIE];
+    if (typeof cookieToken === "string" && cookieToken) return cookieToken;
+
+    const auth = req.headers.authorization;
+    if (auth?.startsWith("Bearer ")) return auth.slice(7);
+
+    const legacy = req.headers.token;
+    if (typeof legacy === "string" && legacy) return legacy;
+
+    return null;
+}
 
 export function MiddleWhere(req: Request, res: Response, next: NextFunction) {
+    const token = readToken(req);
 
-    const token = req.headers.token;
-
-    if (!token || typeof token !== 'string') {
-        return res.status(411).json({
-            message: "Invalid Token"
-        });
+    if (!token) {
+        return res.status(401).json({ message: "Not signed in", success: false });
     }
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_TOKEN as string);
 
-        if (!decoded || typeof decoded !== 'object' || !('userId' in decoded)) {
-            return res.status(404).json({
-                message: "Invalid Token",
-            });
+        if (!decoded || typeof decoded !== "object" || !("userId" in decoded)) {
+            return res.status(401).json({ message: "Invalid Token", success: false });
         }
         res.locals.userId = decoded.userId;
         next();
-    } catch (e) {
-        console.log("Failed Here");
-        return res.status(403).json({
-            message: "Invalid or Expired Token",
-            error: e
-        });
+    } catch {
+        return res.status(401).json({ message: "Invalid or Expired Token", success: false });
     }
 }
