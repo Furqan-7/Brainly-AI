@@ -1,0 +1,9 @@
+**/node_modules
+**/.next
+**/dist
+db/generated
+backend/uploads
+**/.env
+**/.env.*
+.git
+extension

@@ -64,15 +64,24 @@ export async function hybridSearch({
   const embeddingStart = performance.now();
   // Nomic embeddings are asymmetric: the question is embedded as a query, the HyDE answer
   // (which reads like a saved document) as a document. A chunk's distance is the closer of the two.
-  const [questionEmbedding, hydeEmbedding] = await Promise.all([
-    GetEmbeddings(question, "search_query"),
-    hypotheticalAnswer ? GetEmbeddings(hypotheticalAnswer, "search_document") : Promise.resolve(null),
-  ]);
+  let questionEmbedding: number[] | null = null;
+  let hydeEmbedding: number[] | null = null;
+  try {
+    [questionEmbedding, hydeEmbedding] = await Promise.all([
+      GetEmbeddings(question, "search_query"),
+      hypotheticalAnswer ? GetEmbeddings(hypotheticalAnswer, "search_document") : Promise.resolve(null),
+    ]);
+  } catch (error) {
+    // Embedding provider down or misconfigured: degrade to keyword-only search instead of failing
+    console.error("Embedding failed, falling back to keyword search:", error instanceof Error ? error.message : error);
+  }
   console.log("Embedding:", performance.now() - embeddingStart);
 
-  const q1 = JSON.stringify(questionEmbedding);
-  const q2 = JSON.stringify(hydeEmbedding ?? questionEmbedding);
+  // "[0]" is only a placeholder that keeps the SQL valid; the vector branch is disabled then
+  const q1 = JSON.stringify(questionEmbedding ?? [0]);
+  const q2 = JSON.stringify(hydeEmbedding ?? questionEmbedding ?? [0]);
   const where = filterSql(userId, filters);
+  const vectorEnabled = questionEmbedding ? Prisma.sql`TRUE` : Prisma.sql`FALSE`;
   // OR the question's terms together (plainto/websearch_to_tsquery AND them, so one extra word
   // kills the match); ts_rank still favours chunks that match more of the terms.
   const tsq = Prisma.sql`to_tsquery('english', replace(plainto_tsquery('english', ${question})::text, ' & ', ' | '))`;
@@ -82,10 +91,11 @@ export async function hybridSearch({
   // to normalize/compare raw scores directly, which is the standard approach
   const results = await prisma.$queryRaw<RetrievedChunk[]>`
     WITH vector_search AS (
-      SELECT c.id, LEAST(c.embedding <=> ${q1}::vector, c.embedding <=> ${q2}::vector) AS distance
+      SELECT c.id,
+             CASE WHEN ${vectorEnabled} THEN LEAST(c.embedding <=> ${q1}::vector, c.embedding <=> ${q2}::vector) END AS distance
       FROM "Chunks" c
       JOIN "Memories" m ON m.id = c."MemoryId"
-      WHERE ${where} AND c.embedding IS NOT NULL
+      WHERE ${vectorEnabled} AND ${where} AND c.embedding IS NOT NULL
       ORDER BY distance
       LIMIT 30
     ),

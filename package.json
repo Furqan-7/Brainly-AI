@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"pnpm --filter frontend dev\" \"pnpm --filter backend dev\"",
-    "build": "pnpm --filter db db:generate && pnpm --filter db build && pnpm --filter backend build"
+    "build": "pnpm --filter db db:generate && pnpm --filter db build && pnpm --filter backend build",
+    "test": "pnpm --filter backend test",
+    "lint": "pnpm --filter frontend lint"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
-  }
+  },
+  "packageManager": "pnpm@10.28.0"
 }

@@ -2,7 +2,7 @@
 
 import { FileText, Trash2 } from "lucide-react";
 import type { Memory } from "../../types/memory";
-import { deleteMemory } from "../../services/api";
+import { deleteMemory, fileUrl } from "../../services/api";
 
 export function ImageCard({
     memory,
@@ -17,13 +17,8 @@ export function ImageCard({
         onDelete?.(memory.id);
     };
 
-    // Extract just the filename from the stored path (handles both / and \ separators)
-    const filename = memory.file_path
-        ? memory.file_path.replace(/\\/g, "/").split("/").pop()
-        : null;
-    const imgSrc = filename
-        ? `${process.env.NEXT_PUBLIC_API}/uploads/${filename}`
-        : null;
+    // Served by the API, which checks that the file belongs to the signed-in user
+    const imgSrc = memory.file_path ? fileUrl(memory.id) : null;
 
     return (
         <div className="bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all group relative flex flex-col">

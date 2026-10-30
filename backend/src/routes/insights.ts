@@ -55,20 +55,21 @@ insightsRouter.get("/api/rediscover", MiddleWhere, async (req, res) => {
         tags: true, createdAt: true, reviewInterval: true, file_path: true,
     } as const;
 
-    const [due, throwbackRows] = await Promise.all([
-        prisma.memories.findMany({
-            where: { userId, status: "ready", archived: false, nextReviewAt: { lte: new Date() } },
-            orderBy: { nextReviewAt: "asc" },
-            take: 5,
-            select,
-        }),
-        prisma.$queryRaw<{ id: number }[]>`
-            SELECT id FROM "Memories"
-            WHERE "userId" = ${userId} AND status = 'ready' AND archived = false
-              AND "createdAt" < now() - interval '30 days'
-            ORDER BY random() LIMIT 1
-        `,
-    ]);
+    const due = await prisma.memories.findMany({
+        where: { userId, status: "ready", archived: false, nextReviewAt: { lte: new Date() } },
+        orderBy: { nextReviewAt: "asc" },
+        take: 5,
+        select,
+    });
+    // The throwback is something not already shown as due for review
+    const dueIds = due.map((d) => d.id).concat(0);
+    const throwbackRows = await prisma.$queryRaw<{ id: number }[]>`
+        SELECT id FROM "Memories"
+        WHERE "userId" = ${userId} AND status = 'ready' AND archived = false
+          AND "createdAt" < now() - interval '30 days'
+          AND id <> ALL(${dueIds}::int[])
+        ORDER BY random() LIMIT 1
+    `;
 
     const throwback = throwbackRows[0]
         ? await prisma.memories.findUnique({ where: { id: throwbackRows[0].id }, select })

@@ -8,3 +8,4 @@ node_modules
 /db/generated
 /db/dist
 /backend/dist
+!.env.example
