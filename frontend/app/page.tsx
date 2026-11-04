@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getMe } from "./services/api";
 
 // Plans data strictly matching the original /pricing page
 const plans = [
@@ -223,12 +224,10 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (token) {
-      router.replace("/chat");
-    } else {
-      setChecking(false);
-    }
+    // Signed-in users (valid session cookie) go straight to their brain
+    getMe()
+      .then(() => router.replace("/chat"))
+      .catch(() => setChecking(false));
   }, [router]);
 
   if (checking) {
@@ -389,7 +388,7 @@ export default function Home() {
                     >
                       <Zap className="text-white w-3.5 h-3.5" fill="currentColor" />
                     </motion.div>
-                    <span className="text-xs font-medium">Analyzing "Modern AI Architectures.pdf"...</span>
+                    <span className="text-xs font-medium">Analyzing “Modern AI Architectures.pdf”...</span>
                   </div>
                 </div>
               </div>
@@ -806,7 +805,7 @@ export default function Home() {
                       ))}
                     </div>
                     <p className="text-xs text-on-surface/80 leading-relaxed italic">
-                      "{t.text}"
+                      “{t.text}”
                     </p>
                   </div>
 

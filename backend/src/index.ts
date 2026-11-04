@@ -2,637 +2,84 @@ import { config } from "dotenv";
 import { resolve } from "path";
 config({ path: resolve(__dirname, "../.env") });
 
-import express from "express";
-import { addContentSchema, ChatSchema, signinSchema, signupSchema } from "./types";
-import { prisma } from "db";
+import express, { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { MiddleWhere } from "./MiddleWhere";
-import { processMemory } from "./processMemory";
+import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
-import path from "path";
-import { getYoutubeThumbnail } from "./getYoutubeThumbnail";
-import { GetEmbeddings } from "./Embeddings";
-import axios from "axios";
-import { GetLLMResponse } from "./GetLLMResponse";
 import passport from "./config/passport";
-import { hybridSearch, expandWithNeighbors, rerankChunks } from "./Retrieval";
-import { GetHypotheticalAnswer } from "./GetHypotheticalAnswer";
-import { stripThinkingTags } from "./stripThinkingTags";
+import { requestLogger, log } from "./lib/logger";
+import { ensureUploadDirs } from "./lib/storage";
+import { authRouter } from "./routes/auth";
+import { contentRouter } from "./routes/content";
+import { chatRouter } from "./routes/chat";
+import { collectionsRouter } from "./routes/collections";
+import { insightsRouter } from "./routes/insights";
+import { startWorker } from "./worker";
 
+export const app: Express = express();
 
+// Behind Render/Railway/Fly etc. — needed for correct client IPs in rate limiting and secure cookies
+app.set("trust proxy", 1);
 
+const allowedOrigins = (process.env.CLIENT_URL ?? "http://localhost:3000").split(",").map((o) => o.trim());
 
-const storage = multer.diskStorage({
-  destination: "./uploads/",
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-
-const uploads = multer({ storage });
-
-const app = express();
-
-
+app.use(requestLogger);
+app.use(cors({
+    // Cookies need an explicit origin (not "*"). Requests without an Origin (curl, the
+    // browser extension's background worker) are allowed and authenticate with a Bearer token.
+    origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin) || origin.startsWith("chrome-extension://")),
+    credentials: true,
+}));
+app.use(cookieParser());
+app.use(express.json({ limit: "1mb" }));
 app.use(passport.initialize());
-app.use(express.json());
-app.use(cors());
-
-// Serve uploaded files (images, PDFs, etc.)
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 100,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false
-})
-
+    windowMs: 15 * 60 * 1000, // 15 minutes (was 15 * 60 * 100 = 90 seconds)
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 app.use(limiter);
 
-
-app.get(
-  "/auth/google",
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-  })
-);
-
-app.get(
-  "/auth/google/callback",
-
-  passport.authenticate("google", {
-    session: false,
-  }),
-
-  async (req, res) => {
-    const user = req.user as any;
-
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        username: user.username,
-      },
-      process.env.JWT_TOKEN!,
-      {
-        expiresIn: "7d",
-      }
-    );
-    res.redirect(
-      `${process.env.CLIENT_URL}/chat?token=${token}`
-    );
-  }
-);
-
-app.get(
-  "/auth/github",
-  passport.authenticate("github", {
-    scope: ["user:email"],
-  })
-);
-
-app.get(
-  "/auth/github/callback",
-
-  passport.authenticate("github", {
-    session: false,
-  }),
-
-  async (req, res) => {
-    const user = req.user as any;
-
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        username: user.username,
-      },
-      process.env.JWT_TOKEN!,
-      {
-        expiresIn: "7d",
-      }
-    );
-
-    res.redirect(
-      `${process.env.CLIENT_URL}/chat?token=${token}`
-    );
-  }
-);
-
-
 app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  });
+    res.status(200).json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+    });
 });
 
+app.use(authRouter);
+app.use(contentRouter);
+app.use(chatRouter);
+app.use(collectionsRouter);
+app.use(insightsRouter);
 
-app.post("/signup", async (req, res) => {
+app.use((req, res) => {
+    res.status(404).json({ message: "Not found", success: false });
+});
 
-  const Response = signupSchema.safeParse(req.body);
-
-  if (!Response.success) {
-    return res.status(411).json({
-      message: "Invalid input",
-      success: false
-    })
-  };
-
-  const username = req.body.username;
-  const email = req.body.email;
-  const password = req.body.password;
-
-  const HashedPassword = await bcrypt.hash(password, 10);
-
-  try {
-
-    // Make a db call here 
-    const UserExist = await prisma.user.findUnique({
-      where: {
-        email: email
-      }
-    });
-
-
-    if (UserExist) {
-      return res.status(400).json({
-        message: "User already exists with this email"
-      });
+// Errors thrown in async handlers land here (Express 5) — never leak internals to the client
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+    if (err instanceof multer.MulterError) {
+        const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+        return res.status(status).json({ message: err.code === "LIMIT_FILE_SIZE" ? "File is too large (max 25MB)" : err.message, success: false });
     }
-
-    const user = await prisma.user.create({
-      data: {
-        username,
-        email,
-        password: HashedPassword
-      }
-    });
-
-    const token = jwt.sign({
-      userId: user.id, username: user.username
-    }, process.env.JWT_TOKEN as string, {
-      expiresIn: "7d"
-    });
-
-    return res.status(200).json({
-      message: "User created successfully",
-      username: user.username,
-      token: token,
-      id: user.id,
-      success: true
-    });
-
-  } catch (e: any) {
-    console.error("[SIGNUP ERROR]", e?.message ?? e);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false,
-      error: e?.message ?? String(e),
-      hello: "hi"
-    });
-  }
+    log("error", "unhandled error", { path: req.originalUrl, error: err instanceof Error ? err.stack : String(err) });
+    if (res.headersSent) return;
+    res.status(500).json({ message: "Internal Server Error", success: false });
 });
 
-
-app.post("/signin", async (require, res) => {
-  const Response = signinSchema.safeParse(require.body);
-  if (!Response.success) {
-    return res.status(411).json({
-      message: "Invalid Format",
-      success: false
-    })
-  };
-
-  try {
-
-    const email = require.body.email;
-    const password = require.body.password;
-
-    const user = await prisma.user.findUnique({
-      where: {
-        email
-      }
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        message: "Invalid user",
-        success: false
-      })
-    };
-
-    const hashedPassword = user.password ? user.password : " ";
-    const isPasswordCorrect = bcrypt.compareSync(password, hashedPassword);
-
-    if (!isPasswordCorrect) {
-      return res.status(402).json({
-        message: "Incorrect Password",
-        success: false
-      })
-    };
-
-    const token = jwt.sign({
-      userId: user.id, username: user.username
-    }, process.env.JWT_TOKEN as string, {
-      expiresIn: "7d"
-    });
-
-    return res.status(200).json({
-      message: "User logged in successfully",
-      success: true,
-      username: user.username,
-      id: user.id,
-      token
-    });
-
-  } catch (e) {
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    });
-  }
-});
-
-
-app.post("/api/content", MiddleWhere, uploads.single("file"), async (req, res) => {
-  const userId = res.locals.userId;
-
-  if (req.body.type == "pdf" || req.body.type == "image") {
-    if (!req.file) {
-      return res.status(400).json({ error: " File is required", success: false });
-    }
-    req.body.file_path = req.file.path;
-  }
-
-
-  const Response = addContentSchema.safeParse(req.body);
-
-  if (!Response.success) {
-    console.log("ZOD ERROR:", Response.error.format());
-    return res.status(411).json({
-      message: "Invalid Input",
-      success: false
-    })
-  }
-
-  const { type, title, source_url, file_path, note, metadata } = Response.data;
-
-  let thumbnail = null;
-
-  if (type === "youtube" && source_url) {
-    thumbnail = getYoutubeThumbnail(source_url);
-  }
-
-  try {
-    const memory = await prisma.memories.create({
-      data: {
-        userId,
-        type,
-        title,
-        source_url,
-        file_path,
-        note,
-        metadata: {
-          thumbnail_url: thumbnail
-        }
-      }
-    });
-
-    res.status(201).json({ message: "Content saved, processing...", success: true, id: memory.id });
-
-    processMemory(memory).catch(console.error).then(() => {
-      console.log("Memory processed successfully");
-    });
-
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    });
-  }
-});
-
-
-app.post("/api/chat", MiddleWhere, async (req, res) => {
-  const start = Date.now();
-  const Response = ChatSchema.safeParse(req.body);
-
-  if (!Response.success) {
-    return res.status(411).json({ message: "Invalid Input", success: false });
-  }
-
-  const question = Response.data.question;
-  const userId = res.locals.userId;
-
-  try {
-    const hydeStart = Date.now();
-    const HypotheticalAnswer = await GetHypotheticalAnswer(question);
-    console.log("HyDE:", Date.now() - hydeStart);
-
-    // Step 1 — Hybrid search (vector + keyword), already returns fused/ranked + deduped-per-query results
-    const results = await hybridSearch(HypotheticalAnswer, userId, 10);
-
-    if (!results || results.length === 0) {
-      return res.status(200).json({
-        message: "No relevant memories found",
-        success: true,
-        answer: "I couldn't find anything relevant in your knowledge base. Try saving some content first.",
-        sources: []
-      });
-    }
-
-    // Step 2 — Deduplicate by memoryId, keeping the top-ranked chunk per memory
-    const seenMemoryIds = new Set<number>();
-    const topChunks = results.filter((chunk) => {
-      if (seenMemoryIds.has(chunk.memoryId)) return false;
-      seenMemoryIds.add(chunk.memoryId);
-      return true;
-    });
-
-    const rerankStart = Date.now();
-    const reranked = await rerankChunks(question, topChunks, 5);
-    console.log("Rerank:", Date.now() - rerankStart);
-
-    // Step 3 — Expand with neighboring chunks for more context
-    const expandStart = Date.now();
-    const expandedChunks = await expandWithNeighbors(reranked);
-    console.log("Expand:", Date.now() - expandStart);
-
-    // Step 4 — Build context
-    const context = expandedChunks
-      .map((chunk, i) => `[Source ${i + 1} - ${chunk.type.toUpperCase()}: "${chunk.title}"]\n${chunk.content}`)
-      .join("\n\n---\n\n");
-
-    // Step 5 — Build sources list, now including metadata (thumbnail, etc.)
-    const sources = expandedChunks.map((chunk) => ({
-      memoryId: chunk.memoryId,
-      title: chunk.title,
-      type: chunk.type,
-      source_url: chunk.source_url,
-      thumbnail: chunk.metadata?.thumbnail ?? null,
-      combined_score: Number(chunk.combined_score).toFixed(4)
-    }));
-
-    // Step 6 — Call LLM
-    const prompt = `You are Brainly AI, a personal knowledge assistant.
-You have access to the user's saved content below. Answer the user's question using ONLY the provided context.
-If the answer is not in the context, say: "I couldn't find that in your saved content."
-Never make up information. Always be concise and accurate.
-
-CONTEXT FROM USER'S KNOWLEDGE BASE:
-${context}
-
-USER QUESTION: ${question}
-
-ANSWER:`;
-
-    const llmStart = Date.now();
-    const rawAnswer = await GetLLMResponse(prompt);
-    console.log("LLM:", Date.now() - llmStart);
-
-    const answer = stripThinkingTags(rawAnswer as string);
-
-    console.log("TOTAL:", Date.now() - start);
-    return res.status(200).json({
-      message: "Chat response generated",
-      success: true,
-      answer,
-      sources
-    });
-
-  } catch (error) {
-    console.log("Chat Error " + error);
-    return res.status(500).json({ message: "Internal Server Error", success: false });
-  }
-});
-
-
-app.get("/api/content", MiddleWhere, async (req, res) => {
-  const userId = res.locals.userId;
-
-  try {
-    const Memories = await prisma.memories.findMany({
-      where: {
-        userId: userId,
-        status: "ready"
-      },
-      orderBy: {
-        createdAt: "desc"
-      },
-    })
-
-    return res.status(200).json({
-      message: "Memories fetched successfully",
-      success: true,
-      memories: Memories
-    })
-  } catch (error) {
-    console.error("[GET /api/content] Error:", error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    })
-  }
-});
-
-app.delete("/api/content/delete", MiddleWhere, async (req, res) => {
-  const userId = res.locals.userId;
-  const id = Number(req.body.memoryId);
-
-  try {
-    const memory = await prisma.memories.findUnique({
-      where: {
-        id: id
-      }
-    });
-
-    if (!memory) {
-      return res.status(404).json({
-        message: "Memory not found",
-        success: false
-      })
-    };
-    if (memory.userId !== userId) {
-      return res.status(403).json({
-        message: "Unauthorized",
-        success: false
-      })
-    }
-
-    await prisma.chunks.deleteMany({
-      where: {
-        MemoryId: id
-      }
-    });
-
-    await prisma.memories.delete({
-      where: {
-        id
-      }
-    });
-
-
-
-    return res.status(200).json({
-      message: "Memory deleted successfully",
-      success: true
-    });
-
-  } catch (error) {
-    console.error("[DELETE /api/content/:id] Error:", error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    })
-  }
-})
-
-
-app.get("/api/content/url", MiddleWhere, async (req, res) => {
-  const userId = res.locals.userId;
-
-  try {
-    const UrlMemories = await prisma.memories.findMany({
-      where: {
-        userId: userId,
-        type: "url",
-        status: "ready"
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-
-    return res.status(200).json({
-      message: "Url Memories fetched successfully",
-      success: true,
-      memories: UrlMemories
-    })
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    })
-  }
-});
-
-
-app.get("/api/content/youtube", MiddleWhere, async (req, res) => {
-  const userId = res.locals.userId;
-
-  try {
-    const YoutubeMemories = await prisma.memories.findMany({
-      where: {
-        userId: userId,
-        type: "youtube",
-        status: "ready"
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-
-    return res.status(200).json({
-      message: "Youtube Memories fetched successfully",
-      success: true,
-      memories: YoutubeMemories
-    })
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    })
-  }
-});
-
-app.get("/api/content/tweet", MiddleWhere, async (req, res) => {
-  const userId = res.locals.userId;
-
-  try {
-    const TweetMemories = await prisma.memories.findMany({
-      where: {
-        userId: userId,
-        type: "tweet",
-        status: "ready"
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-
-    return res.status(200).json({
-      message: "Tweet Memories fetched successfully",
-      success: true,
-      memories: TweetMemories
-    })
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    })
-  }
-});
-
-app.get("/api/content/document", MiddleWhere, async (req, res) => {
-  const userId = res.locals.userId;
-
-  try {
-    const DocumentMemories = await prisma.memories.findMany({
-      where: {
-        userId: userId,
-        type: "pdf",
-        status: "ready"
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-
-    return res.status(200).json({
-      message: "Document Memories fetched successfully",
-      success: true,
-      memories: DocumentMemories
-    })
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    })
-  }
-});
-
-app.get("/api/content/note", MiddleWhere, async (req, res) => {
-  const userId = res.locals.userId;
-
-  try {
-    const NoteMemories = await prisma.memories.findMany({
-      where: {
-        userId: userId,
-        type: "note",
-        status: "ready"
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-
-    return res.status(200).json({
-      message: "Note Memories fetched successfully",
-      success: true,
-      memories: NoteMemories
-    })
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false
-    })
-  }
-});
-
-app.listen(3001, () => {
-  console.log("Server is running on port 3001");
-});  
+if (require.main === module) {
+    const port = Number(process.env.PORT ?? 3001);
+    ensureUploadDirs()
+        .then(() => {
+            app.listen(port, () => log("info", `Server is running on port ${port}`));
+            startWorker();
+        })
+        .catch((error) => {
+            log("error", "startup failed", { error: String(error) });
+            process.exit(1);
+        });
+}

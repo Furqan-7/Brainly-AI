@@ -17,6 +17,9 @@ model User {
   isPremium Boolean    @default(false)
   accounts  Account[]
   memories  Memories[]
+  collections   Collection[]
+  conversations Conversation[]
+  usage         UserUsage[]
 }
 
 model Account {
@@ -43,8 +46,74 @@ model Memories {
   createdAt   DateTime    @default(now())
   note        String?
   granularity Granularity @default(long_form)
+  // AI-generated on ingest; user tags and auto tags share this list
+  summary     String?
+  tags        String[]    @default([])
+  starred     Boolean     @default(false)
+  archived    Boolean     @default(false)
+  // Background job bookkeeping (see backend/src/worker.ts)
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime?
+  error         String?
+  updatedAt     DateTime  @default(now()) @updatedAt
+  // Spaced repetition for the "Rediscover" digest
+  nextReviewAt   DateTime?
+  reviewInterval Int       @default(1)
   chunks      Chunks[]
-  user        User        @relation(fields: [userId], references: [id])
+  collections Collection[]
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, source_url])
+  @@index([status, nextAttemptAt])
+}
+
+model Collection {
+  id          Int        @id @default(autoincrement())
+  userId      Int
+  name        String
+  description String?
+  // Set when the owner shares the collection publicly
+  shareSlug   String?    @unique
+  createdAt   DateTime   @default(now())
+  memories    Memories[]
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+}
+
+model Conversation {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  title     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  messages  Message[]
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  role           String
+  content        String
+  sources        Json?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model UserUsage {
+  id         Int    @id @default(autoincrement())
+  userId     Int
+  day        String
+  chat_count Int    @default(0)
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
 }
 
 model Chunks {
@@ -57,7 +126,7 @@ model Chunks {
   token_count Int?
   embedding   Unsupported("vector")?
   content_tsv Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, content)"))
-  Memory      Memories                 @relation(fields: [MemoryId], references: [id])
+  Memory      Memories                 @relation(fields: [MemoryId], references: [id], onDelete: Cascade)
 
   @@index([MemoryId])
   @@index([content_tsv], map: "chunks_content_tsv_idx", type: Gin)
@@ -80,6 +149,9 @@ enum ContentType {
   tweet
   note
   image
+  reel
+  tiktok
+  audio
 }
 
 enum Status {

@@ -2,10 +2,19 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
+// Minimal typing for the lottie-web global loaded from /assets/lottie.min.js
+interface LottieAnimation {
+  destroy: () => void;
+  addEventListener: (event: string, cb: () => void) => void;
+}
+interface LottiePlayer {
+  loadAnimation: (options: Record<string, unknown>) => LottieAnimation;
+}
+
 declare global {
   interface Window {
-    bodymovin?: any;
-    lottie?: any;
+    bodymovin?: LottiePlayer;
+    lottie?: LottiePlayer;
   }
 }
 
@@ -21,7 +30,7 @@ export default function GoogleLogoAnimation({
   scale = 1.65,
 }: GoogleLogoAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const animRef = useRef<any>(null);
+  const animRef = useRef<LottieAnimation | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {

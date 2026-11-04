@@ -21,12 +21,36 @@ Brainly solves this by acting as a **personal knowledge hub**: save anything, ta
 
 ## ✨ Features
 
-- 📥 **Universal content ingestion** — Save links, notes, tweets, and documents in one place
-- 🤖 **AI-powered querying** — Ask questions across your saved content in natural language
-- 🏷️ **Tagging & organization** — Categorize your knowledge base your way
-- 🔐 **JWT authentication** — Secure user sessions with token-based auth
-- ⚡ **Fast, typed API** — Built end-to-end in TypeScript for reliability
-- 🗃️ **Relational data model** — PostgreSQL with Prisma ORM for type-safe, schema-first storage
+**Save anything**
+- 🔗 Web pages (clean article text via Readability + Open Graph data — LinkedIn posts too)
+- 🎬 **Instagram Reels** and **TikToks** — caption, author, thumbnail and an audio transcript (Whisper)
+- ▶️ YouTube videos & Shorts — captions, or a Whisper transcript when captions are off; title, channel, duration
+- 🐦 Tweets, 📄 PDFs (scanned PDFs are OCR'd), 🖼️ images (OCR / AI description), 📝 notes
+- 🎙️ Voice notes — record in the browser or upload; transcribed automatically
+- 📥 Import Notion / Google Docs exports (`.md`, `.txt`, `.html`, `.docx`, or a Notion `.zip`)
+- 🧩 Browser extension (save page / link / selection, quick search) and an installable PWA with **Share → Brainly** on mobile
+
+**Find it again**
+- 🤖 **Ask AI** — answers grounded only in your content, streamed live, with clickable `[1]` citations
+- 🎥 Sources open the original or **play reels, TikToks and YouTube inline** — search "project" and get your saved project reel
+- 💬 Conversations with follow-ups ("show me more like that") and history
+- 🔎 **Search mode** — instant ranked results without the LLM
+- 🧭 Filters by type and date, from the UI or in plain words ("reels from last month")
+- Hybrid retrieval: pgvector + Postgres full-text, HyDE, reciprocal rank fusion, Cohere rerank with relevance cutoffs; keyword fallback if the embedding API is down
+
+**Organise**
+- 🏷️ Tags (yours + AI auto-tags) and an AI summary for every memory
+- ⭐ Star, 🗄️ archive, ✏️ edit (re-indexes), 📁 collections — share a collection publicly with a link
+- ♻️ Duplicate detection on save and a find & merge page
+- 🕸️ Knowledge graph of related memories
+- 🔁 **Rediscover** — spaced-repetition review and throwbacks
+
+**Platform**
+- Background job queue in Postgres (`FOR UPDATE SKIP LOCKED`) with retries, backoff and visible failures + Retry
+- httpOnly-cookie sessions, rate limiting, SSRF protection on every fetched URL, upload type/size limits, private file serving
+- Local disk or S3 / Cloudflare R2 storage
+- Free / premium plan limits (memories, daily AI answers, upload size)
+- JSON request logs, Docker Compose, GitHub Actions CI, unit + integration tests
 
 ---
 
@@ -34,125 +58,123 @@ Brainly solves this by acting as a **personal knowledge hub**: save anything, ta
 
 ```
 Brainly-AI/
-├── backend/          # Node.js + Express REST API (TypeScript)
+├── backend/                 # Express API + background worker (TypeScript)
 │   ├── src/
-│   │   ├── routes/   # API route handlers
-│   │   ├── middleware/ # JWT auth middleware
-│   │   └── index.ts  # Server entry point
-├── frontend/         # Next.js + TypeScript client
-│   ├── app/          # App router pages
-│   ├── components/
-│   └── lib/          # API client layer
-├── db/               # Prisma schema & migrations
-│   └── schema.prisma # Data models (User, Content, Tag)
-├── package.json      # pnpm workspace root
-└── pnpm-workspace.yaml
+│   │   ├── index.ts         # app setup, middleware, error handling
+│   │   ├── routes/          # auth, content, chat/search, collections, insights
+│   │   ├── ingest/          # web, youtube, reel, tiktok, transcribe, imports, enrich…
+│   │   ├── lib/             # auth cookies, SSRF-safe fetch, storage, plans, filters, LLM client
+│   │   ├── worker.ts        # Postgres-backed job queue
+│   │   ├── processMemory.ts # extract → chunk → embed → summarise/tag
+│   │   ├── Retrieval.ts     # hybrid search, rerank, cutoffs
+│   │   └── rag.ts           # retrieval + prompt building for answers
+│   └── test/                # vitest unit + integration tests
+├── frontend/                # Next.js app (dashboard, collections, graph, duplicates, public /c/[slug])
+├── db/                      # Prisma schema, migrations, client (Neon or plain Postgres)
+├── extension/               # Chrome/Edge extension (Manifest V3)
+└── docker-compose.yml       # Postgres + pgvector, API, web
 ```
 
-**Monorepo** powered by pnpm workspaces — shared TypeScript types between frontend and backend, single install, unified scripts.
+**Saving:** `POST /api/content` validates and stores the memory as `pending` → the worker extracts text (fetchers / OCR / Whisper), chunks it, embeds it (Nomic), adds a summary and tags (Groq) and marks it `ready`.
+
+**Asking:** question → follow-up rewrite → HyDE → hybrid search (vector + keyword, filters) → dedupe → rerank + cutoff → neighbour expansion → streamed answer with citations.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer       | Technology                          |
-|-------------|-------------------------------------|
-| Language    | TypeScript (end-to-end)             |
-| Backend     | Node.js, Express.js                 |
-| Frontend    | Next.js, Tailwind CSS               |
-| Database    | PostgreSQL                          |
-| ORM         | Prisma (type-safe, schema-first)    |
-| Auth        | JWT (JSON Web Tokens)               |
-| Package Mgr | pnpm workspaces (monorepo)          |
-| API Testing | Postman                             |
+| Layer       | Technology                                            |
+|-------------|-------------------------------------------------------|
+| Language    | TypeScript (end-to-end)                               |
+| Backend     | Node.js, Express 5, Zod                               |
+| Frontend    | Next.js 16, React 19, Tailwind CSS 4, Motion          |
+| Database    | PostgreSQL + pgvector (Neon or self-hosted), Prisma 7 |
+| AI          | Nomic embeddings, Groq (Qwen, gpt-oss, Whisper), Cohere rerank, Gemini vision |
+| Auth        | JWT in httpOnly cookies, Google & GitHub OAuth        |
+| Infra       | Docker Compose, GitHub Actions, S3/R2 (optional)      |
 
 ---
 
 ## ⚙️ Getting Started
 
-### Prerequisites
-
-- Node.js 18+
-- pnpm (`npm install -g pnpm`)
-- PostgreSQL (local or hosted — e.g. Neon, Supabase)
-
-### Installation
+### Option A — Docker (everything included)
 
 ```bash
-# Clone the repo
-git clone https://github.com/Furqan-7/Brainly-AI.git
-cd Brainly-AI
+cp backend/.env.example backend/.env   # add your AI API keys
+docker compose up --build
+```
 
-# Install all workspace dependencies
+Open http://localhost:3000. Migrations run automatically on start.
+
+### Option B — Local development
+
+Prerequisites: Node.js 22+, pnpm, PostgreSQL with the `pgvector` extension (or a Neon database). Optional: `yt-dlp` on your PATH for reel/TikTok/YouTube audio transcription.
+
+```bash
 pnpm install
+cp backend/.env.example backend/.env       # fill it in
+cp frontend/.env.example frontend/.env.local
+
+pnpm --filter db build
+pnpm --filter db exec prisma migrate deploy
+
+pnpm dev        # frontend on :3000, backend on :3001
 ```
 
-### Environment Setup
+See `backend/.env.example` for every setting (storage, OAuth, worker, retrieval tuning).
 
-Create a `.env` in `backend/`:
-
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/brainly
-JWT_SECRET=your_secret_key
-PORT=3001
-```
-
-### Database Setup
+### Tests
 
 ```bash
-# Run Prisma migrations
-cd backend
-npx prisma migrate dev
-
-# (Optional) Open Prisma Studio to inspect your DB
-npx prisma studio
+pnpm test                                    # unit tests
+TEST_DATABASE_URL=postgresql://… pnpm test   # + integration tests against a migrated pgvector database
+pnpm lint
 ```
 
-### Running the App
+### Browser extension
 
-```bash
-# Start backend
-cd backend && pnpm dev
+1. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and pick the `extension/` folder.
+2. In Brainly, open the profile menu → **Copy extension token**.
+3. Open the extension's **Settings**, enter your API URL and paste the token.
 
-# Start frontend (new terminal)
-cd frontend && pnpm dev
-```
+### Mobile share sheet
 
-Backend runs on `http://localhost:3001`  
-Frontend runs on `http://localhost:3000`
+Open Brainly in Chrome on Android and choose **Install app**. Brainly then appears in the system **Share** menu; sharing a reel or link opens *Add Memory* prefilled.
+
+### Premium
+
+Plan limits live in `backend/src/lib/plans.ts`. Set `User.isPremium = true` to upgrade a user (no payment provider is wired up yet).
 
 ---
 
 ## 📡 API Reference
 
-### Auth
+All `/api/*` routes need a session cookie (web app) or `Authorization: Bearer <token>` (extension / API clients).
 
-| Method | Endpoint         | Description          |
-|--------|------------------|----------------------|
-| POST   | `/api/auth/signup` | Register a new user |
-| POST   | `/api/auth/login`  | Login & get JWT     |
-
-### Content
-
-| Method | Endpoint          | Description                    | Auth |
-|--------|-------------------|--------------------------------|------|
-| POST   | `/api/content`    | Save a new piece of content    | ✅   |
-| GET    | `/api/content`    | Get all your saved content     | ✅   |
-| DELETE | `/api/content/:id`| Delete a content item          | ✅   |
-| GET    | `/api/content/search?q=` | AI-powered semantic search | ✅ |
-
-All protected routes require `Authorization: Bearer <token>` header.
-
----
-
-## 🔭 Roadmap
-
-- [ ] Browser extension for one-click saving
-- [ ] Semantic vector search (pgvector embeddings)
-- [ ] Sharing collections with other users
-- [ ] Mobile-responsive UI
-- [ ] Cloudflare Workers deployment for edge performance
-- [ ] Import from Notion / Obsidian
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/signup`, `/signin`, `/logout` | Email/password auth (sets/clears the session cookie) |
+| GET | `/auth/google`, `/auth/github` | OAuth sign-in (when configured) |
+| GET | `/api/me` | Current user, plan and usage |
+| POST | `/api/extension-token` | Long-lived token for the browser extension |
+| POST | `/api/content` | Save a link / note / file (`type` is auto-detected for YouTube, Instagram, TikTok and X links) |
+| POST | `/api/import` | Import Notion / Google Docs / Markdown files as notes |
+| GET | `/api/content` | List memories — `view`, `types`, `q`, `tag`, `collectionId`, `cursor`, `limit` |
+| GET | `/api/content/status?ids=` | Poll processing status |
+| PATCH | `/api/content/:id` | Edit title, note, context, tags, starred, archived |
+| DELETE | `/api/content/:id` | Delete a memory and its file |
+| POST | `/api/content/:id/retry` | Retry a failed memory |
+| POST | `/api/content/:id/review` | Spaced-repetition review result |
+| GET | `/api/content/duplicates`, POST `/api/content/merge` | Find and merge duplicates |
+| GET | `/api/files/:id` | Download an uploaded file |
+| GET | `/api/tags` | Tags with counts |
+| POST | `/api/chat/stream` | Ask AI, streamed as Server-Sent Events (`meta` → `token`… → `done`) |
+| POST | `/api/chat` | Ask AI (single JSON response) |
+| GET | `/api/search?q=` | Plain search, no LLM |
+| GET/DELETE | `/api/conversations[/:id]` | Chat history |
+| CRUD | `/api/collections[/:id]`, `/api/collections/:id/memories`, `/api/collections/:id/share` | Collections and sharing |
+| GET | `/api/public/collections/:slug` | Public shared collection |
+| GET | `/api/graph`, `/api/rediscover` | Knowledge graph, review digest |
 
 ---
 

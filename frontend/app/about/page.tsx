@@ -124,7 +124,7 @@ export default function AboutPage() {
                             We live in an era where valuable information — resumes, YouTube tutorials,
                             research papers, X threads — is scattered across platforms. You save a link
                             to WhatsApp and lose it forever. Brainly was built to end that. One intelligent
-                            knowledge base that doesn't just store your content — it understands it.
+                            knowledge base that doesn’t just store your content — it understands it.
                         </p>
                     </motion.div>
                 </section>
@@ -185,7 +185,7 @@ export default function AboutPage() {
                                     One Brain for All Your Content
                                 </h2>
                                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                                    Brainly's AI doesn't just index your files — it builds a semantic map
+                                    Brainly’s AI doesn’t just index your files — it builds a semantic map
                                     of relationships between them. A PDF you uploaded 6 months ago connects
                                     to a note you wrote today. A YouTube video links to a saved article.
                                     Everything becomes part of one living, queryable knowledge base.
@@ -253,7 +253,7 @@ export default function AboutPage() {
                                 <Target className="w-6 h-6 text-primary-container mb-4" />
                                 <h3 className="text-base font-black text-on-surface mb-2">Precision over Volume</h3>
                                 <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                                    Most AI systems focus on "more data". We focus on "better connections". Our algorithms
+                                    Most AI systems focus on “more data”. We focus on “better connections”. Our algorithms
                                     filter noise and surface only high-signal insights from your saved content.
                                 </p>
                                 <div className="flex flex-wrap gap-2">
@@ -312,7 +312,7 @@ export default function AboutPage() {
                                 <Network className="w-6 h-6 text-primary-container mb-4" />
                                 <h3 className="text-base font-black text-on-surface mb-2">Scale with Your Life</h3>
                                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                                    Whether you're a solo researcher or a global team, Brainly scales its neural pathways
+                                    Whether you’re a solo researcher or a global team, Brainly scales its neural pathways
                                     to match the complexity of your knowledge stack — from 10 documents to 10,000.
                                 </p>
                             </div>

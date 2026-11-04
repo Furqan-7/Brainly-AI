@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
     Link2,
@@ -8,16 +8,23 @@ import {
     Video,
     MessageSquare,
     StickyNote,
-    Image,
+    Image as ImageIcon,
     X,
     Upload,
     Sparkles,
     Brain,
     Loader2,
+    Clapperboard,
+    Music2,
+    Mic,
+    Square,
+    FolderInput,
 } from "lucide-react";
 import axios from "axios";
+import { addMemory, errorMessage, importFiles } from "../services/api";
+import type { Collection } from "../types/memory";
 
-type ContentType = "url" | "pdf" | "youtube" | "tweet" | "note" | "image";
+type ContentType = "url" | "pdf" | "youtube" | "reel" | "tiktok" | "tweet" | "note" | "image" | "audio" | "import";
 
 const CONTENT_TYPES: {
     type: ContentType;
@@ -46,8 +53,24 @@ const CONTENT_TYPES: {
             label: "YouTube",
             icon: <Video size={20} />,
             placeholder: "e.g., Andrew Ng's ML Course",
-            urlLabel: "YouTube URL",
+            urlLabel: "YouTube or Shorts URL",
             urlPlaceholder: "https://youtube.com/watch?v=...",
+        },
+        {
+            type: "reel",
+            label: "Reel",
+            icon: <Clapperboard size={20} />,
+            placeholder: "e.g., Project ideas for my portfolio",
+            urlLabel: "Instagram Reel URL",
+            urlPlaceholder: "https://instagram.com/reel/...",
+        },
+        {
+            type: "tiktok",
+            label: "TikTok",
+            icon: <Music2 size={20} />,
+            placeholder: "e.g., Quick pasta recipe",
+            urlLabel: "TikTok URL",
+            urlPlaceholder: "https://www.tiktok.com/@user/video/...",
         },
         {
             type: "tweet",
@@ -66,104 +89,193 @@ const CONTENT_TYPES: {
         {
             type: "image",
             label: "Image",
-            icon: <Image size={20} />,
+            icon: <ImageIcon size={20} />,
             placeholder: "e.g., Architecture diagram",
+        },
+        {
+            type: "audio",
+            label: "Voice",
+            icon: <Mic size={20} />,
+            placeholder: "e.g., Idea while walking",
+        },
+        {
+            type: "import",
+            label: "Import",
+            icon: <FolderInput size={20} />,
+            placeholder: "",
         },
     ];
 
-const FILE_TYPES: ContentType[] = ["pdf", "image"];
-const URL_TYPES: ContentType[] = ["url", "youtube", "tweet"];
+const FILE_TYPES: ContentType[] = ["pdf", "image", "audio"];
+const URL_TYPES: ContentType[] = ["url", "youtube", "reel", "tiktok", "tweet"];
+
+const ACCEPT: Partial<Record<ContentType, string>> = {
+    pdf: ".pdf",
+    image: "image/*",
+    audio: "audio/*,.m4a,.mp3,.wav,.webm,.ogg",
+    import: ".md,.markdown,.txt,.html,.htm,.docx,.zip",
+};
+
+const inputClass =
+    "w-full bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500/50 focus:bg-white/6 transition-all";
+const labelClass = "block text-[10px] font-semibold uppercase tracking-widest text-white/30";
+
+/** Records a voice note in the browser with MediaRecorder. */
+function useRecorder(onRecorded: (file: File) => void) {
+    const [recording, setRecording] = useState(false);
+    const [seconds, setSeconds] = useState(0);
+    const [error, setError] = useState("");
+    const recorderRef = useRef<MediaRecorder | null>(null);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const start = async () => {
+        setError("");
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            const chunks: Blob[] = [];
+            recorder.ondataavailable = (e) => chunks.push(e.data);
+            recorder.onstop = () => {
+                stream.getTracks().forEach((t) => t.stop());
+                const type = recorder.mimeType || "audio/webm";
+                const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+                onRecorded(new File(chunks, `voice-note-${Date.now()}.${ext}`, { type: type.split(";")[0] }));
+            };
+            recorder.start();
+            recorderRef.current = recorder;
+            setSeconds(0);
+            setRecording(true);
+            timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+        } catch {
+            setError("Microphone access was blocked.");
+        }
+    };
+
+    const stop = () => {
+        recorderRef.current?.stop();
+        if (timerRef.current) clearInterval(timerRef.current);
+        setRecording(false);
+    };
+
+    useEffect(() => () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    }, []);
+
+    return { recording, seconds, error, start, stop };
+}
 
 export default function AddContent({
     isAddContentOpen,
     setIsAddContentOpen,
-    fetchMemories
+    onSaved,
+    collections = [],
+    initial,
 }: {
     isAddContentOpen: boolean;
-    setIsAddContentOpen: React.Dispatch<React.SetStateAction<boolean>>;
-    fetchMemories: () => Promise<void>;
+    setIsAddContentOpen: (open: boolean) => void;
+    onSaved: () => void;
+    collections?: Collection[];
+    /** Prefill from the share sheet / browser extension */
+    initial?: { title?: string; url?: string; text?: string };
 }) {
-    const [activeType, setActiveType] = useState<ContentType>("url");
-    const [title, setTitle] = useState("");
-    const [url, setUrl] = useState("");
-    const [note, setNote] = useState("");
+    const [activeType, setActiveType] = useState<ContentType>(initial?.url ? "url" : initial?.text ? "note" : "url");
+    const [title, setTitle] = useState(initial?.title ?? "");
+    const [url, setUrl] = useState(initial?.url ?? "");
+    const [note, setNote] = useState(initial?.url ? "" : initial?.text ?? "");
     const [context, setContext] = useState("");
+    const [tags, setTags] = useState("");
+    const [collectionId, setCollectionId] = useState<number | "">("");
     const [dragOver, setDragOver] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState("");
-    const [file, setFile] = useState<File | null>(null);
+    const [duplicateOf, setDuplicateOf] = useState<string | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const recorder = useRecorder((recorded) => setFiles([recorded]));
 
     const activeConfig = CONTENT_TYPES.find((c) => c.type === activeType)!;
-    const isFileType = FILE_TYPES.includes(activeType);
+    const isImport = activeType === "import";
+    const isFileType = FILE_TYPES.includes(activeType) || isImport;
     const isUrlType = URL_TYPES.includes(activeType);
     const isNoteType = activeType === "note";
+    const file = files[0] ?? null;
 
     function handleClose() {
         setIsAddContentOpen(false);
     }
 
+    function pickFiles(list: FileList | null) {
+        if (!list?.length) return;
+        setFiles(isImport ? Array.from(list) : [list[0]]);
+    }
+
     function handleDrop(e: React.DragEvent) {
         e.preventDefault();
         setDragOver(false);
-        const dropped = e.dataTransfer.files[0];
-        if (dropped) setFile(dropped);
-    }
-
-    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const picked = e.target.files?.[0];
-        if (picked) setFile(picked);
+        pickFiles(e.dataTransfer.files);
     }
 
     function handleTypeChange(type: ContentType) {
         setActiveType(type);
         setUrl("");
         setNote("");
-        setFile(null);
+        setFiles([]);
+        setSaveError("");
+        setDuplicateOf(null);
     }
 
-    async function handleSubmit() {
+    async function handleSubmit(allowDuplicate = false) {
+        if (!isImport && !title.trim()) {
+            setSaveError("Please add a title so you can find this later.");
+            return;
+        }
+        if (isUrlType && !url.trim()) {
+            setSaveError("Please paste a link.");
+            return;
+        }
+        if (isNoteType && !note.trim()) {
+            setSaveError("Please write your note.");
+            return;
+        }
         setSaving(true);
         setSaveError("");
+        setDuplicateOf(null);
         try {
-            let payload;
-            const config = {
-                headers: {
-                    token: localStorage.getItem("token"),
-                },
-            };
-
-            if (file) {
+            if (isImport) {
+                if (files.length === 0) throw new Error("Choose at least one file to import.");
+                await importFiles(files, collectionId || undefined);
+            } else if (isFileType) {
+                if (!file) throw new Error("Please choose a file.");
                 const formdata = new FormData();
                 formdata.append("type", activeType);
                 formdata.append("title", title);
+                formdata.append("context", context);
+                formdata.append("tags", tags);
+                if (collectionId) formdata.append("collectionId", String(collectionId));
                 formdata.append("file", file);
-                payload = formdata;
+                await addMemory(formdata);
             } else {
-                payload = {
+                await addMemory({
                     type: activeType,
                     title,
                     source_url: url,
                     note,
-                    metadata: context,
-                };
+                    context,
+                    tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+                    collectionId: collectionId || undefined,
+                    allowDuplicate,
+                });
             }
 
-            const Response = await axios.post(
-                `${process.env.NEXT_PUBLIC_API}/api/content`,
-                payload,
-                config
-            );
-
-            if (Response.status === 201) {
-                fetchMemories(); // fire-and-forget — polling handles refresh
-            }
-
-            setIsAddContentOpen(false);
+            onSaved();
             handleClose();
-        } catch (err: any) {
-            const msg = err?.response?.data?.message ?? "Failed to save. Please try again.";
-            setSaveError(msg);
+        } catch (err) {
+            if (axios.isAxiosError(err) && err.response?.status === 409) {
+                setDuplicateOf(err.response.data.message);
+            } else {
+                setSaveError(err instanceof Error && !axios.isAxiosError(err) ? err.message : errorMessage(err, "Failed to save. Please try again."));
+            }
         } finally {
             setSaving(false);
         }
@@ -178,7 +290,7 @@ export default function AddContent({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 8 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="w-full max-w-lg bg-[#0f1117] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                className="w-full max-w-xl bg-[#0f1117] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
                 {/* Header */}
                 <div className="flex items-start justify-between px-6 pt-6 pb-4">
@@ -187,12 +299,8 @@ export default function AddContent({
                             <Brain size={16} className="text-indigo-400" />
                         </div>
                         <div>
-                            <h2 className="text-base font-semibold text-white leading-tight">
-                                Add to Brain
-                            </h2>
-                            <p className="text-xs text-white/40 mt-0.5">
-                                Expand your knowledge base
-                            </p>
+                            <h2 className="text-base font-semibold text-white leading-tight">Add to Brain</h2>
+                            <p className="text-xs text-white/40 mt-0.5">Expand your knowledge base</p>
                         </div>
                     </div>
                     <button
@@ -205,24 +313,20 @@ export default function AddContent({
 
                 {/* Type Selector */}
                 <div className="px-5 sm:px-6 pb-4">
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-5 gap-2">
                         {CONTENT_TYPES.map(({ type, label, icon }) => {
                             const isActive = activeType === type;
                             return (
                                 <button
                                     key={type}
                                     onClick={() => handleTypeChange(type)}
-                                    className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-all ${isActive
+                                    className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-all cursor-pointer ${isActive
                                         ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-300"
                                         : "bg-white/4 border-white/8 text-white/40 hover:bg-white/8 hover:text-white/70 hover:border-white/15"
                                         }`}
                                 >
-                                    <span className={isActive ? "text-indigo-400" : ""}>
-                                        {icon}
-                                    </span>
-                                    <span className="text-[10px] uppercase tracking-wider">
-                                        {label}
-                                    </span>
+                                    <span className={isActive ? "text-indigo-400" : ""}>{icon}</span>
+                                    <span className="text-[10px] uppercase tracking-wider">{label}</span>
                                 </button>
                             );
                         })}
@@ -234,22 +338,26 @@ export default function AddContent({
 
                 {/* Dynamic Form */}
                 <div className="px-5 sm:px-6 py-5 space-y-4 overflow-y-auto flex-1">
-                    {/* Title — always shown */}
-                    <div className="space-y-1.5">
-                        <label className="block text-[10px] font-semibold uppercase tracking-widest text-white/30">
-                            Title
-                        </label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder={activeConfig.placeholder}
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500/50 focus:bg-white/6 transition-all"
-                        />
-                    </div>
+                    {!isImport && (
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Title</label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder={activeConfig.placeholder}
+                                className={inputClass}
+                            />
+                            {(activeType === "reel" || activeType === "tiktok") && (
+                                <p className="text-[11px] text-white/30">
+                                    Tip: a descriptive title helps you find this video later by searching.
+                                </p>
+                            )}
+                        </div>
+                    )}
 
-                    {/* URL input — for url / youtube / tweet */}
                     <AnimatePresence mode="wait">
+                        {/* URL input — for url / youtube / reel / tiktok / tweet */}
                         {isUrlType && (
                             <motion.div
                                 key="url-input"
@@ -259,9 +367,7 @@ export default function AddContent({
                                 transition={{ duration: 0.15 }}
                                 className="space-y-1.5"
                             >
-                                <label className="block text-[10px] font-semibold uppercase tracking-widest text-white/30">
-                                    {activeConfig.urlLabel}
-                                </label>
+                                <label className={labelClass}>{activeConfig.urlLabel}</label>
                                 <div className="relative">
                                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25">
                                         <Link2 size={14} />
@@ -271,13 +377,13 @@ export default function AddContent({
                                         value={url}
                                         onChange={(e) => setUrl(e.target.value)}
                                         placeholder={activeConfig.urlPlaceholder}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3.5 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500/50 focus:bg-white/6 transition-all"
+                                        className={`${inputClass} pl-9`}
                                     />
                                 </div>
                             </motion.div>
                         )}
 
-                        {/* File Dropzone — for pdf / image */}
+                        {/* File Dropzone — for pdf / image / audio / import */}
                         {isFileType && (
                             <motion.div
                                 key="file-input"
@@ -285,9 +391,27 @@ export default function AddContent({
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -4 }}
                                 transition={{ duration: 0.15 }}
+                                className="space-y-3"
                             >
-                                <label className="block text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-1.5">
-                                    {activeType === "pdf" ? "PDF File" : "Image File"}
+                                {activeType === "audio" && (
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={recorder.recording ? recorder.stop : recorder.start}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer ${recorder.recording
+                                                ? "bg-red-500/20 text-red-300 border border-red-500/40"
+                                                : "bg-violet-500/15 text-violet-300 border border-violet-500/30"
+                                                }`}
+                                        >
+                                            {recorder.recording ? <Square size={14} fill="currentColor" /> : <Mic size={14} />}
+                                            {recorder.recording ? `Stop (${recorder.seconds}s)` : "Record voice note"}
+                                        </button>
+                                        <span className="text-xs text-white/30">or upload a recording below</span>
+                                        {recorder.error && <span className="text-xs text-red-400">{recorder.error}</span>}
+                                    </div>
+                                )}
+                                <label className={labelClass}>
+                                    {isImport ? "Notion / Google Docs export or Markdown files" : activeType === "pdf" ? "PDF File" : activeType === "audio" ? "Audio File" : "Image File"}
                                 </label>
                                 <div
                                     onDragOver={(e) => {
@@ -307,25 +431,18 @@ export default function AddContent({
                                     <input
                                         ref={fileInputRef}
                                         type="file"
-                                        accept={activeType === "pdf" ? ".pdf" : "image/*"}
+                                        multiple={isImport}
+                                        accept={ACCEPT[activeType]}
                                         className="hidden"
-                                        onChange={handleFileChange}
+                                        onChange={(e) => pickFiles(e.target.files)}
                                     />
                                     {file ? (
                                         <>
-                                            <div className="w-9 h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center mb-2">
-                                                {activeType === "pdf" ? (
-                                                    <FileText size={16} className="text-indigo-400" />
-                                                ) : (
-                                                    <Image size={16} className="text-indigo-400" />
-                                                )}
-                                            </div>
-                                            <p className="text-sm font-medium text-white/80 text-center truncate max-w-[200px]">
-                                                {file.name}
+                                            <p className="text-sm font-medium text-white/80 text-center truncate max-w-[260px]">
+                                                {files.length > 1 ? `${files.length} files selected` : file.name}
                                             </p>
                                             <p className="text-xs text-white/30 mt-0.5">
-                                                {(file.size / 1024 / 1024).toFixed(2)} MB — click to
-                                                change
+                                                {(files.reduce((n, f) => n + f.size, 0) / 1024 / 1024).toFixed(2)} MB — click to change
                                             </p>
                                         </>
                                     ) : (
@@ -333,12 +450,15 @@ export default function AddContent({
                                             <div className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center mb-2">
                                                 <Upload size={16} className="text-white/40" />
                                             </div>
-                                            <p className="text-sm font-medium text-white/50">
-                                                Drag & drop or click to upload
-                                            </p>
-                                            <p className="text-xs text-white/25 mt-0.5">
-                                                {activeType === "pdf" ? "PDF" : "PNG, JPG, WEBP"} up to
-                                                25MB
+                                            <p className="text-sm font-medium text-white/50">Drag & drop or click to upload</p>
+                                            <p className="text-xs text-white/25 mt-0.5 text-center">
+                                                {isImport
+                                                    ? ".md, .txt, .html, .docx or a Notion export .zip"
+                                                    : activeType === "pdf"
+                                                        ? "PDF (scanned PDFs are OCR'd)"
+                                                        : activeType === "audio"
+                                                            ? "MP3, M4A, WAV, WEBM — transcribed automatically"
+                                                            : "PNG, JPG, WEBP"}
                                             </p>
                                         </>
                                     )}
@@ -356,47 +476,74 @@ export default function AddContent({
                                 transition={{ duration: 0.15 }}
                                 className="space-y-1.5"
                             >
-                                <label className="block text-[10px] font-semibold uppercase tracking-widest text-white/30">
-                                    Note Content
-                                </label>
+                                <label className={labelClass}>Note Content</label>
                                 <textarea
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
                                     placeholder="Write your note here... markdown is supported"
                                     rows={4}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500/50 focus:bg-white/6 transition-all resize-none"
+                                    className={`${inputClass} resize-none`}
                                 />
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    {/* Personal context — always shown */}
-                    <div className="space-y-1.5">
-                        <label className="block text-[10px] font-semibold uppercase tracking-widest text-white/30">
-                            Personal Context{" "}
-                            <span className="normal-case tracking-normal text-white/20">
-                                (optional)
-                            </span>
-                        </label>
-                        <textarea
-                            value={context}
-                            onChange={(e) => setContext(e.target.value)}
-                            placeholder="Why are you saving this? Any notes for your future self..."
-                            rows={2}
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500/50 focus:bg-white/6 transition-all resize-none"
-                        />
-                    </div>
+                    {!isImport && (
+                        <>
+                            <div className="space-y-1.5">
+                                <label className={labelClass}>
+                                    Personal Context <span className="normal-case tracking-normal text-white/20">(optional, searchable)</span>
+                                </label>
+                                <textarea
+                                    value={context}
+                                    onChange={(e) => setContext(e.target.value)}
+                                    placeholder="Why are you saving this? Any notes for your future self..."
+                                    rows={2}
+                                    className={`${inputClass} resize-none`}
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className={labelClass}>
+                                    Tags <span className="normal-case tracking-normal text-white/20">(comma separated — AI adds more)</span>
+                                </label>
+                                <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="projects, career" className={inputClass} />
+                            </div>
+                        </>
+                    )}
+
+                    {collections.length > 0 && (
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Collection</label>
+                            <select
+                                value={collectionId}
+                                onChange={(e) => setCollectionId(e.target.value ? Number(e.target.value) : "")}
+                                className={`${inputClass} cursor-pointer`}
+                            >
+                                <option value="">None</option>
+                                {collections.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
                 <div className="px-5 sm:px-6 pb-6 pt-1 flex flex-col gap-2">
-                    {saveError && (
-                        <p className="text-xs text-red-400 text-right">{saveError}</p>
+                    {saveError && <p className="text-xs text-red-400 text-right">{saveError}</p>}
+                    {duplicateOf && (
+                        <div className="flex items-center justify-end gap-3 text-xs text-amber-300">
+                            <span>{duplicateOf}.</span>
+                            <button onClick={() => handleSubmit(true)} className="underline hover:text-amber-200 cursor-pointer">
+                                Save anyway
+                            </button>
+                        </div>
                     )}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-1.5 text-white/25">
                             <Sparkles size={12} />
-                            <span className="text-[10px]">AI will auto-index this content</span>
+                            <span className="text-[10px]">AI will auto-index, summarise and tag this content</span>
                         </div>
                         <div className="flex items-center gap-2 self-end sm:self-auto">
                             <button
@@ -406,15 +553,17 @@ export default function AddContent({
                                 Cancel
                             </button>
                             <button
-                                onClick={handleSubmit}
-                                disabled={saving}
-                                className="px-5 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-600/20 disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-2"
+                                onClick={() => handleSubmit()}
+                                disabled={saving || recorder.recording}
+                                className="px-5 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-600/20 disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
                             >
                                 {saving ? (
                                     <>
                                         <Loader2 size={14} className="animate-spin" />
                                         Saving…
                                     </>
+                                ) : isImport ? (
+                                    "Import"
                                 ) : (
                                     "Save to Brain"
                                 )}

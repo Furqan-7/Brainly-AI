@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { Brain, Search, MessageSquare, Database, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import axios from "axios";
+import { signin } from "@/app/services/api";
 import GoogleLogoAnimation from "@/app/components/GoogleLogoAnimation";
 
 
@@ -37,26 +37,13 @@ export default function SignInPage() {
     setError("");
     setLoading(true);
     try {
-      const Response = await axios.post(`${process.env.NEXT_PUBLIC_API}/signin`, {
-        email,
-        password
-      });
-
-      if (Response.data.success) {
-        localStorage.setItem("token", Response.data.token);
-        let username = Response.data.username;
-        if (!username && Response.data.token) {
-          try {
-            const payload = JSON.parse(atob(Response.data.token.split(".")[1]));
-            username = payload?.username;
-          } catch {}
-        }
-        if (username) {
-          localStorage.setItem("username", username);
-        }
+      const data = await signin(email, password);
+      if (data.success) {
+        // The session lives in an httpOnly cookie set by the server
         router.push("/chat");
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught as { response?: { status?: number; data?: { message?: string } } };
       const status = err?.response?.status;
       const serverMsg = err?.response?.data?.message;
 
@@ -76,14 +63,9 @@ export default function SignInPage() {
     }
   };
 
-  const handleOAuth = async (provider: string) => {
-    if (provider == "Google") {
-      provider = "google"
-    }
-    else {
-      provider = "github"
-    }
-    window.location.href = `${process.env.NEXT_PUBLIC_API}/auth/${provider}`;
+  const handleOAuth = (label: string) => {
+    const provider = label === "Google" ? "google" : "github";
+    window.location.assign(`${process.env.NEXT_PUBLIC_API}/auth/${provider}`);
   }
 
 
@@ -119,7 +101,7 @@ export default function SignInPage() {
               <span className="text-primary-container">ready when you are.</span>
             </h1>
             <p className="text-xs text-on-surface-variant leading-relaxed">
-              Everything you've ever saved — links, videos, documents, notes — organized,
+              Everything you’ve ever saved — links, videos, documents, notes — organized,
               understood, and ready to answer your questions.
             </p>
           </div>
@@ -288,7 +270,7 @@ export default function SignInPage() {
           {/* Sign up link */}
           <div className="text-center">
             <p className="text-xs text-on-surface-variant">
-              Don't have an account?{" "}
+              Don’t have an account?{" "}
               <button onClick={() => {
                 router.push("/auth/signup");
               }} className="text-primary font-bold hover:underline underline-offset-4 transition-colors">
