@@ -55,3 +55,61 @@
 body {
   @apply bg-background text-on-surface selection:bg-primary-container selection:text-on-primary-container;
 }
+
+/* ── Landing page ─────────────────────────────────────────
+   Light "fresco paper" look used only by the marketing page (app/page.tsx). */
+@theme {
+  --color-lp-paper: #faf5f2;
+  --color-lp-dot: #e7ddd7;
+  --color-lp-ink: #141414;
+  --color-lp-button: #1e1e1e;
+  --color-lp-muted: #6d6966;
+  --color-lp-chip: #ebe6e3;
+  --color-lp-field: #efebe9;
+  --color-lp-handle: #cfc8c3;
+  --color-lp-line: #d8d1cc;
+  --color-lp-card: #fffaf6;
+  --color-lp-rule: #e2d9d3;
+  --color-lp-signal: #b4472b;
+
+  --animate-lp-shimmer: lp-shimmer 3.6s linear infinite;
+  --animate-lp-blink: lp-blink 1s steps(1) infinite;
+
+  @keyframes lp-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -150% 0; }
+  }
+  @keyframes lp-blink {
+    50% { opacity: 0; }
+  }
+}
+
+/* Font families come from next/font CSS variables set on the landing root */
+@theme inline {
+  --font-lp-display: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
+  --font-lp-body: var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-lp-logo: var(--font-geist-sans), var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* the dot grid printed on the paper */
+@utility bg-lp-dots {
+  background-color: var(--color-lp-paper);
+  background-image: radial-gradient(var(--color-lp-dot) 1.15px, transparent 1.35px);
+  background-size: 7px 7px;
+}
+
+/* a soft highlight sweeping across the hero label */
+@utility text-lp-shimmer {
+  background: linear-gradient(90deg, var(--color-lp-ink) 0 40%, #a19a95 50%, var(--color-lp-ink) 60% 100%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* in-page links ("See how it works", "Pricing"…) glide instead of jumping, only on the landing page */
+html:has([data-landing]) {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html:has([data-landing]) { scroll-behavior: auto; }
+}
