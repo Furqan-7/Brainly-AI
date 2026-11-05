@@ -106,10 +106,9 @@ body {
   color: transparent;
 }
 
-/* in-page links ("See how it works", "Pricing"…) glide instead of jumping, only on the landing page */
-html:has([data-landing]) {
-  scroll-behavior: smooth;
-}
-@media (prefers-reduced-motion: reduce) {
-  html:has([data-landing]) { scroll-behavior: auto; }
+/* Smooth scrolling on the landing page is handled by Lenis (components/landing/motion.tsx) */
+
+@keyframes lp-price {
+  from { opacity: 0; transform: translateY(-0.25em); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
 }

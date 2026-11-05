@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SectionHead, Wrap } from "./ui";
+import { ArrowChip, Magnetic, shine, SpotlightCard, Stagger } from "./motion";
 
 // Limits mirror backend/src/lib/plans.ts
 const PLANS = [
@@ -38,7 +39,7 @@ export function Pricing() {
                                 type="button"
                                 aria-pressed={billing === b}
                                 onClick={() => setBilling(b)}
-                                className={`cursor-pointer px-3.5 py-2.5 text-[13px] leading-none ${billing === b ? "bg-lp-button text-white" : "text-lp-muted"}`}
+                                className={`cursor-pointer px-3.5 py-2.5 text-[13px] leading-none transition-colors duration-300 ${billing === b ? "bg-lp-button text-white" : "text-lp-muted hover:text-lp-ink"}`}
                             >
                                 {b === "month" ? "Monthly" : "Yearly · save 20%"}
                             </button>
@@ -46,9 +47,12 @@ export function Pricing() {
                     </div>
                 </SectionHead>
 
-                <div className="mx-auto grid max-w-[860px] gap-[22px] min-[900px]:grid-cols-2">
+                <Stagger className="mx-auto grid max-w-[860px] gap-[22px] min-[900px]:grid-cols-2">
                     {PLANS.map((plan) => (
-                        <div key={plan.name} className={`grid content-start gap-[18px] border bg-lp-card p-[30px] ${plan.pro ? "border-lp-ink" : "border-lp-line"}`}>
+                        <SpotlightCard
+                            key={plan.name}
+                            className={`grid content-start gap-[18px] border bg-lp-card p-[30px] transition-shadow duration-300 hover:shadow-[0_30px_60px_-40px_rgba(60,35,20,0.5)] ${plan.pro ? "border-lp-ink" : "border-lp-line"}`}
+                        >
                             <div className="flex items-center justify-between gap-3">
                                 <h3 className="font-lp-display text-[2.1rem] leading-[1.04] font-normal tracking-[-0.025em]">{plan.name}</h3>
                                 {plan.pro && (
@@ -56,7 +60,7 @@ export function Pricing() {
                                 )}
                             </div>
                             <p className="font-lp-display text-5xl leading-none">
-                                {plan.price[billing]} <small className="font-lp-body text-[13px] text-lp-muted">{plan.period[billing]}</small>
+                                <span key={billing} className="inline-block animate-[lp-price_0.45s_ease-out]">{plan.price[billing]}</span> <small className="font-lp-body text-[13px] text-lp-muted">{plan.period[billing]}</small>
                             </p>
                             <ul className="m-0 grid list-none gap-[9px] p-0 text-[15px]">
                                 {plan.limits.map(([value, label]) => (
@@ -66,18 +70,27 @@ export function Pricing() {
                                     </li>
                                 ))}
                             </ul>
-                            <Link
-                                href="/auth/signup"
-                                className={`inline-flex items-center justify-center px-[22px] py-[15px] text-base leading-none font-medium ${plan.pro
-                                    ? "bg-lp-button text-white hover:bg-black"
-                                    : "text-lp-ink shadow-[inset_0_0_0_1px_var(--color-lp-line)] hover:bg-lp-chip"
-                                    }`}
-                            >
-                                {plan.cta}
-                            </Link>
-                        </div>
+                            {plan.pro ? (
+                                <Magnetic strength={0.12} className="w-full">
+                                    <Link
+                                        href="/auth/signup"
+                                        className={`group/btn ${shine} inline-flex w-full items-center justify-center gap-2.5 bg-lp-button px-[22px] py-[15px] text-base leading-none font-medium text-white transition-colors hover:bg-black`}
+                                    >
+                                        {plan.cta}
+                                        <ArrowChip />
+                                    </Link>
+                                </Magnetic>
+                            ) : (
+                                <Link
+                                    href="/auth/signup"
+                                    className="relative isolate inline-flex items-center justify-center overflow-hidden px-[22px] py-[15px] text-base leading-none font-medium text-lp-ink shadow-[inset_0_0_0_1px_var(--color-lp-line)] before:absolute before:inset-0 before:-z-10 before:origin-bottom before:scale-y-0 before:bg-lp-chip before:transition-transform before:duration-400 before:ease-out hover:before:scale-y-100"
+                                >
+                                    {plan.cta}
+                                </Link>
+                            )}
+                        </SpotlightCard>
                     ))}
-                </div>
+                </Stagger>
             </Wrap>
         </section>
     );

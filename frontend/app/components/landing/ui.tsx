@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Reveal } from "./motion";
 
 /** Small grey uppercase label, like "HOW IT WORKS". */
 export function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -21,13 +22,13 @@ export function SectionHead({
     center?: boolean;
 }) {
     return (
-        <div className={`mb-14 grid max-w-[760px] gap-[18px] ${center ? "mx-auto justify-items-center text-center" : "justify-items-start"}`}>
+        <Reveal className={`mb-14 grid max-w-[760px] gap-[18px] ${center ? "mx-auto justify-items-center text-center" : "justify-items-start"}`}>
             <Eyebrow>{eyebrow}</Eyebrow>
             <h2 className="font-lp-display text-[clamp(2.1rem,3.9vw,3.7rem)] leading-[1.04] font-normal tracking-[-0.025em] text-balance">
                 {title}
             </h2>
             {children}
-        </div>
+        </Reveal>
     );
 }
 
@@ -53,38 +54,5 @@ export function Logo() {
             </svg>
             Brainly
         </Link>
-    );
-}
-
-const handle = "absolute size-[5px] bg-lp-handle";
-
-/**
- * The paired call-to-action buttons inside a frame with four small corner handles.
- * `secondary` is an in-page anchor (e.g. "#how"); `primary` is a route.
- */
-export function CtaPair({
-    secondary,
-    primary,
-    className = "",
-}: {
-    secondary: { label: string; href: string };
-    primary: { label: string; href: string };
-    className?: string;
-}) {
-    const button = "inline-flex h-[54px] items-center gap-2.5 px-4 font-lp-body text-[clamp(15px,1.05vw,18px)] leading-none font-medium whitespace-nowrap md:px-[26px]";
-    return (
-        <div className={`relative flex p-1 ${className}`}>
-            <i className={`${handle} top-0 left-0`} />
-            <i className={`${handle} top-0 right-0`} />
-            <i className={`${handle} bottom-0 left-0`} />
-            <i className={`${handle} right-0 bottom-0`} />
-            <a href={secondary.href} className={`${button} border border-r-0 border-dashed border-lp-line bg-lp-field text-lp-ink hover:bg-lp-chip`}>
-                {secondary.label}
-            </a>
-            <Link href={primary.href} className={`${button} group bg-lp-button text-white hover:bg-black`}>
-                {primary.label}
-                <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-[3px]">→</span>
-            </Link>
-        </div>
     );
 }
