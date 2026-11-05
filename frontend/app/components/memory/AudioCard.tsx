@@ -31,7 +31,7 @@ export function AudioCard({
 
             <div className="flex items-center gap-1.5">
                 <div className="w-6 h-6 rounded-full bg-violet-500/15 flex items-center justify-center">
-                    <Mic className="w-3 h-3 text-violet-400" />
+                    <Mic className="w-3 h-3 text-violet-600" />
                 </div>
                 <span className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">Voice Note</span>
             </div>

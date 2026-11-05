@@ -52,11 +52,11 @@ export function YoutubeCard({
                         onClick={(e) => e.stopPropagation()}
                         className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                        <Video className="w-10 h-10 text-white" fill="white" />
+                        <Video className="w-10 h-10 text-on-surface" fill="white" />
                     </a>
                 ) : (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Video className="w-10 h-10 text-white" fill="white" />
+                        <Video className="w-10 h-10 text-on-surface" fill="white" />
                     </div>
                 )}
 

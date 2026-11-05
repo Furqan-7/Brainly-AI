@@ -8,9 +8,9 @@ COPY frontend/package.json frontend/
 RUN pnpm install --frozen-lockfile --filter frontend
 
 COPY frontend frontend
-# The API URL is baked into the client bundle at build time
-ARG NEXT_PUBLIC_API=http://localhost:3001
-ENV NEXT_PUBLIC_API=$NEXT_PUBLIC_API
+# Where /backend/* is proxied to (baked into the build's rewrites)
+ARG BACKEND_URL=http://localhost:3001
+ENV BACKEND_URL=$BACKEND_URL
 RUN pnpm --filter frontend build
 
 ENV NODE_ENV=production

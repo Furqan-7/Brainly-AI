@@ -123,6 +123,14 @@ pnpm dev        # frontend on :3000, backend on :3001
 
 See `backend/.env.example` for every setting (storage, OAuth, worker, retrieval tuning).
 
+### Deploying (e.g. Vercel + Render)
+
+The web app proxies every API request through its own domain at `/backend`, so the login cookie is first-party and browsers don't block it.
+
+- **Frontend (Vercel):** set `BACKEND_URL` to your API's URL (e.g. `https://brainly-api.onrender.com`).
+- **Backend:** set `CLIENT_URL` to the web app's URL, `COOKIE_SAMESITE=lax`, and `TRUST_PROXY=2`.
+- **Google sign-in:** set `GOOGLE_CALLBACK_URL` to `https://<your-web-app>/backend/auth/google/callback` and add that same URL to the authorized redirect URIs in Google Cloud Console.
+
 ### Tests
 
 ```bash

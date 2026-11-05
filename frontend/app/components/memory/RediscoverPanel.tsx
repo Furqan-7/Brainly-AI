@@ -38,14 +38,14 @@ function ItemRow({ item, onReviewed }: { item: RediscoverItem; onReviewed?: (id:
                 <div className="flex gap-1 shrink-0">
                     <button
                         onClick={() => review(true)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 cursor-pointer"
                         title="I remember this — show it less often"
                     >
                         <Check className="w-3 h-3" /> Got it
                     </button>
                     <button
                         onClick={() => review(false)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-white/5 text-on-surface-variant hover:bg-white/10 cursor-pointer"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-on-surface/5 text-on-surface-variant hover:bg-on-surface/10 cursor-pointer"
                         title="Show me this again soon"
                     >
                         <RotateCcw className="w-3 h-3" /> Again
@@ -81,7 +81,7 @@ export function RediscoverPanel() {
             {due.length > 0 && (
                 <>
                     <h3 className="text-sm font-bold mb-1">Worth a second look today</h3>
-                    <div className="divide-y divide-white/5">
+                    <div className="divide-y divide-on-surface/5">
                         {due.map((item) => (
                             <ItemRow key={item.id} item={item} onReviewed={(id) => setDue((prev) => prev.filter((d) => d.id !== id))} />
                         ))}
@@ -89,7 +89,7 @@ export function RediscoverPanel() {
                 </>
             )}
             {throwback && (
-                <div className={due.length > 0 ? "mt-3 pt-3 border-t border-white/5" : ""}>
+                <div className={due.length > 0 ? "mt-3 pt-3 border-t border-on-surface/5" : ""}>
                     <h3 className="text-sm font-bold flex items-center gap-1.5">
                         <History className="w-3.5 h-3.5" /> Throwback
                     </h3>

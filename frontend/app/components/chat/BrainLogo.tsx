@@ -14,7 +14,7 @@ export function BrainLogo({ state }: { state: ThinkingState }) {
                     [0, 0.7, 1.4].map((delay, i) => (
                         <motion.div
                             key={i}
-                            className="absolute inset-0 rounded-full border border-indigo-500"
+                            className="absolute inset-0 rounded-full border border-primary"
                             initial={{ scale: 0.3, opacity: 0.8 }}
                             animate={{ scale: 1.6, opacity: 0 }}
                             transition={{ duration: 2.2, delay, repeat: Infinity, ease: "easeOut" }}
@@ -37,7 +37,7 @@ export function BrainLogo({ state }: { state: ThinkingState }) {
                         : { duration: 0.3 }
                 }
             >
-                <Brain size={26} className="text-indigo-400" />
+                <Brain size={26} className="text-primary" />
             </motion.div>
         </div>
     );

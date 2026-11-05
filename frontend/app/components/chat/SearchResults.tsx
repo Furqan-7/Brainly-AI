@@ -26,21 +26,21 @@ export function SearchResults({ query }: { query: { text: string; nonce: number;
     const { results, error } = state;
 
     return (
-        <div className="w-full max-w-2xl mx-auto space-y-2">
+        <div className="w-full max-w-3xl space-y-2">
             {loading && (
-                <div className="flex items-center gap-2 text-xs text-white/40 px-1">
+                <div className="flex items-center gap-2 text-xs text-on-surface-variant px-1">
                     <Loader2 size={12} className="animate-spin" /> Searching…
                 </div>
             )}
-            {!loading && error && <p className="text-sm text-red-400 px-1">{error}</p>}
+            {!loading && error && <p className="text-sm text-error px-1">{error}</p>}
             {!loading && results && results.length === 0 && (
-                <div className="flex items-center gap-2 text-sm text-white/40 px-1 py-4">
+                <div className="flex items-center gap-2 text-sm text-on-surface-variant px-1 py-4">
                     <SearchX size={16} /> Nothing matched “{query.text}”.
                 </div>
             )}
             {!loading && results && results.length > 0 && (
                 <>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 px-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant px-1">
                         {results.length} matching {results.length === 1 ? "memory" : "memories"}
                     </p>
                     {results.map((source) => (

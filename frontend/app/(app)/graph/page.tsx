@@ -1,24 +1,25 @@
 "use client";
 
+import { PageHeader } from "../AppShell";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, List, Loader2, Network, X } from "lucide-react";
-import { useAuth } from "../hooks/useAuth";
-import { DashboardNav } from "../components/layout/DashboardNav";
-import { getGraph } from "../services/api";
-import type { GraphEdge, GraphNode, MemoryType } from "../types/memory";
+import { getGraph } from "@/app/services/api";
+import type { GraphEdge, GraphNode, MemoryType } from "@/app/types/memory";
 
-const SURFACE = "#121212";
+const SURFACE = "#fffcf9";
 const WIDTH = 1000;
 const HEIGHT = 680;
 
 // Nine memory types fold into six families so each gets a distinct, validated categorical
-// color (dark-surface slots 1–6, fixed order; checked with the dataviz palette validator).
+// color (light-surface slots 1–6, fixed order; checked with the dataviz palette validator).
+// Three sit under 3:1 against the card, so identity never relies on color alone: legend,
+// tooltip, focus labels and the list view all name each family.
 const FAMILIES = [
-    { id: "web", label: "Web pages", color: "#3987e5", types: ["url"] },
-    { id: "video", label: "Videos", color: "#d95926", types: ["youtube", "reel", "tiktok"] },
-    { id: "tweet", label: "Tweets", color: "#199e70", types: ["tweet"] },
-    { id: "doc", label: "Documents", color: "#c98500", types: ["pdf", "image"] },
-    { id: "note", label: "Notes", color: "#d55181", types: ["note"] },
+    { id: "web", label: "Web pages", color: "#2a78d6", types: ["url"] },
+    { id: "video", label: "Videos", color: "#eb6834", types: ["youtube", "reel", "tiktok"] },
+    { id: "tweet", label: "Tweets", color: "#1baf7a", types: ["tweet"] },
+    { id: "doc", label: "Documents", color: "#eda100", types: ["pdf", "image"] },
+    { id: "note", label: "Notes", color: "#e87ba4", types: ["note"] },
     { id: "voice", label: "Voice notes", color: "#008300", types: ["audio"] },
 ] as const;
 
@@ -79,7 +80,6 @@ function layout(nodes: GraphNode[], edges: GraphEdge[]): Positioned[] {
 }
 
 export default function GraphPage() {
-    useAuth();
     const [data, setData] = useState<{ nodes: GraphNode[]; edges: GraphEdge[] } | null>(null);
     const [hover, setHover] = useState<{ node: Positioned; x: number; y: number } | null>(null);
     const [selected, setSelected] = useState<number | null>(null);
@@ -130,21 +130,14 @@ export default function GraphPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#121212] text-on-surface font-body">
-            <DashboardNav />
-            <main className="w-full max-w-6xl mx-auto px-4 md:px-10 pt-20 pb-16 space-y-4">
+        <div className="space-y-6">
                 <header className="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <h1 className="text-2xl font-black tracking-tighter flex items-center gap-2">
-                            <Network className="w-5 h-5 text-primary" /> Knowledge Graph
-                        </h1>
-                        <p className="text-sm text-on-surface-variant/70">
-                            Each dot is a memory; lines connect memories about similar things. Click a dot to see its neighbours.
-                        </p>
-                    </div>
+                    <PageHeader eyebrow="Knowledge graph" title="How your saves connect.">
+                        Each dot is a memory; lines connect memories about similar things. Click a dot to see its neighbours.
+                    </PageHeader>
                     <button
                         onClick={() => setListView((l) => !l)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-on-surface-variant hover:text-on-surface cursor-pointer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-on-surface/5 border border-on-surface/10 text-on-surface-variant hover:text-on-surface cursor-pointer"
                     >
                         {listView ? <Network className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
                         {listView ? "Graph view" : "List view"}
@@ -168,7 +161,7 @@ export default function GraphPage() {
                         Save a few more memories and they&apos;ll start connecting here.
                     </p>
                 ) : listView ? (
-                    <div className="rounded-xl border border-outline-variant/10 divide-y divide-white/5">
+                    <div className="rounded-xl border border-outline-variant/10 divide-y divide-on-surface/5">
                         {nodes
                             .slice()
                             .sort((a, b) => (neighbors.get(b.id)?.length ?? 0) - (neighbors.get(a.id)?.length ?? 0))
@@ -226,7 +219,7 @@ export default function GraphPage() {
                                         <line
                                             key={`${e.source}-${e.target}`}
                                             x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                                            stroke={active ? "#c3c5d8" : "#434655"}
+                                            stroke={active ? "#6d6966" : "#d8d1cc"}
                                             strokeWidth={active ? 1.5 : 1}
                                             strokeOpacity={focusSet && !active ? 0.15 : 0.35 + (e.similarity - 0.5)}
                                         />
@@ -250,7 +243,7 @@ export default function GraphPage() {
                                             />
                                             <circle cx={n.x} cy={n.y} r={r} fill={familyOf(n.type).color} stroke={SURFACE} strokeWidth={2} pointerEvents="none" />
                                             {(n.id === focus || (focusSet?.has(n.id) && view.k > 1.3)) && (
-                                                <text x={n.x + r + 4} y={n.y + 4} fontSize={12} fill="#e5e2e1" pointerEvents="none">
+                                                <text x={n.x + r + 4} y={n.y + 4} fontSize={12} fill="#141414" pointerEvents="none">
                                                     {n.title.length > 40 ? `${n.title.slice(0, 40)}…` : n.title}
                                                 </text>
                                             )}
@@ -263,7 +256,7 @@ export default function GraphPage() {
                         {/* Tooltip */}
                         {hover && !dragging && (
                             <div
-                                className="fixed z-50 pointer-events-none rounded-lg bg-[#111118] border border-white/10 px-3 py-2 shadow-xl max-w-xs"
+                                className="fixed z-50 pointer-events-none rounded-lg bg-surface-container-lowest border border-on-surface/10 px-3 py-2 shadow-xl max-w-xs"
                                 style={{ left: hover.x + 14, top: hover.y + 14 }}
                             >
                                 <p className="text-xs font-semibold text-on-surface">{hover.node.title}</p>
@@ -275,7 +268,7 @@ export default function GraphPage() {
 
                         {/* Selection panel */}
                         {selectedNode && (
-                            <div className="absolute top-3 right-3 w-72 max-h-[90%] overflow-y-auto rounded-xl bg-[#111118]/95 border border-white/10 p-4 space-y-3">
+                            <div className="absolute top-3 right-3 w-72 max-h-[90%] overflow-y-auto rounded-xl bg-surface-container-lowest/95 border border-on-surface/10 p-4 space-y-3">
                                 <div className="flex items-start gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ background: familyOf(selectedNode.type).color }} />
                                     <div className="flex-1 min-w-0">
@@ -317,7 +310,6 @@ export default function GraphPage() {
                         )}
                     </div>
                 )}
-            </main>
         </div>
     );
 }

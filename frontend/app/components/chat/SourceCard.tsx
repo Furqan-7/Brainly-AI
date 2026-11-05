@@ -50,13 +50,13 @@ export function SourceCard({ source, highlighted = false }: { source: Source; hi
         <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={`rounded-xl border transition-all overflow-hidden ${highlighted
-                ? "bg-indigo-500/10 border-indigo-400/50"
-                : "bg-white/5 border-white/8 hover:bg-white/8"
+            className={`border transition-all overflow-hidden ${highlighted
+                ? "bg-primary/5 border-primary"
+                : "bg-surface-container-lowest border-outline-variant hover:border-on-surface"
                 }`}
         >
             <div className="flex items-center gap-3 p-3">
-                <span className="w-5 h-5 shrink-0 rounded-md bg-white/8 text-[10px] font-bold text-white/60 flex items-center justify-center">
+                <span className="w-5 h-5 shrink-0 rounded-md bg-on-surface/8 text-[10px] font-bold text-on-surface flex items-center justify-center">
                     {source.n}
                 </span>
                 {showThumb && (
@@ -71,8 +71,8 @@ export function SourceCard({ source, highlighted = false }: { source: Source; hi
                 )}
 
                 <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 mb-1 text-[10px] uppercase tracking-widest text-white/35">
-                        <Icon size={12} className={meta?.color ?? "text-indigo-400"} />
+                    <div className="flex items-center gap-1.5 mb-1 text-[10px] uppercase tracking-widest text-on-surface-variant">
+                        <Icon size={12} className={meta?.color ?? "text-primary"} />
                         <span>{meta?.label ?? source.type}</span>
                     </div>
                     {href ? (
@@ -80,21 +80,21 @@ export function SourceCard({ source, highlighted = false }: { source: Source; hi
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block text-sm font-medium text-white/85 hover:text-indigo-300 truncate"
+                            className="block text-sm font-medium text-on-surface hover:text-primary truncate"
                         >
                             {source.title}
                         </a>
                     ) : (
-                        <span className="block text-sm font-medium text-white/85 truncate">{source.title}</span>
+                        <span className="block text-sm font-medium text-on-surface truncate">{source.title}</span>
                     )}
-                    {source.snippet && <span className="block text-[11px] text-white/35 line-clamp-1">{source.snippet}</span>}
+                    {source.snippet && <span className="block text-[11px] text-on-surface-variant line-clamp-1">{source.snippet}</span>}
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
                     {player && (
                         <button
                             onClick={() => setPlaying((p) => !p)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pink-500/15 text-pink-300 hover:bg-pink-500/25 transition-colors cursor-pointer"
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-primary-container text-white hover:bg-black transition-colors cursor-pointer active:scale-95"
                             title={playing ? "Hide video" : "Watch here"}
                         >
                             {playing ? <X size={12} /> : <Play size={12} fill="currentColor" />}
@@ -106,7 +106,7 @@ export function SourceCard({ source, highlighted = false }: { source: Source; hi
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/8 transition-colors"
+                            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-on-surface/8 transition-colors"
                             title="Open original"
                         >
                             <ExternalLink size={14} />

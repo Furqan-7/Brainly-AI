@@ -1,17 +1,15 @@
 "use client";
 
+import { PageHeader } from "../AppShell";
 import { useEffect, useState } from "react";
 import { CheckCircle2, Copy, Loader2, Merge } from "lucide-react";
-import { useAuth } from "../hooks/useAuth";
-import { DashboardNav } from "../components/layout/DashboardNav";
-import { errorMessage, getDuplicates, mergeMemories } from "../services/api";
-import { TYPE_META } from "../components/memory/typeMeta";
+import { errorMessage, getDuplicates, mergeMemories } from "@/app/services/api";
+import { TYPE_META } from "@/app/components/memory/typeMeta";
 
 type Groups = Awaited<ReturnType<typeof getDuplicates>>;
 
 /** Finds memories saved more than once and merges them (tags, collections and notes are combined). */
 export default function DuplicatesPage() {
-    useAuth();
     const [groups, setGroups] = useState<Groups | null>(null);
     const [keep, setKeep] = useState<Record<string, number>>({});
     const [busy, setBusy] = useState<string | null>(null);
@@ -43,24 +41,17 @@ export default function DuplicatesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#121212] text-on-surface font-body">
-            <DashboardNav />
-            <main className="w-full max-w-3xl mx-auto px-4 md:px-10 pt-20 pb-24 space-y-6">
-                <header className="space-y-1">
-                    <h1 className="text-2xl font-black tracking-tighter flex items-center gap-2">
-                        <Copy className="w-5 h-5 text-primary" /> Duplicates
-                    </h1>
-                    <p className="text-sm text-on-surface-variant/70">
-                        The same link or note saved more than once. Merging keeps one copy and combines tags, collections and personal notes.
-                    </p>
-                </header>
+        <div className="space-y-6">
+                <PageHeader eyebrow="Duplicates" title="Saved twice? Keep one.">
+                    The same link or note saved more than once. Merging keeps one copy and combines tags, collections and personal notes.
+                </PageHeader>
                 {error && <p className="text-xs text-error">{error}</p>}
 
                 {groups === null ? (
                     <Loader2 className="w-5 h-5 animate-spin text-on-surface-variant/40 mx-auto" />
                 ) : groups.length === 0 ? (
                     <div className="flex flex-col items-center gap-2 py-16 text-on-surface-variant/60">
-                        <CheckCircle2 className="w-8 h-8 text-emerald-400/70" />
+                        <CheckCircle2 className="w-8 h-8 text-emerald-600/70" />
                         <p className="text-sm">No duplicates — your brain is tidy.</p>
                     </div>
                 ) : (
@@ -79,7 +70,7 @@ export default function DuplicatesPage() {
                                             name={group.key}
                                             checked={keep[group.key] === m.id}
                                             onChange={() => setKeep((k) => ({ ...k, [group.key]: m.id }))}
-                                            className="accent-indigo-500"
+                                            className="accent-primary"
                                         />
                                         <Icon className={`w-3.5 h-3.5 ${meta.color}`} />
                                         <span className="flex-1 truncate">{m.title}</span>
@@ -100,7 +91,6 @@ export default function DuplicatesPage() {
                         </div>
                     ))
                 )}
-            </main>
         </div>
     );
 }
