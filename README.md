@@ -125,33 +125,11 @@ See `backend/.env.example` for every setting (storage, OAuth, worker, retrieval 
 
 ### Deploying (e.g. Vercel + Render)
 
-The web app proxies every API request through its own domain at `/backend`, so the login cookie is first-party and browsers don't block it.
+Sign-in, sign-up and sign-out run through the web app's own `/session` routes, which set the login cookie on the web app's domain. All other API calls are proxied through `/backend`. So the browser never needs a cookie from the API's domain, which browsers often block.
 
-- **Frontend (Vercel):** set `BACKEND_URL` to your API's URL (e.g. `https://brainly-api.onrender.com`).
-- **Backend:** set `CLIENT_URL` to the web app's URL, `COOKIE_SAMESITE=lax`, and `TRUST_PROXY=2`.
-- **Google sign-in:** set `GOOGLE_CALLBACK_URL` to `https://<your-web-app>/backend/auth/google/callback` and add that same URL to the authorized redirect URIs in Google Cloud Console.
-
-### Tests
-
-```bash
-pnpm test                                    # unit tests
-TEST_DATABASE_URL=postgresql://… pnpm test   # + integration tests against a migrated pgvector database
-pnpm lint
-```
-
-### Browser extension
-
-1. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and pick the `extension/` folder.
-2. In Brainly, open the profile menu → **Copy extension token**.
-3. Open the extension's **Settings**, enter your API URL and paste the token.
-
-### Mobile share sheet
-
-Open Brainly in Chrome on Android and choose **Install app**. Brainly then appears in the system **Share** menu; sharing a reel or link opens *Add Memory* prefilled.
-
-### Premium
-
-Plan limits live in `backend/src/lib/plans.ts`. Set `User.isPremium = true` to upgrade a user (no payment provider is wired up yet).
+- **Frontend (Vercel):** set `BACKEND_URL` to your API's URL (e.g. `https://brainly-api.onrender.com`). An existing `NEXT_PUBLIC_API` also works.
+- **Backend:** set `CLIENT_URL` to the web app's URL (Google sign-in returns there) and `TRUST_PROXY=2`.
+- **Google sign-in:** the callback can stay on the API (`https://<api>/auth/google/callback`). After sign-in the API sends the browser back to `/auth/complete` with a two-minute code that the web app exchanges for a session.
 
 ---
 

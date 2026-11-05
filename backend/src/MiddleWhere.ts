@@ -29,7 +29,8 @@ export function MiddleWhere(req: Request, res: Response, next: NextFunction) {
     try {
         const decoded = jwt.verify(token, process.env.JWT_TOKEN as string);
 
-        if (!decoded || typeof decoded !== "object" || !("userId" in decoded)) {
+        // Purpose-bound tokens (e.g. the OAuth handoff code) are not sessions
+        if (!decoded || typeof decoded !== "object" || !("userId" in decoded) || "purpose" in decoded) {
             return res.status(401).json({ message: "Invalid Token", success: false });
         }
         res.locals.userId = decoded.userId;

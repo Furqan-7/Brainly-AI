@@ -42,16 +42,24 @@ export function fileUrl(memoryId: number): string {
 // Auth
 // ─────────────────────────────────────────────────────────────
 
+// Sign-in, sign-up and sign-out go through this site's own /session routes, which set the
+// login cookie on this domain (see app/session/[action]/route.ts).
+
 export async function signin(email: string, password: string) {
-    return (await api.post("/signin", { email, password })).data;
+    return (await axios.post("/session/signin", { email, password })).data;
 }
 
 export async function signup(username: string, email: string, password: string) {
-    return (await api.post("/signup", { username, email, password })).data;
+    return (await axios.post("/session/signup", { username, email, password })).data;
+}
+
+/** Finishes Google/GitHub sign-in by swapping the handoff code for a session. */
+export async function completeOAuth(code: string) {
+    return (await axios.post("/session/oauth", { code })).data;
 }
 
 export async function logout(): Promise<void> {
-    await api.post("/logout");
+    await axios.post("/session/logout");
 }
 
 export async function getMe(): Promise<Me> {

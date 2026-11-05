@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import { prisma } from "db";
 import passport from "../config/passport";
@@ -14,11 +15,18 @@ export const authRouter: Router = Router();
 // Brute-force protection for password endpoints: 20 attempts per 15 minutes per IP
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 
+const OAUTH_HANDOFF = "oauth-handoff";
+
+/**
+ * After Google/GitHub sign-in the browser may be on the API's domain (wherever the OAuth
+ * callback points), where a cookie would be useless to the web app. So we send it back to the
+ * web app with a two-minute, single-purpose code; the web app's server exchanges that code
+ * (POST /auth/exchange) and sets the session cookie on its own domain.
+ */
 function oauthCallback(req: Request, res: Response) {
     const user = req.user as any;
-    setAuthCookie(res, signToken(user.id, user.username));
-    // No token in the URL any more — it lives in an httpOnly cookie
-    res.redirect(`${process.env.CLIENT_URL}/chat`);
+    const code = jwt.sign({ userId: user.id, username: user.username, purpose: OAUTH_HANDOFF }, process.env.JWT_TOKEN as string, { expiresIn: "2m" });
+    res.redirect(`${process.env.CLIENT_URL}/auth/complete?code=${encodeURIComponent(code)}`);
 }
 
 if (process.env.GOOGLE_CLIENT_ID) {
@@ -29,6 +37,21 @@ if (process.env.GITHUB_CLIENT_ID) {
     authRouter.get("/auth/github", passport.authenticate("github", { scope: ["user:email"] }));
     authRouter.get("/auth/github/callback", passport.authenticate("github", { session: false }), oauthCallback);
 }
+
+/** Swaps an OAuth handoff code for a normal session (sets the cookie, like /signin). */
+authRouter.post("/auth/exchange", authLimiter, async (req, res) => {
+    const code = typeof req.body?.code === "string" ? req.body.code : "";
+    try {
+        const decoded = jwt.verify(code, process.env.JWT_TOKEN as string) as jwt.JwtPayload;
+        if (decoded.purpose !== OAUTH_HANDOFF || typeof decoded.userId !== "number") throw new Error("wrong token type");
+        const user = await prisma.user.findUnique({ where: { id: decoded.userId }, select: { id: true, username: true } });
+        if (!user) throw new Error("user not found");
+        setAuthCookie(res, signToken(user.id, user.username));
+        return res.status(200).json({ success: true, username: user.username, id: user.id });
+    } catch {
+        return res.status(401).json({ success: false, message: "This sign-in link has expired. Please sign in again." });
+    }
+});
 
 authRouter.post("/signup", authLimiter, async (req, res) => {
     const parsed = signupSchema.safeParse(req.body);
