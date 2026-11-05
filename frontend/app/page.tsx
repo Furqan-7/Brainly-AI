@@ -5,6 +5,7 @@ import { AskDemo } from "./components/landing/AskDemo";
 import { Pricing } from "./components/landing/Pricing";
 import { Closing, Faq, HowItWorks, LandingFooter, Organise, Problem, SaveTypes } from "./components/landing/Sections";
 import { SessionRedirect } from "./components/landing/SessionRedirect";
+import { ScrollProgress, SmoothScroll } from "./components/landing/motion";
 
 export const metadata: Metadata = {
   title: "Brainly AI — Remember everything you save",
@@ -19,6 +20,8 @@ export default function Home() {
       className={`${fraunces.variable} ${dmSans.variable} min-h-screen w-full flex-1 bg-lp-dots font-lp-body text-base text-lp-ink [color-scheme:light] selection:bg-lp-ink selection:text-lp-paper`}
     >
       <SessionRedirect />
+      <SmoothScroll />
+      <ScrollProgress />
       <Hero />
       <main>
         <Problem />

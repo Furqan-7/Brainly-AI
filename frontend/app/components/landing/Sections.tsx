@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CtaPair, Eyebrow, SectionHead, Wrap } from "./ui";
+import { Eyebrow, SectionHead, Wrap } from "./ui";
+import { CtaPair, Reveal, SpotlightCard, Stagger, StaggerItem } from "./motion";
 
 const block = "scroll-mt-6 border-t border-lp-rule py-20 min-[560px]:py-[120px]";
 const h3 = "font-lp-display text-[1.45rem] leading-[1.04] font-normal tracking-[-0.025em]";
@@ -18,17 +19,19 @@ export function Problem() {
     return (
         <section className={block}>
             <Wrap className="grid items-center gap-10 min-[900px]:grid-cols-[1.05fr_1fr] min-[900px]:gap-16">
-                <h2 className="font-lp-display text-[clamp(2.1rem,3.9vw,3.7rem)] leading-[1.04] font-normal tracking-[-0.025em] text-balance">
-                    You saved it. <em className="text-lp-muted">You just can&apos;t find it.</em>
-                </h2>
-                <dl className="m-0 border-t border-lp-rule">
+                <Reveal>
+                    <h2 className="font-lp-display text-[clamp(2.1rem,3.9vw,3.7rem)] leading-[1.04] font-normal tracking-[-0.025em] text-balance">
+                        You saved it. <em className="text-lp-muted">You just can&apos;t find it.</em>
+                    </h2>
+                </Reveal>
+                <Stagger as="dl" className="m-0 border-t border-lp-rule">
                     {LOST.map((item) => (
-                        <div key={item.where} className="grid gap-1 border-b border-lp-rule py-[18px] min-[560px]:grid-cols-[9.5rem_1fr] min-[560px]:gap-[18px]">
-                            <dt className="text-[13px] tracking-[0.04em] text-lp-ink uppercase">{item.where}</dt>
+                        <StaggerItem key={item.where} className="group grid gap-1 border-b border-lp-rule py-[18px] transition-colors hover:bg-lp-card/60 min-[560px]:grid-cols-[9.5rem_1fr] min-[560px]:gap-[18px]">
+                            <dt className="text-[13px] tracking-[0.04em] text-lp-ink uppercase transition-transform duration-300 group-hover:translate-x-1.5">{item.where}</dt>
                             <dd className="m-0 min-w-0 text-base leading-[1.55] text-lp-muted">{item.what}</dd>
-                        </div>
+                        </StaggerItem>
                     ))}
-                </dl>
+                </Stagger>
             </Wrap>
         </section>
     );
@@ -59,13 +62,16 @@ export function HowItWorks() {
         <section id="how" className={block}>
             <Wrap>
                 <SectionHead eyebrow="How it works" title="Save it once. Brainly does the reading." />
-                <div className="grid border-t border-lp-ink min-[900px]:grid-cols-3">
+                <Stagger className="grid border-t border-lp-ink min-[900px]:grid-cols-3">
                     {STEPS.map((step, i) => (
-                        <div
+                        <StaggerItem
                             key={step.title}
                             className={`grid min-w-0 content-start gap-3.5 border-b border-lp-rule py-6 min-[900px]:border-b-0 min-[900px]:pt-[26px] min-[900px]:pr-7 min-[900px]:pb-[30px] ${i ? "min-[900px]:border-l min-[900px]:pl-7" : ""}`}
                         >
-                            <span className="text-xs tracking-[0.06em] text-lp-muted">STEP {i + 1}</span>
+                            <span className="flex items-center gap-2 text-xs tracking-[0.06em] text-lp-muted">
+                                <span className="grid size-6 place-items-center rounded-full bg-lp-button text-[11px] text-white">{i + 1}</span>
+                                STEP {i + 1}
+                            </span>
                             <h3 className={h3}>{step.title}</h3>
                             <p className="text-[15.5px] leading-[1.6] text-lp-muted">{step.text}</p>
                             <ul className="m-0 grid list-none gap-1.5 p-0 text-[14.5px]">
@@ -73,9 +79,9 @@ export function HowItWorks() {
                                     <li key={p}><span className="text-lp-muted">→ </span>{p}</li>
                                 ))}
                             </ul>
-                        </div>
+                        </StaggerItem>
                     ))}
-                </div>
+                </Stagger>
             </Wrap>
         </section>
     );
@@ -102,11 +108,11 @@ export function SaveTypes() {
                 <SectionHead eyebrow="What you can save" title="Nine kinds of things, one memory.">
                     <p className={lead}>For each one, here is what Brainly keeps so you can find it later.</p>
                 </SectionHead>
-                <div className="grid border-t border-l border-lp-rule min-[560px]:grid-cols-2 min-[900px]:grid-cols-3">
+                <Stagger className="grid border-t border-l border-lp-rule min-[560px]:grid-cols-2 min-[900px]:grid-cols-3">
                     {TYPES.map((t) => (
-                        <div key={t.name} className="grid min-w-0 content-start gap-2.5 border-r border-b border-lp-rule bg-lp-paper/75 px-6 pt-6 pb-[26px]">
+                        <SpotlightCard key={t.name} className="grid min-w-0 content-start gap-2.5 border-r border-b border-lp-rule bg-lp-paper/75 px-6 pt-6 pb-[26px] transition-[background-color,box-shadow] duration-300 hover:z-10 hover:bg-lp-card hover:shadow-[0_24px_40px_-28px_rgba(60,35,20,0.45)]">
                             <span className="flex items-center gap-[9px] text-[15px] leading-[1.2] font-semibold">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-[18px] flex-none">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-[18px] flex-none transition-transform duration-300 group-hover/card:scale-125 group-hover/card:-rotate-6">
                                     {t.icon}
                                 </svg>
                                 {t.name}
@@ -118,9 +124,9 @@ export function SaveTypes() {
                             </span>
                             <p className="text-[15px] text-lp-muted">{t.what}</p>
                             <span className="text-sm leading-[1.5] text-lp-ink">{t.keeps}</span>
-                        </div>
+                        </SpotlightCard>
                     ))}
-                </div>
+                </Stagger>
             </Wrap>
         </section>
     );
@@ -142,9 +148,9 @@ export function Organise() {
         <section className={block}>
             <Wrap>
                 <SectionHead eyebrow="Keep it tidy" title="A brain that also tidies up." />
-                <div className="grid gap-x-10 gap-y-12 min-[900px]:grid-cols-3">
+                <Stagger className="grid gap-5 min-[900px]:grid-cols-3">
                     {FEATURES.map((f) => (
-                        <div key={f.title} className="grid min-w-0 content-start gap-2.5">
+                        <SpotlightCard key={f.title} className="grid min-w-0 content-start gap-2.5 border border-transparent p-6 transition-[border-color,background-color] duration-300 hover:border-lp-line hover:bg-lp-card">
                             <h3 className={h3}>{f.title}</h3>
                             <p className="text-[15.5px] leading-[1.6] text-lp-muted">{f.text}</p>
                             {f.intervals && (
@@ -154,9 +160,9 @@ export function Organise() {
                                     ))}
                                 </div>
                             )}
-                        </div>
+                        </SpotlightCard>
                     ))}
-                </div>
+                </Stagger>
             </Wrap>
         </section>
     );
@@ -177,18 +183,17 @@ export function Faq() {
         <section id="faq" className={block}>
             <Wrap>
                 <SectionHead center eyebrow="Questions" title="Before you start." />
-                <div className="mx-auto max-w-[820px] border-t border-lp-rule">
+                <Reveal className="mx-auto max-w-[820px] border-t border-lp-rule">
                     {FAQS.map((item, i) => (
                         <details key={item.q} open={i === 0} className="group border-b border-lp-rule py-5">
-                            <summary className="flex cursor-pointer list-none justify-between gap-5 font-lp-display text-[1.3rem] leading-[1.3] [&::-webkit-details-marker]:hidden">
+                            <summary className="flex cursor-pointer list-none justify-between gap-5 font-lp-display text-[1.3rem] leading-[1.3] transition-transform duration-300 hover:translate-x-1 [&::-webkit-details-marker]:hidden">
                                 {item.q}
-                                <span aria-hidden="true" className="font-lp-body text-lg text-lp-muted group-open:hidden">+</span>
-                                <span aria-hidden="true" className="hidden font-lp-body text-lg text-lp-muted group-open:inline">–</span>
+                                <span aria-hidden="true" className="grid size-7 flex-none place-items-center rounded-full font-lp-body text-lg leading-none text-lp-muted shadow-[inset_0_0_0_1px_var(--color-lp-line)] transition-transform duration-300 group-open:rotate-45">+</span>
                             </summary>
                             <p className="mt-3 max-w-[64ch] text-base leading-[1.6] text-lp-muted">{item.a}</p>
                         </details>
                     ))}
-                </div>
+                </Reveal>
             </Wrap>
         </section>
     );
@@ -199,7 +204,7 @@ export function Faq() {
 export function Closing() {
     return (
         <section id="start" className="grid scroll-mt-6 justify-items-center border-t border-lp-rule pt-[130px] pb-[120px] text-center">
-            <Wrap className="grid justify-items-center">
+            <Reveal className="grid justify-items-center px-4">
                 <Eyebrow>Free to start</Eyebrow>
                 <h2 className="mt-[22px] max-w-[14ch] font-lp-display text-[clamp(2.4rem,4.2vw,4.2rem)] leading-[1.04] font-normal tracking-[-0.025em] text-balance">
                     Your memory, with a search bar.
@@ -209,13 +214,13 @@ export function Closing() {
                     secondary={{ label: "Try the demo", href: "#ask" }}
                     primary={{ label: "Create your brain", href: "/auth/signup" }}
                 />
-            </Wrap>
+            </Reveal>
         </section>
     );
 }
 
 export function LandingFooter() {
-    const link = "hover:text-lp-ink";
+    const link = "relative hover:text-lp-ink after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-right after:scale-x-0 after:bg-lp-ink after:transition-transform after:duration-300 hover:after:origin-left hover:after:scale-x-100";
     return (
         <footer className="border-t border-lp-rule">
             <Wrap className="flex flex-wrap items-center justify-between gap-4 py-[26px] text-[13px] text-lp-muted">
