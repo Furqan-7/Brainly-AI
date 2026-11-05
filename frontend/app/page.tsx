@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { dmSans, fraunces } from "./components/landing/fonts";
 import { Hero } from "./components/landing/Hero";
 import { AskDemo } from "./components/landing/AskDemo";
 import { Pricing } from "./components/landing/Pricing";
@@ -17,7 +16,7 @@ export default function Home() {
   return (
     <div
       data-landing
-      className={`${fraunces.variable} ${dmSans.variable} min-h-screen w-full flex-1 bg-lp-dots font-lp-body text-base text-lp-ink [color-scheme:light] selection:bg-lp-ink selection:text-lp-paper`}
+      className={`min-h-screen w-full flex-1 bg-lp-dots font-lp-body text-base text-lp-ink [color-scheme:light] selection:bg-lp-ink selection:text-lp-paper`}
     >
       <SessionRedirect />
       <SmoothScroll />

@@ -42,7 +42,8 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API: http://localhost:3001
+        # the web app proxies /backend/* to the API over the compose network
+        BACKEND_URL: http://backend:3001
     ports:
       - "3000:3000"
     depends_on:

@@ -1,14 +1,13 @@
 "use client";
 
+import { PageHeader } from "../AppShell";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, FolderOpen, Globe, Loader2, Lock, Plus, Trash2 } from "lucide-react";
-import { useAuth } from "../hooks/useAuth";
-import { DashboardNav } from "../components/layout/DashboardNav";
 import {
     createCollection, deleteCollection, errorMessage, getCollections, shareCollection, unshareCollection,
-} from "../services/api";
-import type { Collection } from "../types/memory";
+} from "@/app/services/api";
+import type { Collection } from "@/app/types/memory";
 
 function shareLink(slug: string) {
     return `${window.location.origin}/c/${slug}`;
@@ -54,7 +53,7 @@ function CollectionRow({ collection, onChange, onDelete }: {
             <div className="flex items-start gap-3">
                 <FolderOpen className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                    <Link href={`/chat?collection=${collection.id}`} className="text-sm font-bold hover:text-primary">
+                    <Link href={`/library?collection=${collection.id}`} className="text-sm font-bold hover:text-primary">
                         {collection.name}
                     </Link>
                     {collection.description && <p className="text-xs text-on-surface-variant/70">{collection.description}</p>}
@@ -72,16 +71,16 @@ function CollectionRow({ collection, onChange, onDelete }: {
                     onClick={toggleShare}
                     disabled={busy}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer ${collection.shareSlug
-                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                        : "bg-white/5 border-white/10 text-on-surface-variant hover:text-on-surface"
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600"
+                        : "bg-on-surface/5 border-on-surface/10 text-on-surface-variant hover:text-on-surface"
                         }`}
                 >
                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : collection.shareSlug ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                     {collection.shareSlug ? "Public — click to make private" : "Private — click to share"}
                 </button>
                 {collection.shareSlug && (
-                    <button onClick={copy} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-on-surface-variant hover:text-on-surface cursor-pointer">
-                        {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <button onClick={copy} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs bg-on-surface/5 border border-on-surface/10 text-on-surface-variant hover:text-on-surface cursor-pointer">
+                        {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                         {copied ? "Copied!" : "Copy link"}
                     </button>
                 )}
@@ -91,7 +90,6 @@ function CollectionRow({ collection, onChange, onDelete }: {
 }
 
 export default function CollectionsPage() {
-    useAuth();
     const [collections, setCollections] = useState<Collection[] | null>(null);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -116,15 +114,10 @@ export default function CollectionsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#121212] text-on-surface font-body">
-            <DashboardNav />
-            <main className="w-full max-w-3xl mx-auto px-4 md:px-10 pt-20 pb-24 space-y-6">
-                <header className="space-y-1">
-                    <h1 className="text-2xl font-black tracking-tighter">Collections</h1>
-                    <p className="text-sm text-on-surface-variant/70">
-                        Group memories into boards like “Project Ideas”, and share a board publicly with a link.
-                    </p>
-                </header>
+        <div className="space-y-6">
+                <PageHeader eyebrow="Collections" title="Boards for the things that belong together.">
+                    Group memories into boards like “Project ideas”, and share any board publicly with a link.
+                </PageHeader>
 
                 <form onSubmit={create} className="flex flex-col sm:flex-row gap-2">
                     <input
@@ -167,7 +160,6 @@ export default function CollectionsPage() {
                         ))}
                     </div>
                 )}
-            </main>
         </div>
     );
 }

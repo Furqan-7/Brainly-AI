@@ -14,7 +14,11 @@ import type {
     PublicMemory, RediscoverItem, SearchFilters, Source,
 } from "../types/memory";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API ?? "http://localhost:3001";
+/**
+ * Same-origin path that next.config.ts proxies to the API. Keeping API calls on this site's
+ * own domain makes the session cookie first-party, so browsers don't block it.
+ */
+export const API_BASE = "/backend";
 
 export const api = axios.create({ baseURL: API_BASE, withCredentials: true });
 

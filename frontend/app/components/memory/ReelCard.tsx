@@ -53,13 +53,13 @@ export function ReelCard({
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                 ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600/30 via-pink-500/20 to-orange-400/30 flex items-center justify-center">
-                        <Icon className="w-10 h-10 text-white/40" />
+                    <div className="w-full h-full bg-surface-container-high bg-[radial-gradient(rgb(20_20_20/0.18)_1px,transparent_1.4px)] bg-[length:6px_6px] flex items-center justify-center">
+                        <Icon className="w-10 h-10 text-on-surface/40" />
                     </div>
                 )}
 
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Play className="w-10 h-10 text-white" fill="white" />
+                    <Play className="w-10 h-10 text-on-surface" fill="white" />
                 </div>
             </a>
 

@@ -69,7 +69,7 @@ export default function AboutPage() {
         <div className="min-h-screen bg-background text-on-surface font-body">
 
             {/* ── NAV ── */}
-            <header className="fixed top-0 w-full z-50 bg-[#131313]/60 backdrop-blur-xl border-b border-outline-variant/10">
+            <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-xl border-b border-outline-variant">
                 <nav className="flex justify-between items-center px-10 md:px-20 py-3 max-w-[1200px] mx-auto">
                     <div className="flex items-center gap-8">
                         <div className="flex items-center gap-2">

@@ -16,7 +16,7 @@ import type { ChatMessage, ConversationSummary, SearchFilters } from "../../type
 function AnswerText({ text, onCite }: { text: string; onCite: (n: number) => void }) {
     const parts = text.split(/(\[\d+\])/g);
     return (
-        <p className="text-sm leading-relaxed text-white/80 whitespace-pre-wrap">
+        <p className="text-sm leading-relaxed text-on-surface whitespace-pre-wrap">
             {parts.map((part, i) => {
                 const cite = part.match(/^\[(\d+)\]$/);
                 if (!cite) return <Fragment key={i}>{part}</Fragment>;
@@ -24,7 +24,7 @@ function AnswerText({ text, onCite }: { text: string; onCite: (n: number) => voi
                     <button
                         key={i}
                         onClick={() => onCite(Number(cite[1]))}
-                        className="inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 mx-0.5 align-text-top rounded bg-indigo-500/20 text-[10px] font-bold text-indigo-300 hover:bg-indigo-500/40 cursor-pointer"
+                        className="inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 mx-0.5 align-text-top rounded bg-primary/20 text-[10px] font-bold text-primary hover:bg-black/40 cursor-pointer"
                         title={`Show source ${cite[1]}`}
                     >
                         {cite[1]}
@@ -52,32 +52,32 @@ function AssistantMessage({ message, index }: { message: ChatMessage; index: num
         <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl bg-[#0f1117] border border-white/10 overflow-hidden"
+            className="rounded-2xl bg-surface-container-lowest border border-on-surface/10 overflow-hidden"
         >
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-white/6">
-                <div className="w-6 h-6 rounded-md bg-indigo-500/20 flex items-center justify-center">
-                    <Sparkles size={12} className="text-indigo-400" />
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-on-surface/6">
+                <div className="w-6 h-6 rounded-md bg-primary/20 flex items-center justify-center">
+                    <Sparkles size={12} className="text-primary" />
                 </div>
-                <span className="text-xs font-semibold text-white/50 uppercase tracking-widest">Brainly Answer</span>
+                <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">Brainly Answer</span>
                 {message.streaming && <ThinkingDots />}
             </div>
 
             <div className="px-5 py-4">
                 {message.error ? (
-                    <div className="flex items-center gap-2 text-sm text-red-400">
+                    <div className="flex items-center gap-2 text-sm text-error">
                         <AlertCircle size={16} />
                         {message.error}
                     </div>
                 ) : message.content ? (
                     <AnswerText text={message.content} onCite={cite} />
                 ) : (
-                    <span className="text-xs text-white/35">Searching your memories…</span>
+                    <span className="text-xs text-on-surface-variant">Searching your memories…</span>
                 )}
             </div>
 
             {sources.length > 0 && (
                 <div className="px-5 pb-5 space-y-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 mb-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant mb-3">
                         Sources from your brain
                     </p>
                     <div className="flex flex-col gap-2">
@@ -178,35 +178,35 @@ export function ChatComponent({ ask, onAnswered }: ChatThreadProps) {
     const thinking = busy && messages[messages.length - 1]?.content === "";
 
     return (
-        <div className="w-full max-w-2xl mx-auto space-y-4">
+        <div className="w-full max-w-3xl space-y-4">
             {/* Toolbar */}
             <div className="flex items-center justify-end gap-2 relative">
                 {messages.length > 0 && (
                     <button
                         onClick={newChat}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-white/50 hover:text-white hover:bg-white/6 cursor-pointer"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-on-surface-variant hover:text-on-surface hover:bg-on-surface/6 cursor-pointer"
                     >
                         <Plus size={12} /> New chat
                     </button>
                 )}
                 <button
                     onClick={openHistory}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-white/50 hover:text-white hover:bg-white/6 cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-on-surface-variant hover:text-on-surface hover:bg-on-surface/6 cursor-pointer"
                 >
                     <History size={12} /> History
                 </button>
                 {history && (
-                    <div className="absolute right-0 top-9 z-30 w-72 max-h-80 overflow-y-auto rounded-xl bg-[#111118] border border-white/10 shadow-2xl p-1">
-                        {history.length === 0 && <p className="text-xs text-white/40 p-3">No past conversations yet.</p>}
+                    <div className="absolute right-0 top-9 z-30 w-72 max-h-80 overflow-y-auto rounded-xl bg-surface-container-lowest border border-on-surface/10 shadow-2xl p-1">
+                        {history.length === 0 && <p className="text-xs text-on-surface-variant p-3">No past conversations yet.</p>}
                         {history.map((c) => (
-                            <div key={c.id} className="flex items-center group rounded-lg hover:bg-white/6">
+                            <div key={c.id} className="flex items-center group rounded-lg hover:bg-on-surface/6">
                                 <button onClick={() => loadConversation(c.id)} className="flex-1 text-left px-3 py-2 min-w-0 cursor-pointer">
-                                    <span className="block text-xs text-white/80 truncate">{c.title}</span>
-                                    <span className="block text-[10px] text-white/30">{new Date(c.updatedAt).toLocaleString()}</span>
+                                    <span className="block text-xs text-on-surface truncate">{c.title}</span>
+                                    <span className="block text-[10px] text-on-surface-variant">{new Date(c.updatedAt).toLocaleString()}</span>
                                 </button>
                                 <button
                                     onClick={() => removeConversation(c.id)}
-                                    className="p-2 opacity-0 group-hover:opacity-100 text-white/40 hover:text-red-400 cursor-pointer"
+                                    className="p-2 opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error cursor-pointer"
                                     title="Delete conversation"
                                 >
                                     <Trash2 size={12} />
@@ -224,14 +224,14 @@ export function ChatComponent({ ask, onAnswered }: ChatThreadProps) {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20"
                     >
                         <BrainLogo state="thinking" />
                         <div className="flex flex-col gap-1">
-                            <span className="text-sm font-medium text-white/80">Brainly is thinking</span>
+                            <span className="text-sm font-medium text-on-surface">Brainly is thinking</span>
                             <div className="flex items-center gap-2">
                                 <ThinkingDots />
-                                <span className="text-xs text-white/35">Searching your memories…</span>
+                                <span className="text-xs text-on-surface-variant">Searching your memories…</span>
                             </div>
                         </div>
                     </motion.div>
@@ -242,11 +242,11 @@ export function ChatComponent({ ask, onAnswered }: ChatThreadProps) {
             {messages.map((message, i) =>
                 message.role === "user" ? (
                     <div key={i} className="flex items-start gap-2 justify-end">
-                        <p className="max-w-[85%] rounded-2xl rounded-tr-sm bg-indigo-600/30 border border-indigo-500/20 px-4 py-2.5 text-sm text-white/90 whitespace-pre-wrap">
+                        <p className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary-container/30 border border-primary/20 px-4 py-2.5 text-sm text-on-surface whitespace-pre-wrap">
                             {message.content}
                         </p>
-                        <div className="w-7 h-7 shrink-0 rounded-full bg-white/8 flex items-center justify-center">
-                            <User size={14} className="text-white/60" />
+                        <div className="w-7 h-7 shrink-0 rounded-full bg-on-surface/8 flex items-center justify-center">
+                            <User size={14} className="text-on-surface" />
                         </div>
                     </div>
                 ) : (
@@ -262,18 +262,18 @@ export function ChatComponent({ ask, onAnswered }: ChatThreadProps) {
                         void send(followUp);
                         setFollowUp("");
                     }}
-                    className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 h-11"
+                    className="flex items-center gap-2 rounded-xl bg-on-surface/5 border border-on-surface/10 px-3 h-11"
                 >
                     <input
                         value={followUp}
                         onChange={(e) => setFollowUp(e.target.value)}
                         placeholder='Ask a follow-up, e.g. "show me more like that"'
-                        className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 outline-none min-w-0"
+                        className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/70 outline-none min-w-0"
                     />
                     <button
                         type="submit"
                         disabled={busy || !followUp.trim()}
-                        className="p-1.5 rounded-lg text-indigo-300 hover:bg-indigo-500/20 disabled:opacity-30 cursor-pointer"
+                        className="p-1.5 rounded-lg text-primary hover:bg-black/20 disabled:opacity-30 cursor-pointer"
                     >
                         <Send size={14} />
                     </button>

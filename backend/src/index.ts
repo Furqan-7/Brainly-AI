@@ -19,8 +19,9 @@ import { startWorker } from "./worker";
 
 export const app: Express = express();
 
-// Behind Render/Railway/Fly etc. — needed for correct client IPs in rate limiting and secure cookies
-app.set("trust proxy", 1);
+// Number of proxies in front of the API (e.g. 2 for Vercel's /backend proxy + Render's load balancer),
+// so rate limiting sees the visitor's IP instead of the proxy's.
+app.set("trust proxy", Number(process.env.TRUST_PROXY ?? 1));
 
 const allowedOrigins = (process.env.CLIENT_URL ?? "http://localhost:3000").split(",").map((o) => o.trim());
 

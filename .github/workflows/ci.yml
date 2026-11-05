@@ -52,4 +52,4 @@ jobs:
       - name: Frontend build
         run: pnpm --filter frontend build
         env:
-          NEXT_PUBLIC_API: http://localhost:3001
+          BACKEND_URL: http://localhost:3001

@@ -19,7 +19,7 @@ export default function PublicCollectionPage() {
     }, [slug]);
 
     return (
-        <div className="min-h-screen bg-[#121212] text-on-surface font-body">
+        <div className="min-h-screen bg-background text-on-surface font-body">
             <header className="border-b border-outline-variant/10">
                 <div className="max-w-4xl mx-auto px-4 md:px-10 h-12 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
@@ -71,7 +71,7 @@ export default function PublicCollectionPage() {
                                             {m.tags.length > 0 && (
                                                 <div className="flex flex-wrap gap-1">
                                                     {m.tags.slice(0, 5).map((t) => (
-                                                        <span key={t} className="px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-on-surface-variant/70">#{t}</span>
+                                                        <span key={t} className="px-1.5 py-0.5 rounded bg-on-surface/5 text-[10px] text-on-surface-variant/70">#{t}</span>
                                                     ))}
                                                 </div>
                                             )}
@@ -81,7 +81,7 @@ export default function PublicCollectionPage() {
                                                 href={href}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center justify-center gap-1.5 py-2 border-t border-outline-variant/10 text-xs font-semibold text-primary hover:bg-white/5"
+                                                className="flex items-center justify-center gap-1.5 py-2 border-t border-outline-variant/10 text-xs font-semibold text-primary hover:bg-on-surface/5"
                                             >
                                                 Open <ExternalLink className="w-3 h-3" />
                                             </a>
