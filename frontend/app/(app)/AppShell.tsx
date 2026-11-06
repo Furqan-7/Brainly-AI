@@ -189,7 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     if (loading || !me) {
         return (
-            <div className="grid min-h-screen w-full place-items-center bg-lp-dots">
+            <div className="ui-zoom-75 grid min-h-[calc(100svh/var(--ui-zoom,1))] w-full place-items-center bg-lp-dots">
                 <Loader2 className="size-6 animate-spin text-on-surface-variant" />
             </div>
         );
@@ -197,7 +197,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     return (
         <ShellContext.Provider value={{ me, refreshMe: refresh, collections, reloadCollections, openAddContent }}>
-            <div className="min-h-screen w-full flex-1 bg-lp-dots text-on-surface">
+            <div className="ui-zoom-75 min-h-[calc(100svh/var(--ui-zoom,1))] w-full flex-1 bg-lp-dots text-on-surface">
                 {/* Desktop sidebar */}
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-outline-variant bg-background/95 backdrop-blur md:block">
                     <Sidebar me={me} onAdd={() => openAddContent()} />

@@ -114,3 +114,17 @@ body {
   from { opacity: 0; transform: translateY(-0.25em); filter: blur(3px); }
   to { opacity: 1; transform: none; filter: none; }
 }
+
+/* Page scale on laptops and desktops: the sign-in/sign-up screens render as they would at 80%
+   browser zoom, and the signed-in app at 75%. Phones and tablets keep the full size.
+   --ui-zoom lets full-height layouts (min-h-svh) still fill the screen at the smaller scale. */
+@media (min-width: 1024px) {
+  .ui-zoom-80 {
+    zoom: 0.8;
+    --ui-zoom: 0.8;
+  }
+  .ui-zoom-75 {
+    zoom: 0.75;
+    --ui-zoom: 0.75;
+  }
+}

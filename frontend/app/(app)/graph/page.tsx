@@ -79,6 +79,15 @@ function layout(nodes: GraphNode[], edges: GraphEdge[]): Positioned[] {
     return pts.map(({ vx: _vx, vy: _vy, ...p }) => p);
 }
 
+/**
+ * Pointer position for an element placed with `position: fixed` inside the app shell, which is
+ * scaled with CSS zoom on desktop (--ui-zoom); without this the tooltip drifts from the pointer.
+ */
+function pointerInZoom(e: React.PointerEvent<Element>) {
+    const zoom = parseFloat(getComputedStyle(e.currentTarget).getPropertyValue("--ui-zoom")) || 1;
+    return { x: e.clientX / zoom, y: e.clientY / zoom };
+}
+
 export default function GraphPage() {
     const [data, setData] = useState<{ nodes: GraphNode[]; edges: GraphEdge[] } | null>(null);
     const [hover, setHover] = useState<{ node: Positioned; x: number; y: number } | null>(null);
@@ -195,7 +204,8 @@ export default function GraphPage() {
                             }}
                             onPointerMove={(e) => {
                                 if (!drag.current || !svgRef.current) return;
-                                const scale = box.w / svgRef.current.clientWidth / view.k;
+                                // on-screen width, so dragging keeps pace with the pointer when the app is zoomed
+                                const scale = box.w / svgRef.current.getBoundingClientRect().width / view.k;
                                 setView((v) => ({ ...v, x: v.x + (e.clientX - drag.current!.x) * scale, y: v.y + (e.clientY - drag.current!.y) * scale }));
                                 drag.current = { x: e.clientX, y: e.clientY };
                             }}
@@ -233,8 +243,8 @@ export default function GraphPage() {
                                             {/* invisible larger hit target */}
                                             <circle
                                                 cx={n.x} cy={n.y} r={r + 6} fill="transparent" className="cursor-pointer"
-                                                onPointerEnter={(e) => setHover({ node: n, x: e.clientX, y: e.clientY })}
-                                                onPointerMove={(e) => setHover({ node: n, x: e.clientX, y: e.clientY })}
+                                                onPointerEnter={(e) => setHover({ node: n, ...pointerInZoom(e) })}
+                                                onPointerMove={(e) => setHover({ node: n, ...pointerInZoom(e) })}
                                                 onPointerLeave={() => setHover(null)}
                                                 onClick={(e) => {
                                                     e.stopPropagation();

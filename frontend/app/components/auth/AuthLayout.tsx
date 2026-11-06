@@ -33,7 +33,7 @@ export function AuthLayout({
             initial={{ opacity: 0, x: artSide === "right" ? 40 : -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, ease: EASE }}
-            className="relative hidden min-h-svh items-center justify-center overflow-hidden p-10 lg:flex"
+            className="relative hidden min-h-[calc(100svh/var(--ui-zoom,1))] items-center justify-center overflow-hidden p-10 lg:flex"
         >
             {/* geometry behind the art */}
             <svg aria-hidden="true" className="absolute inset-0 size-full text-on-surface/15" preserveAspectRatio="none">
@@ -57,7 +57,7 @@ export function AuthLayout({
 
             <figure className="relative z-10 m-0 grid w-full max-w-[560px] gap-6">
                 <div className="overflow-hidden rounded-[26px] border border-outline-variant bg-surface-container-lowest p-2 shadow-[0_40px_80px_-50px_rgba(60,35,20,0.6)]">
-                    <Image src={art} alt={artAlt} width={1100} height={1024} priority className="h-auto max-h-[62vh] w-full rounded-[20px] object-cover" />
+                    <Image src={art} alt={artAlt} width={1100} height={1024} priority className="h-auto max-h-[calc(62vh/var(--ui-zoom,1))] w-full rounded-[20px] object-cover" />
                 </div>
                 <figcaption className="grid gap-2 px-2">
                     <span className="font-headline text-[1.7rem] leading-tight tracking-[-0.02em]">{quote.title}</span>
@@ -68,9 +68,9 @@ export function AuthLayout({
     );
 
     return (
-        <div className={`grid min-h-svh w-full flex-1 bg-lp-dots text-on-surface lg:grid-cols-2`}>
+        <div className="ui-zoom-80 grid min-h-[calc(100svh/var(--ui-zoom,1))] w-full flex-1 bg-lp-dots text-on-surface lg:grid-cols-2">
             {artSide === "left" && artPanel}
-            <div className="flex min-h-svh flex-col px-6 py-8 sm:px-10">
+            <div className="flex min-h-[calc(100svh/var(--ui-zoom,1))] flex-col px-6 py-8 sm:px-10">
                 <Logo />
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
