@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, Suspense, useCallback, useContext, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
     Copy,
@@ -15,18 +16,22 @@ import {
     Plus,
     Settings,
     Sparkles,
+    Trash2,
     X,
     type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/app/hooks/useAuth";
-import { getCollections, logout } from "@/app/services/api";
-import type { Collection, Me } from "@/app/types/memory";
+import { deleteConversation, getCollections, getConversations, logout } from "@/app/services/api";
+import type { Collection, ConversationSummary, Me } from "@/app/types/memory";
 import AddContent from "@/app/components/AddContent";
 import { Logo } from "@/app/components/landing/ui";
 import { shine } from "@/app/components/landing/motion";
 
 /** Fired after a memory is added, so pages showing memories can refresh. */
 export const MEMORIES_CHANGED = "brainly:memories-changed";
+
+/** Fired by the sidebar's New chat, so the Ask page clears the current conversation. */
+export const NEW_CHAT = "brainly:new-chat";
 
 type SharedContent = { url?: string; title?: string; text?: string };
 
@@ -36,6 +41,11 @@ interface Shell {
     collections: Collection[];
     reloadCollections: () => void;
     openAddContent: (initial?: SharedContent) => void;
+    /** Past conversations for the sidebar, newest first */
+    chats: ConversationSummary[];
+    reloadChats: () => void;
+    /** Shows the faint collage art at the page's edges (the Ask page turns it on mid-chat) */
+    setDecor: (on: boolean) => void;
 }
 
 const ShellContext = createContext<Shell | null>(null);
@@ -82,6 +92,98 @@ function UsageBar({ used, limit, label }: { used: number; limit: number; label: 
     );
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+
+/** Groups chats into Today / Yesterday / Previous 7 days / Older. */
+function groupChats(chats: ConversationSummary[]): { label: string; items: ConversationSummary[] }[] {
+    const startOfToday = new Date().setHours(0, 0, 0, 0);
+    const groups = [
+        { label: "Today", after: startOfToday },
+        { label: "Yesterday", after: startOfToday - DAY },
+        { label: "Previous 7 days", after: startOfToday - 7 * DAY },
+        { label: "Older", after: -Infinity },
+    ].map((g) => ({ ...g, items: [] as ConversationSummary[] }));
+    for (const chat of chats) {
+        const time = new Date(chat.updatedAt).getTime();
+        groups.find((g) => time >= g.after)!.items.push(chat);
+    }
+    return groups.filter((g) => g.items.length > 0);
+}
+
+/** One row in the Chats list. New chat uses the same row so the two look alike. */
+const chatRow = (active: boolean) =>
+    `group/row flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13.5px] transition-colors ${active
+        ? "bg-surface-container-high font-medium text-on-surface"
+        : "text-on-surface-variant hover:bg-surface-container-high/70 hover:text-on-surface"
+    }`;
+
+const VISIBLE_CHATS = 8;
+
+function ChatsNav({ onNavigate }: { onNavigate?: () => void }) {
+    const { chats, reloadChats } = useShell();
+    const pathname = usePathname();
+    const params = useSearchParams();
+    const router = useRouter();
+    const [showAll, setShowAll] = useState(false);
+    const openId = pathname === "/chat" ? Number(params.get("c")) || null : null;
+    const shown = showAll ? chats : chats.slice(0, VISIBLE_CHATS);
+
+    const newChat = () => {
+        window.dispatchEvent(new Event(NEW_CHAT));
+        onNavigate?.();
+    };
+
+    const remove = async (chat: ConversationSummary) => {
+        if (!window.confirm(`Delete "${chat.title}"?`)) return;
+        await deleteConversation(chat.id).catch(() => undefined);
+        reloadChats();
+        if (openId === chat.id) router.replace("/chat");
+    };
+
+    return (
+        <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+            <span className="px-3 text-[11px] tracking-[0.08em] text-on-surface-variant uppercase">Chats</span>
+            <div className="-mx-1 grid min-h-0 content-start gap-px overflow-y-auto px-1 [scrollbar-width:thin]">
+                <Link href="/chat" onClick={newChat} className={chatRow(false)}>
+                    <Plus className="size-4 flex-none" />
+                    New chat
+                </Link>
+                {groupChats(shown).map((group) => (
+                    <div key={group.label} className="grid gap-px">
+                        <span className="px-3 pt-2.5 pb-1 text-[10.5px] tracking-[0.06em] text-on-surface-variant/70 uppercase">{group.label}</span>
+                        {group.items.map((chat) => (
+                            <div key={chat.id} className="group/item relative">
+                                <Link
+                                    href={`/chat?c=${chat.id}`}
+                                    onClick={onNavigate}
+                                    title={chat.title}
+                                    aria-current={openId === chat.id ? "page" : undefined}
+                                    className={`${chatRow(openId === chat.id)} pr-8`}
+                                >
+                                    <span className="truncate">{chat.title}</span>
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => remove(chat)}
+                                    title="Delete chat"
+                                    className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded text-on-surface-variant opacity-0 transition-opacity group-hover/item:opacity-100 hover:text-error focus-visible:opacity-100"
+                                >
+                                    <Trash2 className="size-3.5" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                ))}
+                {chats.length > VISIBLE_CHATS && (
+                    <button type="button" onClick={() => setShowAll((v) => !v)} className={chatRow(false)}>
+                        {showAll ? "Show fewer" : `See all chats (${chats.length})`}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
 function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; onNavigate?: () => void }) {
     const pathname = usePathname();
     const router = useRouter();
@@ -92,7 +194,7 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
     };
 
     return (
-        <div className="flex h-full flex-col gap-6 px-4 py-6">
+        <div className="flex h-full flex-col gap-5 px-4 py-6">
             <div className="px-2">
                 <Logo />
             </div>
@@ -131,6 +233,10 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
                     );
                 })}
             </nav>
+
+            <Suspense fallback={<div className="flex-1" />}>
+                <ChatsNav onNavigate={onNavigate} />
+            </Suspense>
 
             <div className="mt-auto grid gap-4 border-t border-outline-variant pt-5">
                 {me && (
@@ -171,6 +277,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const [shared, setShared] = useState<SharedContent | undefined>(readSharedContent);
     const [adding, setAdding] = useState(() => Boolean(shared));
     const [drawer, setDrawer] = useState(false);
+    const [chats, setChats] = useState<ConversationSummary[]>([]);
+    const [decor, setDecor] = useState(false);
+
+    const reloadChats = useCallback(() => {
+        getConversations().then(setChats).catch(() => undefined);
+    }, []);
+
+    useEffect(() => {
+        reloadChats();
+    }, [reloadChats]);
 
     const reloadCollections = useCallback(() => {
         getCollections().then(setCollections).catch(() => undefined);
@@ -196,8 +312,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <ShellContext.Provider value={{ me, refreshMe: refresh, collections, reloadCollections, openAddContent }}>
-            <div className="ui-zoom-75 min-h-[calc(100svh/var(--ui-zoom,1))] w-full flex-1 bg-lp-dots text-on-surface">
+        <ShellContext.Provider value={{ me, refreshMe: refresh, collections, reloadCollections, openAddContent, chats, reloadChats, setDecor }}>
+            <div className="ui-zoom-75 isolate min-h-[calc(100svh/var(--ui-zoom,1))] w-full flex-1 bg-lp-dots text-on-surface">
+                {/* Faint collage art at the right edge during a chat (wide screens only, behind everything) */}
+                <AnimatePresence>
+                    {decor && pathname === "/chat" && (
+                        <motion.div
+                            aria-hidden="true"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.8 }}
+                            className="pointer-events-none fixed inset-y-0 right-0 -z-10 hidden w-[300px] overflow-hidden xl:block"
+                        >
+                            <svg className="absolute inset-0 size-full text-on-surface/10">
+                                <line x1="78%" y1="0" x2="78%" y2="100%" stroke="currentColor" strokeDasharray="2 6" />
+                                <circle cx="70%" cy="12%" r="90" fill="none" stroke="currentColor" />
+                            </svg>
+                            <span className="absolute right-[90px] bottom-[300px] size-[110px] rounded-full bg-[#e2694d]/45" />
+                            <Image
+                                src="/art/statue-eye.webp"
+                                alt=""
+                                width={489}
+                                height={792}
+                                className="absolute -right-6 -bottom-8 w-[230px] opacity-80 mix-blend-multiply [mask-image:radial-gradient(ellipse_70%_75%_at_60%_60%,#000_50%,transparent_80%)]"
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* Desktop sidebar */}
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-outline-variant bg-background/95 backdrop-blur md:block">
                     <Sidebar me={me} onAdd={() => openAddContent()} />

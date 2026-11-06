@@ -1,0 +1,414 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { ExternalLink, FileText, Mic, Play, X } from "lucide-react";
+import type { Source } from "../../types/memory";
+import { fileUrl } from "../../services/api";
+import { TYPE_META } from "../memory/typeMeta";
+import { embedUrl, sourceHref } from "./SourceCard";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Accent colour per memory type, used for the small dots and number badges. */
+const TYPE_COLOR: Record<string, string> = {
+    pdf: "#b4472b",
+    youtube: "#e62117",
+    reel: "#c13584",
+    tiktok: "#141414",
+    tweet: "#1d9bf0",
+    url: "#5f6a2e",
+    image: "#d49b2a",
+    note: "#8a7a6a",
+    audio: "#7c5cbf",
+};
+
+const SHORT_LABEL: Record<string, string> = {
+    pdf: "PDF",
+    youtube: "YouTube",
+    reel: "Reel",
+    tiktok: "TikTok",
+    tweet: "Tweet",
+    url: "Link",
+    image: "Image",
+    note: "Note",
+    audio: "Voice note",
+};
+
+const isVideo = (type: string) => type === "youtube" || type === "reel" || type === "tiktok";
+
+export function typeColor(type: string): string {
+    return TYPE_COLOR[type] ?? "#6d6966";
+}
+
+export function domainOf(url: string | null): string | null {
+    if (!url) return null;
+    try {
+        return new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+        return null;
+    }
+}
+
+function youtubeThumb(url: string | null): string | null {
+    const id = url?.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,})/i)?.[1];
+    return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : null;
+}
+
+/** The best picture for a source: its saved thumbnail, the uploaded image, or YouTube's thumbnail. */
+export function sourceThumb(source: Source): string | null {
+    if (source.thumbnail) return source.thumbnail;
+    if (source.type === "image" && source.has_file) return fileUrl(source.memoryId);
+    if (source.type === "youtube") return youtubeThumb(source.source_url);
+    return null;
+}
+
+/** A short name for a source, used on citation chips and viewer tabs. */
+export function sourceLabel(source: Source): string {
+    if (source.type === "url") return source.site_name || domainOf(source.source_url) || "Link";
+    return SHORT_LABEL[source.type] ?? source.type;
+}
+
+/** The detail shown next to the type on a card, e.g. "12:04" for a video or the site for a link. */
+function sourceDetail(source: Source): string | null {
+    switch (source.type) {
+        case "url":
+            return domainOf(source.source_url);
+        case "youtube":
+            return source.duration ? `${source.duration} · plays here` : "plays here";
+        case "reel":
+        case "tiktok":
+            return source.author ? `@${source.author.replace(/^@/, "")}` : "plays here";
+        case "tweet":
+            return source.author ? `@${source.author.replace(/^@/, "")}` : null;
+        default:
+            return source.savedAt ? `saved ${new Date(source.savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : null;
+    }
+}
+
+/** An <img> that disappears (showing the fallback) if the picture fails to load. */
+function Thumb({ src, className, fallback = null }: { src: string | null; className: string; fallback?: React.ReactNode }) {
+    const [failed, setFailed] = useState(false);
+    if (!src || failed) return <>{fallback}</>;
+    // Thumbnails come from many sites, so next/image's allow-list doesn't fit here
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} className={className} />;
+}
+
+function TypeDot({ type }: { type: string }) {
+    return <span className="inline-block size-2 flex-none rounded-[2px]" style={{ backgroundColor: typeColor(type) }} />;
+}
+
+// ─── Citation chip ───────────────────────────────────────────────────────────
+
+/** Inline [n] citation in an answer: a pill with the source's thumbnail and a short name. */
+export function CitationChip({ n, source, active, onClick }: { n: number; source?: Source; active?: boolean; onClick: () => void }) {
+    const color = source ? typeColor(source.type) : "#6d6966";
+    const badge = (
+        <span className="grid size-[18px] flex-none place-items-center rounded-full text-[9.5px] font-bold text-white" style={{ backgroundColor: color }}>
+            {n}
+        </span>
+    );
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            title={source ? `Source ${n}: ${source.title}` : `Source ${n}`}
+            className={`mx-0.5 inline-flex -translate-y-px items-center gap-1.5 rounded-full border py-px pr-2 pl-0.5 align-middle text-[12px] leading-[18px] font-medium transition-colors ${active
+                ? "border-primary bg-tertiary-container text-on-surface"
+                : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-on-surface"
+                }`}
+        >
+            {source ? <Thumb src={sourceThumb(source)} className="size-[18px] flex-none rounded-full object-cover" fallback={badge} /> : badge}
+            <span className="max-w-[14ch] truncate">{source ? sourceLabel(source) : `Source ${n}`}</span>
+        </button>
+    );
+}
+
+// ─── Source card ─────────────────────────────────────────────────────────────
+
+function PlayBadge({ big = false }: { big?: boolean }) {
+    return (
+        <span className={`relative z-10 grid place-items-center rounded-[10px] bg-[#e62117] text-white shadow-lg transition-transform group-hover:scale-110 ${big ? "h-11 w-16" : "h-8 w-11"}`}>
+            <Play className={big ? "size-5" : "size-4"} fill="currentColor" />
+        </span>
+    );
+}
+
+/** The picture area of a card, drawn differently for each kind of memory. */
+function SourceMedia({ source }: { source: Source }) {
+    const thumb = sourceThumb(source);
+
+    if (isVideo(source.type)) {
+        return (
+            <span className="relative grid h-full place-items-center overflow-hidden bg-[#1e1e1e]">
+                <Thumb src={thumb} className="absolute inset-0 size-full object-cover" />
+                <span className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                <PlayBadge />
+                {source.duration && (
+                    <span className="absolute right-2 bottom-2 z-10 rounded bg-black/80 px-1.5 py-0.5 text-[10.5px] font-medium text-white tabular-nums">{source.duration}</span>
+                )}
+            </span>
+        );
+    }
+
+    if (source.type === "pdf") {
+        // A page with the passage Brainly used, highlighted
+        return (
+            <span className="flex h-full justify-center overflow-hidden bg-[#efe7e0] px-3 pt-3">
+                <span className="grid w-[112px] content-start gap-1 overflow-hidden bg-white p-2.5 shadow-[0_10px_24px_-14px_rgba(60,35,20,0.6)]">
+                    <span className="truncate font-headline text-[9px] font-medium">{source.title}</span>
+                    <span className="line-clamp-6 text-[7px] leading-[1.45] text-on-surface-variant">
+                        <mark className="bg-[#f7d774] text-on-surface">{source.snippet.slice(0, 90)}</mark>
+                        {source.snippet.slice(90)}
+                    </span>
+                </span>
+            </span>
+        );
+    }
+
+    if (source.type === "image") {
+        return (
+            <span className="block h-full overflow-hidden bg-surface-container">
+                <Thumb src={thumb} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            </span>
+        );
+    }
+
+    if (source.type === "url") {
+        const domain = domainOf(source.source_url) ?? "link";
+        return (
+            <span className="block h-full overflow-hidden bg-secondary-container">
+                <Thumb
+                    src={thumb}
+                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    fallback={
+                        <span className="grid size-full place-items-center">
+                            <span className="grid justify-items-center gap-1">
+                                <span className="grid size-10 place-items-center rounded-xl bg-surface-container-lowest font-headline text-xl text-secondary">
+                                    {domain.slice(0, 1).toUpperCase()}
+                                </span>
+                                <span className="text-[11px] text-on-secondary-fixed/70">{domain}</span>
+                            </span>
+                        </span>
+                    }
+                />
+            </span>
+        );
+    }
+
+    if (source.type === "audio") {
+        const bars = [8, 16, 24, 14, 28, 18, 10, 22, 30, 16, 12, 24, 18, 8, 14];
+        return (
+            <span className="flex h-full items-center justify-center gap-[3px] bg-[#eee8f6]">
+                <span className="mr-2 grid size-9 place-items-center rounded-full bg-[#7c5cbf] text-white">
+                    <Mic className="size-4" />
+                </span>
+                {bars.map((h, i) => (
+                    <span key={i} className="w-[3px] rounded-full bg-[#7c5cbf]/60" style={{ height: h }} />
+                ))}
+            </span>
+        );
+    }
+
+    // Tweets and notes: show the text itself
+    const tint = source.type === "tweet" ? "bg-[#e8f4fd]" : "bg-[#f6ecc9]";
+    return (
+        <span className={`flex h-full items-start overflow-hidden p-3 ${tint}`}>
+            <span className="line-clamp-5 text-[12px] leading-[1.5] text-on-surface/80">“{source.snippet}”</span>
+        </span>
+    );
+}
+
+/** A source shown as a visual card. Clicking it opens the viewer. */
+export function SourceTile({ source, active = false, onOpen }: { source: Source; active?: boolean; onOpen: () => void }) {
+    const detail = sourceDetail(source);
+    const meta = TYPE_META[source.type as keyof typeof TYPE_META];
+    return (
+        <motion.button
+            type="button"
+            onClick={onOpen}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            title={`Open ${source.title}`}
+            className={`group relative flex flex-col overflow-hidden rounded-[14px] border bg-surface-container-lowest text-left transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-24px_rgba(60,35,20,0.55)] ${active ? "border-primary shadow-[0_0_0_3px_var(--color-tertiary-container)]" : "border-outline-variant hover:border-on-surface/40"
+                }`}
+        >
+            <span className="absolute top-2 left-2 z-20 grid size-5 place-items-center rounded-full bg-primary-container text-[10.5px] font-semibold text-white">
+                {source.n}
+            </span>
+            <span className="block h-[120px]">
+                <SourceMedia source={source} />
+            </span>
+            <span className="grid gap-1 px-3 pt-2.5 pb-3">
+                <span className="flex min-w-0 items-center gap-1.5 text-[10px] tracking-[0.08em] text-on-surface-variant uppercase">
+                    <TypeDot type={source.type} />
+                    <span className="truncate">
+                        {meta?.label ?? source.type}
+                        {detail && <span className="normal-case tracking-normal"> · {detail}</span>}
+                    </span>
+                </span>
+                <span className="line-clamp-2 text-[13px] leading-snug font-semibold [overflow-wrap:anywhere] text-on-surface">{source.title}</span>
+            </span>
+        </motion.button>
+    );
+}
+
+/** Cards for an answer's sources: the cited ones first, the rest behind "Show more". */
+export function SourceShelf({ sources, activeN, onOpen, initial = 4 }: { sources: Source[]; activeN: number | null; onOpen: (n: number) => void; initial?: number }) {
+    const [all, setAll] = useState(false);
+    const shown = all ? sources : sources.slice(0, initial);
+    return (
+        <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                {shown.map((source) => (
+                    <SourceTile key={source.memoryId} source={source} active={activeN === source.n} onOpen={() => onOpen(source.n)} />
+                ))}
+            </div>
+            {sources.length > initial && (
+                <button type="button" onClick={() => setAll((a) => !a)} className="justify-self-start text-[12.5px] text-on-surface-variant underline decoration-outline-variant underline-offset-4 hover:text-on-surface">
+                    {all ? "Show fewer sources" : `Show ${sources.length - initial} more ${sources.length - initial === 1 ? "source" : "sources"}`}
+                </button>
+            )}
+        </div>
+    );
+}
+
+// ─── Viewer ──────────────────────────────────────────────────────────────────
+
+function ViewerBody({ source }: { source: Source }) {
+    const player = embedUrl(source.type, source.source_url);
+    const vertical = source.type === "reel" || source.type === "tiktok";
+    const file = source.has_file ? fileUrl(source.memoryId) : null;
+    const thumb = sourceThumb(source);
+
+    if (isVideo(source.type) && player) {
+        return (
+            <div className="flex justify-center">
+                <iframe
+                    key={player}
+                    src={player}
+                    title={source.title}
+                    className={`w-full rounded-xl border-0 bg-black ${vertical ? "max-w-[320px]" : ""}`}
+                    style={{ aspectRatio: vertical ? "9/16" : "16/9" }}
+                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    allowFullScreen
+                />
+            </div>
+        );
+    }
+    if (source.type === "pdf" && file) {
+        return <iframe key={file} src={`${file}#view=FitH`} title={source.title} className="min-h-[420px] w-full flex-1 rounded-lg border border-outline-variant bg-white" />;
+    }
+    if (source.type === "audio" && file) {
+        return <audio key={file} src={file} controls className="w-full" />;
+    }
+    if (thumb) {
+        return (
+            <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container">
+                <Thumb src={thumb} className="max-h-[480px] w-full object-contain" />
+            </div>
+        );
+    }
+    return null;
+}
+
+/**
+ * Side panel (full screen on phones) that opens a source: plays videos, shows the PDF or
+ * image, and the passage Brainly used. Tabs switch between the answer's other sources.
+ */
+export function SourceViewer({ sources, activeN, onSelect, onClose }: { sources: Source[]; activeN: number | null; onSelect: (n: number) => void; onClose: () => void }) {
+    const source = sources.find((s) => s.n === activeN) ?? null;
+
+    useEffect(() => {
+        if (!source) return;
+        const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [source, onClose]);
+
+    const href = source ? sourceHref(source) : null;
+    const detail = source ? sourceDetail(source) : null;
+
+    return (
+        <AnimatePresence>
+            {source && (
+                <motion.aside
+                    key="viewer"
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "spring", stiffness: 320, damping: 36 }}
+                    aria-label="Source viewer"
+                    className="fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-outline-variant bg-surface-container-low shadow-[-30px_0_60px_-40px_rgba(60,35,20,0.5)] md:w-[480px]"
+                >
+                    <header className="flex items-start justify-between gap-3 border-b border-outline-variant bg-surface-container-lowest px-5 py-4">
+                        <div className="grid min-w-0 gap-1">
+                            <span className="flex items-center gap-1.5 text-[10.5px] tracking-[0.08em] text-on-surface-variant uppercase">
+                                <TypeDot type={source.type} />
+                                Source {source.n} · {TYPE_META[source.type as keyof typeof TYPE_META]?.label ?? source.type}
+                                {detail && <span className="normal-case tracking-normal">· {detail}</span>}
+                            </span>
+                            <h2 className="truncate text-[15px] font-semibold">{source.title}</h2>
+                        </div>
+                        <button type="button" onClick={onClose} title="Close" className="grid size-8 flex-none place-items-center border border-outline-variant bg-surface-container-lowest hover:border-on-surface">
+                            <X className="size-4" />
+                        </button>
+                    </header>
+
+                    {sources.length > 1 && (
+                        <div className="flex gap-1.5 overflow-x-auto border-b border-outline-variant px-5 py-3 [scrollbar-width:none]">
+                            {sources.map((s) => (
+                                <button
+                                    key={s.memoryId}
+                                    type="button"
+                                    onClick={() => onSelect(s.n)}
+                                    className={`flex flex-none items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors ${s.n === source.n
+                                        ? "border-primary-container bg-primary-container text-white"
+                                        : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-on-surface"
+                                        }`}
+                                >
+                                    <span className={`grid size-4 place-items-center rounded-full text-[9.5px] font-semibold ${s.n === source.n ? "bg-white/25" : "bg-on-surface/10"}`}>{s.n}</span>
+                                    <span className="max-w-[12ch] truncate">{sourceLabel(s)}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+                        <ViewerBody source={source} />
+                        {source.snippet && (
+                            <div className="grid gap-1.5 rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+                                <span className="text-[10.5px] tracking-[0.08em] text-on-surface-variant uppercase">
+                                    {source.type === "pdf" ? "Passage Brainly used" : "From your memory"}
+                                </span>
+                                <p className="text-[13.5px] leading-[1.65] text-on-surface">
+                                    {source.type === "pdf" ? <mark className="bg-[#f7d774]/70 text-on-surface">{source.snippet}</mark> : source.snippet}
+                                </p>
+                            </div>
+                        )}
+                        {!href && !source.snippet && (
+                            <p className="flex items-center gap-2 text-sm text-on-surface-variant">
+                                <FileText className="size-4" /> Nothing to preview for this memory.
+                            </p>
+                        )}
+                    </div>
+
+                    {href && (
+                        <footer className="flex gap-2 border-t border-outline-variant bg-surface-container-lowest px-5 py-3.5">
+                            <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 bg-primary-container px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-black"
+                            >
+                                <ExternalLink className="size-3.5" />
+                                {source.has_file && !source.source_url ? "Open file" : "Open original"}
+                            </a>
+                        </footer>
+                    )}
+                </motion.aside>
+            )}
+        </AnimatePresence>
+    );
+}

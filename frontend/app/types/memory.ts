@@ -67,6 +67,14 @@ export interface Source {
     thumbnail: string | null;
     snippet: string;
     score: number;
+    /** Website name for links */
+    site_name?: string | null;
+    /** Channel or account for videos and reels */
+    author?: string | null;
+    /** Video length, e.g. "12:04" */
+    duration?: string | null;
+    /** When the memory was saved (ISO date) */
+    savedAt?: string | null;
 }
 
 export interface SearchFilters {
