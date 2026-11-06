@@ -129,6 +129,7 @@ The web app proxies every API request through its own domain at `/backend`, so t
 
 - **Frontend (Vercel):** set `BACKEND_URL` to your API's URL (e.g. `https://brainly-api.onrender.com`).
 - **Backend:** set `CLIENT_URL` to the web app's URL, `COOKIE_SAMESITE=lax`, and `TRUST_PROXY=2`.
+- **Backend build command (Render):** `pnpm install --frozen-lockfile && pnpm build`. `pnpm build` applies pending database migrations when `DATABASE_URL` is set, so new tables reach production with each deploy.
 - **Google sign-in:** set `GOOGLE_CALLBACK_URL` to `https://<your-web-app>/backend/auth/google/callback` and add that same URL to the authorized redirect URIs in Google Cloud Console.
 
 ### Tests
