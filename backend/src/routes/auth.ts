@@ -5,7 +5,7 @@ import { prisma } from "db";
 import passport from "../config/passport";
 import { signinSchema, signupSchema } from "../types";
 import { MiddleWhere } from "../MiddleWhere";
-import { clearAuthCookie, setAuthCookie, signToken } from "../lib/auth";
+import { clearAuthCookie, clientUrl, setAuthCookie, signHandoffToken, signToken, verifyHandoffToken } from "../lib/auth";
 import { getUsage } from "../lib/plans";
 import { log } from "../lib/logger";
 
@@ -16,10 +16,22 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeade
 
 function oauthCallback(req: Request, res: Response) {
     const user = req.user as any;
-    setAuthCookie(res, signToken(user.id, user.username));
-    // No token in the URL any more — it lives in an httpOnly cookie
-    res.redirect(`${process.env.CLIENT_URL}/chat`);
+    // The callback may run on the API's own domain, where a cookie never reaches the web app
+    // (and /chat would bounce the user back to the landing page). Hand the sign-in over to
+    // the web app instead: it trades this short-lived token for a session cookie on its own
+    // domain through the /backend proxy.
+    const handoff = encodeURIComponent(signHandoffToken(user.id, user.username));
+    res.redirect(`${clientUrl()}/backend/auth/complete?token=${handoff}`);
 }
+
+authRouter.get("/auth/complete", (req, res) => {
+    const token = typeof req.query.token === "string" ? req.query.token : "";
+    const user = verifyHandoffToken(token);
+    if (!user) return res.redirect(`${clientUrl()}/auth/signin?error=oauth`);
+    setAuthCookie(req, res, signToken(user.userId, user.username));
+    // Relative, so the browser stays on whichever web app address it came through
+    return res.redirect("/chat");
+});
 
 if (process.env.GOOGLE_CLIENT_ID) {
     authRouter.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
@@ -47,7 +59,7 @@ authRouter.post("/signup", authLimiter, async (req, res) => {
             data: { username, email, password: await bcrypt.hash(password, 10) },
         });
 
-        setAuthCookie(res, signToken(user.id, user.username));
+        setAuthCookie(req, res, signToken(user.id, user.username));
         return res.status(200).json({ message: "User created successfully", username: user.username, id: user.id, success: true });
     } catch (e) {
         log("error", "signup failed", { error: e instanceof Error ? e.message : String(e) });
@@ -72,7 +84,7 @@ authRouter.post("/signin", authLimiter, async (req, res) => {
             return res.status(402).json({ message: "Incorrect Password", success: false });
         }
 
-        setAuthCookie(res, signToken(user.id, user.username));
+        setAuthCookie(req, res, signToken(user.id, user.username));
         return res.status(200).json({ message: "User logged in successfully", success: true, username: user.username, id: user.id });
     } catch (e) {
         log("error", "signin failed", { error: e instanceof Error ? e.message : String(e) });
@@ -81,7 +93,7 @@ authRouter.post("/signin", authLimiter, async (req, res) => {
 });
 
 authRouter.post("/logout", (req, res) => {
-    clearAuthCookie(res);
+    clearAuthCookie(req, res);
     return res.status(200).json({ success: true });
 });
 
@@ -92,7 +104,7 @@ authRouter.get("/api/me", MiddleWhere, async (req, res) => {
         select: { id: true, username: true, email: true, isPremium: true, createdAt: true },
     });
     if (!user) {
-        clearAuthCookie(res);
+        clearAuthCookie(req, res);
         return res.status(401).json({ message: "Not signed in", success: false });
     }
     const { plan, memoryCount, chatsToday } = await getUsage(userId);
