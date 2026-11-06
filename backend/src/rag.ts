@@ -18,6 +18,14 @@ export interface Source {
     thumbnail: string | null;
     snippet: string;
     score: number;
+    /** Website name for links (from the page's metadata) */
+    site_name: string | null;
+    /** Channel or account for videos and reels */
+    author: string | null;
+    /** Video length, e.g. "12:04" */
+    duration: string | null;
+    /** When the memory was saved (ISO date) */
+    savedAt: string | null;
 }
 
 /**
@@ -42,17 +50,25 @@ Latest message: ${question}`,
 }
 
 export function toSources(chunks: RetrievedChunk[]): Source[] {
-    return chunks.map((chunk, i) => ({
-        n: i + 1,
-        memoryId: chunk.memoryId,
-        title: chunk.title,
-        type: chunk.type,
-        source_url: chunk.source_url,
-        has_file: Boolean(chunk.file_path),
-        thumbnail: chunk.memory_metadata?.thumbnail_url ?? null,
-        snippet: (chunk.summary || chunk.content).slice(0, 220),
-        score: Number((chunk.rerank_score ?? chunk.combined_score).toFixed(4)),
-    }));
+    return chunks.map((chunk, i) => {
+        const meta = chunk.memory_metadata ?? {};
+        const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
+        return {
+            n: i + 1,
+            memoryId: chunk.memoryId,
+            title: chunk.title,
+            type: chunk.type,
+            source_url: chunk.source_url,
+            has_file: Boolean(chunk.file_path),
+            thumbnail: text(meta.thumbnail_url),
+            snippet: (chunk.summary || chunk.content).slice(0, 220),
+            score: Number((chunk.rerank_score ?? chunk.combined_score).toFixed(4)),
+            site_name: text(meta.site_name),
+            author: text(meta.author),
+            duration: text(meta.duration),
+            savedAt: chunk.createdAt ? new Date(chunk.createdAt).toISOString() : null,
+        };
+    });
 }
 
 /**

@@ -107,7 +107,9 @@ describe.skipIf(!TEST_DB)("integration (real Postgres)", () => {
             type: "reel",
             source_url: "https://www.instagram.com/reel/C8abc_12/",
             thumbnail: "https://cdn.example.com/thumb.jpg",
+            author: "code.daily",
         });
+        expect(sources[0].savedAt).toEqual(expect.any(String));
     });
 
     it("plain search endpoint ranks the reel first for 'project ideas'", async () => {
