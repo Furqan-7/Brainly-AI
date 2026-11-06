@@ -7,7 +7,7 @@ import type { Me } from "../types/memory";
 
 /**
  * Loads the signed-in user from the session cookie. With `required`, redirects to the
- * landing page when there is no valid session.
+ * sign-in page when there is no valid session.
  */
 export function useAuth({ required = true }: { required?: boolean } = {}) {
     const router = useRouter();
@@ -19,7 +19,7 @@ export function useAuth({ required = true }: { required?: boolean } = {}) {
             setMe(await getMe());
         } catch (err) {
             setMe(null);
-            if (required && isAuthError(err)) router.replace("/");
+            if (required && isAuthError(err)) router.replace("/auth/signin");
         } finally {
             setLoading(false);
         }
@@ -32,7 +32,7 @@ export function useAuth({ required = true }: { required?: boolean } = {}) {
             .catch((err) => {
                 if (cancelled) return;
                 setMe(null);
-                if (required && isAuthError(err)) router.replace("/");
+                if (required && isAuthError(err)) router.replace("/auth/signin");
             })
             .finally(() => !cancelled && setLoading(false));
         return () => {
