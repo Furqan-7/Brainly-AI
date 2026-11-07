@@ -60,7 +60,7 @@ function WithCitations({ text }: { text: string }) {
             {text.split(/(\[\d\])/g).map((part, i) => {
                 const n = part.match(/^\[(\d)\]$/)?.[1];
                 return n ? (
-                    <span key={i} className="mx-0.5 inline-flex h-[1.35em] min-w-[1.35em] items-center justify-center bg-lp-signal px-[3px] align-[0.15em] text-[11px] text-white">
+                    <span key={i} className="mx-0.5 inline-flex h-[1.35em] min-w-[1.35em] items-center justify-center rounded-[5px] bg-lp-signal px-[3px] align-[0.15em] text-[11px] text-white">
                         {n}
                     </span>
                 ) : (
@@ -74,7 +74,7 @@ function WithCitations({ text }: { text: string }) {
 function SourceRow({ source, n }: { source: DemoSource; n: number }) {
     const [playing, setPlaying] = useState(false);
     return (
-        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-lp-paper px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--color-lp-rule)] min-[560px]:grid-cols-[auto_auto_1fr_auto]">
+        <div className="rounded-xl grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-lp-paper px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--color-lp-rule)] min-[560px]:grid-cols-[auto_auto_1fr_auto]">
             <span className="grid size-5 place-items-center bg-lp-button text-[11px] text-white">{n}</span>
             <span aria-hidden="true" className="hidden size-[38px] bg-lp-chip bg-[radial-gradient(rgb(20_20_20/0.45)_1px,transparent_1.4px)] bg-[length:5px_5px] min-[560px]:block" />
             <span className="min-w-0">
@@ -85,7 +85,7 @@ function SourceRow({ source, n }: { source: DemoSource; n: number }) {
                 <button
                     type="button"
                     onClick={() => setPlaying((p) => !p)}
-                    className="group/btn relative cursor-pointer overflow-hidden bg-lp-button px-[11px] py-2 text-[12.5px] leading-none font-medium text-white transition-transform duration-200 hover:bg-black active:scale-95"
+                    className="group/btn relative cursor-pointer disabled:cursor-not-allowed overflow-hidden bg-lp-button px-[11px] py-2 text-[12.5px] leading-none font-medium text-white transition-transform duration-200 hover:bg-black active:scale-95"
                 >
                     {playing ? "Hide" : "Watch"}
                 </button>
@@ -150,7 +150,7 @@ export function AskDemo() {
                                     type="button"
                                     aria-pressed={i === active}
                                     onClick={() => pick(i)}
-                                    className={`cursor-pointer px-[17px] py-[15px] text-left text-[15.5px] leading-[1.45] transition-all duration-300 hover:translate-x-1 ${i === active
+                                    className={`rounded-xl cursor-pointer disabled:cursor-not-allowed px-[17px] py-[15px] text-left text-[15.5px] leading-[1.45] transition-all duration-300 hover:translate-x-1 ${i === active
                                         ? "bg-lp-card text-lp-ink shadow-[inset_0_0_0_1px_var(--color-lp-ink)]"
                                         : "text-lp-muted shadow-[inset_0_0_0_1px_var(--color-lp-line)] hover:bg-lp-chip/50"
                                         }`}
@@ -163,7 +163,7 @@ export function AskDemo() {
                     </Reveal>
 
                     <Reveal delay={0.15} className="min-w-0">
-                        <div className="min-w-0 border border-lp-line bg-lp-card shadow-[0_30px_60px_-42px_rgba(60,35,20,0.45)]" aria-live="polite">
+                        <div className="overflow-hidden rounded-2xl min-w-0 border border-lp-line bg-lp-card shadow-[0_30px_60px_-42px_rgba(60,35,20,0.45)]" aria-live="polite">
                             <div className="flex justify-between border-b border-lp-rule px-[15px] py-[11px] text-[11.5px] tracking-[0.06em] text-lp-muted uppercase">
                                 <span>Brainly · Ask AI</span>
                                 <span>Example</span>

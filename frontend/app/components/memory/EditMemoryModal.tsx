@@ -44,7 +44,7 @@ export function EditMemoryModal({ memory, onClose, onSaved }: { memory: Memory; 
             >
                 <div className="flex items-center justify-between">
                     <h2 className="text-base font-semibold text-on-surface">Edit memory</h2>
-                    <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:text-on-surface cursor-pointer">
+                    <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:text-on-surface cursor-pointer disabled:cursor-not-allowed">
                         <X size={15} />
                     </button>
                 </div>
@@ -81,13 +81,13 @@ export function EditMemoryModal({ memory, onClose, onSaved }: { memory: Memory; 
                 {error && <p className="text-xs text-error">{error}</p>}
 
                 <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-on-surface-variant hover:text-on-surface hover:bg-on-surface/6 cursor-pointer">
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-on-surface-variant hover:text-on-surface hover:bg-on-surface/6 cursor-pointer disabled:cursor-not-allowed">
                         Cancel
                     </button>
                     <button
                         onClick={save}
                         disabled={saving || !title.trim()}
-                        className="px-5 py-2 rounded-lg text-sm font-semibold bg-primary-container hover:bg-black text-white disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+                        className="px-5 py-2 rounded-lg text-sm font-semibold bg-primary-container hover:bg-black text-white disabled:opacity-60 flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                     >
                         {saving && <Loader2 size={14} className="animate-spin" />}
                         Save

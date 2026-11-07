@@ -23,7 +23,7 @@ export function AudioCard({
         <div className="bg-surface-container-low border border-outline-variant/10 rounded-xl p-4 hover:border-violet-400/40 transition-all group relative flex flex-col gap-3">
             <button
                 onClick={handleDelete}
-                className="absolute top-2 right-2 z-20 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                className="absolute top-2 right-2 z-20 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                 title="Delete memory"
             >
                 <Trash2 className="w-3.5 h-3.5" />

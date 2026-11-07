@@ -146,7 +146,7 @@ export default function GraphPage() {
                     </PageHeader>
                     <button
                         onClick={() => setListView((l) => !l)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-on-surface/5 border border-on-surface/10 text-on-surface-variant hover:text-on-surface cursor-pointer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-on-surface/5 border border-on-surface/10 text-on-surface-variant hover:text-on-surface cursor-pointer disabled:cursor-not-allowed"
                     >
                         {listView ? <Network className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
                         {listView ? "Graph view" : "List view"}
@@ -242,7 +242,7 @@ export default function GraphPage() {
                                         <g key={n.id} opacity={dim ? 0.25 : 1}>
                                             {/* invisible larger hit target */}
                                             <circle
-                                                cx={n.x} cy={n.y} r={r + 6} fill="transparent" className="cursor-pointer"
+                                                cx={n.x} cy={n.y} r={r + 6} fill="transparent" className="cursor-pointer disabled:cursor-not-allowed"
                                                 onPointerEnter={(e) => setHover({ node: n, ...pointerInZoom(e) })}
                                                 onPointerMove={(e) => setHover({ node: n, ...pointerInZoom(e) })}
                                                 onPointerLeave={() => setHover(null)}
@@ -285,7 +285,7 @@ export default function GraphPage() {
                                         <p className="text-sm font-bold">{selectedNode.title}</p>
                                         <p className="text-[11px] text-on-surface-variant/60">{familyOf(selectedNode.type).label}</p>
                                     </div>
-                                    <button onClick={() => setSelected(null)} className="text-on-surface-variant/50 hover:text-on-surface cursor-pointer">
+                                    <button onClick={() => setSelected(null)} className="text-on-surface-variant/50 hover:text-on-surface cursor-pointer disabled:cursor-not-allowed">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -307,7 +307,7 @@ export default function GraphPage() {
                                                 <button
                                                     key={nb.id}
                                                     onClick={() => setSelected(nb.id)}
-                                                    className="w-full flex items-center gap-2 py-1 text-left text-xs text-on-surface-variant hover:text-on-surface cursor-pointer"
+                                                    className="w-full flex items-center gap-2 py-1 text-left text-xs text-on-surface-variant hover:text-on-surface cursor-pointer disabled:cursor-not-allowed"
                                                 >
                                                     <span className="w-2 h-2 rounded-full shrink-0" style={{ background: familyOf(n.type).color }} />
                                                     <span className="truncate flex-1">{n.title}</span>

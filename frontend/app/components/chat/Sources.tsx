@@ -351,7 +351,7 @@ export function SourceViewer({ sources, activeN, onSelect, onClose }: { sources:
                             </span>
                             <h2 className="truncate text-[15px] font-semibold">{source.title}</h2>
                         </div>
-                        <button type="button" onClick={onClose} title="Close" className="grid size-8 flex-none place-items-center border border-outline-variant bg-surface-container-lowest hover:border-on-surface">
+                        <button type="button" onClick={onClose} title="Close" className="rounded-lg grid size-8 flex-none place-items-center border border-outline-variant bg-surface-container-lowest hover:border-on-surface">
                             <X className="size-4" />
                         </button>
                     </header>
@@ -400,7 +400,7 @@ export function SourceViewer({ sources, activeN, onSelect, onClose }: { sources:
                                 href={href}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 bg-primary-container px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-black"
+                                className="rounded-xl flex items-center gap-2 bg-primary-container px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-black"
                             >
                                 <ExternalLink className="size-3.5" />
                                 {source.has_file && !source.source_url ? "Open file" : "Open original"}

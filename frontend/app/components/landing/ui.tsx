@@ -4,7 +4,7 @@ import { Reveal } from "./motion";
 /** Small grey uppercase label, like "HOW IT WORKS". */
 export function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
-        <span className={`inline-block bg-lp-chip px-2.5 py-2 text-[13px] uppercase leading-none tracking-[0.04em] text-lp-ink ${className}`}>
+        <span className={`inline-block rounded-md bg-lp-chip px-2.5 py-2 text-[13px] uppercase leading-none tracking-[0.04em] text-lp-ink ${className}`}>
             {children}
         </span>
     );

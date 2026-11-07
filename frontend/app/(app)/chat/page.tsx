@@ -38,7 +38,7 @@ function buildFilters(types: MemoryType[], rangeDays: number): SearchFilters {
 const newNonce = () => Date.now();
 
 const chip = (on: boolean) =>
-    `flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] transition-colors cursor-pointer ${on
+    `flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] transition-colors cursor-pointer disabled:cursor-not-allowed ${on
         ? "bg-primary-container text-white"
         : "text-on-surface-variant shadow-[inset_0_0_0_1px_var(--color-outline-variant)] hover:text-on-surface hover:bg-surface-container-high"
     }`;
@@ -53,7 +53,7 @@ function ModeSwitch({ mode, setMode, compact = false }: { mode: Mode; setMode: (
                     onClick={() => setMode(m)}
                     aria-pressed={mode === m}
                     title={m === "ask" ? "A written answer from your memories (uses a daily AI answer)" : "Matching memories, instantly (free)"}
-                    className={`flex items-center gap-1.5 transition-colors cursor-pointer ${compact ? "px-2.5 py-1.5 text-[12.5px]" : "px-3.5 py-2 text-[13.5px]"} ${mode === m ? "bg-primary-container text-white" : "text-on-surface-variant hover:text-on-surface"}`}
+                    className={`flex items-center gap-1.5 transition-colors cursor-pointer disabled:cursor-not-allowed ${compact ? "px-2.5 py-1.5 text-[12.5px]" : "px-3.5 py-2 text-[13.5px]"} ${mode === m ? "bg-primary-container text-white" : "text-on-surface-variant hover:text-on-surface"}`}
                 >
                     {m === "ask" ? <Sparkles className="size-3.5" /> : <Search className="size-3.5" />}
                     {/* icons only in the docked box on phones, so the input keeps its room */}
@@ -66,7 +66,7 @@ function ModeSwitch({ mode, setMode, compact = false }: { mode: Mode; setMode: (
 
 function FiltersPanel({ types, toggleType, rangeDays, setRangeDays }: { types: MemoryType[]; toggleType: (t: MemoryType) => void; rangeDays: number; setRangeDays: (d: number) => void }) {
     return (
-        <div className="grid gap-3 border border-outline-variant bg-surface-container-lowest p-4">
+        <div className="rounded-2xl grid gap-3 border border-outline-variant bg-surface-container-lowest p-4">
             <div className="flex flex-wrap gap-1.5">
                 {ALL_TYPES.map((type) => {
                     const { plural, icon: Icon } = TYPE_META[type];

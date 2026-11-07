@@ -32,14 +32,14 @@ export function Pricing() {
         <section id="pricing" className="scroll-mt-6 border-t border-lp-rule py-20 min-[560px]:py-[120px]">
             <Wrap>
                 <SectionHead center eyebrow="Pricing" title="Start free. Upgrade when your brain fills up.">
-                    <div className="inline-flex shadow-[inset_0_0_0_1px_var(--color-lp-line)]" role="group" aria-label="Billing period">
+                    <div className="overflow-hidden rounded-xl inline-flex shadow-[inset_0_0_0_1px_var(--color-lp-line)]" role="group" aria-label="Billing period">
                         {(["month", "year"] as const).map((b) => (
                             <button
                                 key={b}
                                 type="button"
                                 aria-pressed={billing === b}
                                 onClick={() => setBilling(b)}
-                                className={`cursor-pointer px-3.5 py-2.5 text-[13px] leading-none transition-colors duration-300 ${billing === b ? "bg-lp-button text-white" : "text-lp-muted hover:text-lp-ink"}`}
+                                className={`cursor-pointer disabled:cursor-not-allowed px-3.5 py-2.5 text-[13px] leading-none transition-colors duration-300 ${billing === b ? "bg-lp-button text-white" : "text-lp-muted hover:text-lp-ink"}`}
                             >
                                 {b === "month" ? "Monthly" : "Yearly · save 20%"}
                             </button>
@@ -51,7 +51,7 @@ export function Pricing() {
                     {PLANS.map((plan) => (
                         <SpotlightCard
                             key={plan.name}
-                            className={`grid content-start gap-[18px] border bg-lp-card p-[30px] transition-shadow duration-300 hover:shadow-[0_30px_60px_-40px_rgba(60,35,20,0.5)] ${plan.pro ? "border-lp-ink" : "border-lp-line"}`}
+                            className={`rounded-2xl grid content-start gap-[18px] border bg-lp-card p-[30px] transition-shadow duration-300 hover:shadow-[0_30px_60px_-40px_rgba(60,35,20,0.5)] ${plan.pro ? "border-lp-ink" : "border-lp-line"}`}
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <h3 className="font-lp-display text-[2.1rem] leading-[1.04] font-normal tracking-[-0.025em]">{plan.name}</h3>
@@ -83,7 +83,7 @@ export function Pricing() {
                             ) : (
                                 <Link
                                     href="/auth/signup"
-                                    className="relative isolate inline-flex items-center justify-center overflow-hidden px-[22px] py-[15px] text-base leading-none font-medium text-lp-ink shadow-[inset_0_0_0_1px_var(--color-lp-line)] before:absolute before:inset-0 before:-z-10 before:origin-bottom before:scale-y-0 before:bg-lp-chip before:transition-transform before:duration-400 before:ease-out hover:before:scale-y-100"
+                                    className="rounded-xl relative isolate inline-flex items-center justify-center overflow-hidden px-[22px] py-[15px] text-base leading-none font-medium text-lp-ink shadow-[inset_0_0_0_1px_var(--color-lp-line)] before:absolute before:inset-0 before:-z-10 before:origin-bottom before:scale-y-0 before:bg-lp-chip before:transition-transform before:duration-400 before:ease-out hover:before:scale-y-100"
                                 >
                                     {plan.cta}
                                 </Link>

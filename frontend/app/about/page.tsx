@@ -96,7 +96,7 @@ export default function AboutPage() {
                         <button onClick={()=>{router.push("/auth/signin")}} className="text-xs font-medium text-[#E5E2E1]/60 hover:text-[#E5E2E1] transition-colors">
                             Sign In
                         </button>
-                        <button onClick={()=>{router.push("/auth/signup")}} className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg text-xs font-medium hover:brightness-110 transition-all cursor-pointer">
+                        <button onClick={()=>{router.push("/auth/signup")}} className="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg text-xs font-medium hover:brightness-110 transition-all cursor-pointer disabled:cursor-not-allowed">
                             Get Started
                         </button>
                     </div>
@@ -342,7 +342,7 @@ export default function AboutPage() {
                                 links and documents into an intelligent second brain.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                                <button onClick={()=>{router.push("/auth/signup")}} className="bg-primary-container text-on-primary-container px-7 py-3 rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                <button onClick={()=>{router.push("/auth/signup")}} className="bg-primary-container text-on-primary-container px-7 py-3 rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
                                     Get Started for Free
                                     <ArrowRight className="w-4 h-4" />
                                 </button>

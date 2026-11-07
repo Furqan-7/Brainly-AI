@@ -211,14 +211,14 @@ export function CtaPair({
             {/* secondary: a fill sweeps in from the left */}
             <a
                 href={secondary.href}
-                className={`${button} relative isolate overflow-hidden border border-r-0 border-dashed border-lp-line bg-lp-field text-lp-ink before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:bg-lp-chip before:transition-transform before:duration-500 before:ease-out hover:before:scale-x-100`}
+                className={`${button} relative isolate overflow-hidden rounded-l-xl border border-r-0 border-dashed border-lp-line bg-lp-field text-lp-ink before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:bg-lp-chip before:transition-transform before:duration-500 before:ease-out hover:before:scale-x-100`}
             >
                 {secondary.label}
             </a>
 
             {/* primary: magnetic, with a light sweep and a sliding arrow */}
             <Magnetic strength={0.18}>
-                <Link href={primary.href} className={`${button} ${shine} bg-lp-button text-white transition-colors hover:bg-black`}>
+                <Link href={primary.href} className={`${button} ${shine} rounded-r-xl bg-lp-button text-white transition-colors hover:bg-black`}>
                     {primary.label}
                     <ArrowChip />
                 </Link>
