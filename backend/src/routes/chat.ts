@@ -5,6 +5,7 @@ import { ChatSchema, parseTypes, searchSchema } from "../types";
 import { consumeChat } from "../lib/plans";
 import { groq, ANSWER_MODEL, streamAnswer } from "../lib/llm";
 import { log } from "../lib/logger";
+import { displayTitle, fallbackTitle, generateTitle } from "../lib/chatTitle";
 import { stripThinkingTags } from "../stripThinkingTags";
 import { applyVectorCutoff, dedupeByMemory } from "../Retrieval";
 import { buildAnswerMessages, ChatTurn, retrieveContext, searchWithFallback, standaloneQuestion, toSources } from "../rag";
@@ -21,13 +22,26 @@ async function loadConversation(userId: number, conversationId: number | undefin
         });
         if (existing) {
             const history: ChatTurn[] = existing.messages.reverse().map((m) => ({ role: m.role as ChatTurn["role"], content: m.content }));
-            return { conversation: existing, history };
+            return { conversation: existing, history, titling: null };
         }
     }
+    // A short title right away; the AI title (started here, in parallel with the answer) replaces it
     const conversation = await prisma.conversation.create({
-        data: { userId, title: question.slice(0, 80) },
+        data: { userId, title: fallbackTitle(question) },
     });
-    return { conversation, history: [] as ChatTurn[] };
+    return { conversation, history: [] as ChatTurn[], titling: nameChat(conversation.id, question, conversation.title) };
+}
+
+/** Gives a new chat a short AI title (2–5 words) and saves it. Never throws. */
+async function nameChat(conversationId: number, question: string, current: string): Promise<string> {
+    try {
+        const title = await generateTitle(question);
+        if (title !== current) await prisma.conversation.update({ where: { id: conversationId }, data: { title } });
+        return title;
+    } catch (error) {
+        log("warn", "chat title failed", { error: String(error) });
+        return current;
+    }
 }
 
 async function saveTurn(conversationId: number, question: string, answer: string, sources: unknown) {
@@ -60,7 +74,7 @@ chatRouter.post("/api/chat/stream", MiddleWhere, async (req, res) => {
 
     try {
         const start = Date.now();
-        const { conversation, history } = await loadConversation(userId, conversationId, question);
+        const { conversation, history, titling } = await loadConversation(userId, conversationId, question);
         const searchQuestion = await standaloneQuestion(question, history);
         const { chunks, sources, filters: applied } = await retrieveContext(userId, searchQuestion, filters as any);
 
@@ -86,9 +100,10 @@ chatRouter.post("/api/chat/stream", MiddleWhere, async (req, res) => {
 
         answer = stripThinkingTags(answer).trim() || NOT_FOUND_ANSWER;
         const messageId = await saveTurn(conversation.id, question, answer, sources);
+        const title = titling ? await titling : undefined;
         log("info", "chat answered", { userId, ms: Date.now() - start, sources: sources.length, streamed: true });
         if (!aborted) {
-            sendEvent(res, "done", { messageId, answer });
+            sendEvent(res, "done", { messageId, answer, title });
             res.end();
         }
     } catch (error) {
@@ -112,7 +127,7 @@ chatRouter.post("/api/chat", MiddleWhere, async (req, res) => {
     if (!quota.ok) return res.status(429).json({ message: quota.message, success: false, upgrade: true });
 
     try {
-        const { conversation, history } = await loadConversation(userId, conversationId, question);
+        const { conversation, history, titling } = await loadConversation(userId, conversationId, question);
         const searchQuestion = await standaloneQuestion(question, history);
         const { chunks, sources } = await retrieveContext(userId, searchQuestion, filters as any);
 
@@ -128,7 +143,8 @@ chatRouter.post("/api/chat", MiddleWhere, async (req, res) => {
             answer = stripThinkingTags(completion.choices[0]?.message?.content ?? "").trim() || NOT_FOUND_ANSWER;
         }
         await saveTurn(conversation.id, question, answer, sources);
-        return res.status(200).json({ message: "Chat response generated", success: true, answer, sources, conversationId: conversation.id });
+        const title = titling ? await titling : conversation.title;
+        return res.status(200).json({ message: "Chat response generated", success: true, answer, sources, conversationId: conversation.id, title });
     } catch (error) {
         log("error", "chat failed", { error: String(error) });
         return res.status(500).json({ message: "Internal Server Error", success: false });
@@ -166,7 +182,8 @@ chatRouter.get("/api/conversations", MiddleWhere, async (req, res) => {
         take: 50,
         select: { id: true, title: true, updatedAt: true },
     });
-    return res.status(200).json({ success: true, conversations });
+    // Chats saved before short titles existed have the whole question as their title
+    return res.status(200).json({ success: true, conversations: conversations.map((c) => ({ ...c, title: displayTitle(c.title) })) });
 });
 
 chatRouter.get("/api/conversations/:id", MiddleWhere, async (req, res) => {
@@ -175,7 +192,7 @@ chatRouter.get("/api/conversations/:id", MiddleWhere, async (req, res) => {
         include: { messages: { orderBy: { id: "asc" } } },
     });
     if (!conversation) return res.status(404).json({ message: "Conversation not found", success: false });
-    return res.status(200).json({ success: true, conversation });
+    return res.status(200).json({ success: true, conversation: { ...conversation, title: displayTitle(conversation.title) } });
 });
 
 chatRouter.delete("/api/conversations/:id", MiddleWhere, async (req, res) => {

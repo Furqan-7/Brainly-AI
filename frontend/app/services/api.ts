@@ -189,7 +189,8 @@ export async function searchMemories(q: string, filters: SearchFilters = {}): Pr
 export interface StreamHandlers {
     onMeta?: (meta: { conversationId: number; sources: Source[]; searchQuestion: string }) => void;
     onToken?: (text: string) => void;
-    onDone?: (done: { messageId: number; answer: string }) => void;
+    /** `title` is the new chat's short name, sent with the first answer */
+    onDone?: (done: { messageId: number; answer: string; title?: string }) => void;
 }
 
 /**

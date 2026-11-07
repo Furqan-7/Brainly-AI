@@ -35,7 +35,6 @@ export function useChat({ onAnswered, onConversation }: { onAnswered?: () => voi
         const controller = new AbortController();
         abortRef.current = controller;
         setBusy(true);
-        setTitle((t) => t ?? text);
 
         setMessages((prev) => [...prev, { role: "user", content: text }, { role: "assistant", content: "", streaming: true }]);
         const patchLast = (fn: (m: ChatMessage) => ChatMessage) =>
@@ -50,7 +49,10 @@ export function useChat({ onAnswered, onConversation }: { onAnswered?: () => voi
                     patchLast((m) => ({ ...m, sources: meta.sources }));
                 },
                 onToken: (delta) => patchLast((m) => ({ ...m, content: m.content + delta })),
-                onDone: (done) => patchLast((m) => ({ ...m, id: done.messageId, content: done.answer, streaming: false })),
+                onDone: (done) => {
+                    if (done.title) setTitle(done.title);
+                    patchLast((m) => ({ ...m, id: done.messageId, content: done.answer, streaming: false }));
+                },
             });
             patchLast((m) => ({ ...m, streaming: false }));
             callbacks.current.onAnswered?.();
