@@ -26,6 +26,7 @@ function fakeEmbedding(text: string): number[] {
 
 vi.mock("../src/Embeddings", () => ({
     GetEmbeddings: async (text: string) => fakeEmbedding(text),
+    GetQueryEmbedding: async (text: string) => fakeEmbedding(text),
     GetEmbeddingsBatch: async (texts: string[]) => texts.map(fakeEmbedding),
 }));
 vi.mock("../src/GetHypotheticalAnswer", () => ({ GetHypotheticalAnswer: async (q: string) => q }));

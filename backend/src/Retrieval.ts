@@ -1,6 +1,7 @@
 // retrieval.ts
 import { prisma, Prisma } from "db";
-import { GetEmbeddings } from "./Embeddings";
+import { GetQueryEmbedding } from "./Embeddings";
+import { log } from "./lib/logger";
 import { CohereClient } from "cohere-ai";
 import { canUseCohere, incrementCohereUsage } from "./apiUsage";
 import type { SearchFilters } from "./lib/searchFilters";
@@ -32,6 +33,31 @@ export interface HybridSearchOptions {
   hypotheticalAnswer?: string;
   topK?: number;
   filters?: SearchFilters;
+  /** Already computed embeddings (skips calling the embedding API again); null = keyword-only */
+  embeddings?: { question: number[] | null; hyde: number[] | null };
+}
+
+/** One embedding, or null when the API failed or was too slow (search then uses keywords). */
+export function embedOne(text: string, taskType: "search_query" | "search_document"): Promise<number[] | null> {
+  return GetQueryEmbedding(text, taskType).catch((error) => {
+    log("warn", "embedding failed, using keyword search", { error: error instanceof Error ? error.message : String(error) });
+    return null;
+  });
+}
+
+/** Embeds a question (and optional HyDE answer); null where the API failed or was too slow. */
+export async function embedForSearch(question: string, hypotheticalAnswer?: string) {
+  const safe = (p: Promise<number[]>) =>
+    p.catch((error) => {
+      // Embedding provider slow, down or misconfigured: search keeps working on keywords
+      log("warn", "embedding failed, using keyword search", { error: error instanceof Error ? error.message : String(error) });
+      return null;
+    });
+  const [questionEmbedding, hydeEmbedding] = await Promise.all([
+    safe(GetQueryEmbedding(question, "search_query")),
+    hypotheticalAnswer ? safe(GetQueryEmbedding(hypotheticalAnswer, "search_document")) : Promise.resolve(null),
+  ]);
+  return { question: questionEmbedding, hyde: hydeEmbedding };
 }
 
 // Results weaker than these are dropped instead of being passed to the LLM as "sources".
@@ -60,22 +86,11 @@ export async function hybridSearch({
   hypotheticalAnswer,
   topK = 10,
   filters,
+  embeddings,
 }: HybridSearchOptions): Promise<RetrievedChunk[]> {
-  const embeddingStart = performance.now();
   // Nomic embeddings are asymmetric: the question is embedded as a query, the HyDE answer
   // (which reads like a saved document) as a document. A chunk's distance is the closer of the two.
-  let questionEmbedding: number[] | null = null;
-  let hydeEmbedding: number[] | null = null;
-  try {
-    [questionEmbedding, hydeEmbedding] = await Promise.all([
-      GetEmbeddings(question, "search_query"),
-      hypotheticalAnswer ? GetEmbeddings(hypotheticalAnswer, "search_document") : Promise.resolve(null),
-    ]);
-  } catch (error) {
-    // Embedding provider down or misconfigured: degrade to keyword-only search instead of failing
-    console.error("Embedding failed, falling back to keyword search:", error instanceof Error ? error.message : error);
-  }
-  console.log("Embedding:", performance.now() - embeddingStart);
+  const { question: questionEmbedding, hyde: hydeEmbedding } = embeddings ?? (await embedForSearch(question, hypotheticalAnswer));
 
   // "[0]" is only a placeholder that keeps the SQL valid; the vector branch is disabled then
   const q1 = JSON.stringify(questionEmbedding ?? [0]);
@@ -86,7 +101,6 @@ export async function hybridSearch({
   // kills the match); ts_rank still favours chunks that match more of the terms.
   const tsq = Prisma.sql`to_tsquery('english', replace(plainto_tsquery('english', ${question})::text, ' & ', ' | '))`;
 
-  const retrievalStart = performance.now();
   // reciprocal rank fusion (RRF) — combines two ranked lists without needing
   // to normalize/compare raw scores directly, which is the standard approach
   const results = await prisma.$queryRaw<RetrievedChunk[]>`
@@ -130,8 +144,6 @@ export async function hybridSearch({
     ORDER BY f.combined_score DESC
     LIMIT ${topK}
   `;
-  console.log("Retrieval:", performance.now() - retrievalStart);
-
   return results.map((r) => ({
     ...r,
     vector_distance: r.vector_distance === null ? null : Number(r.vector_distance),
@@ -156,27 +168,26 @@ export function applyVectorCutoff(chunks: RetrievedChunk[]): RetrievedChunk[] {
 }
 
 
+/** Adds the chunks just before and after each match, so the answer sees whole passages. One query. */
 export async function expandWithNeighbors(chunks: RetrievedChunk[]): Promise<RetrievedChunk[]> {
-  const expanded = await Promise.all(
-    chunks.map(async (chunk) => {
-      const neighbors = await prisma.chunks.findMany({
-        where: {
-          MemoryId: chunk.memoryId,
-          chunk_index: { in: [chunk.chunk_index - 1, chunk.chunk_index + 1] }
-        }
-      });
-      const combinedText = [...neighbors.filter(n => n.chunk_index < chunk.chunk_index), chunk, ...neighbors.filter(n => n.chunk_index > chunk.chunk_index)]
-        .sort((a, b) => a.chunk_index - b.chunk_index)
-        .map(c => c.content)
-        .join(" ");
-      return { ...chunk, content: combinedText };
-    })
-  );
-  return expanded;
+  if (chunks.length === 0) return [];
+  const neighbors = await prisma.chunks.findMany({
+    where: {
+      OR: chunks.map((c) => ({ MemoryId: c.memoryId, chunk_index: { in: [c.chunk_index - 1, c.chunk_index + 1] } })),
+    },
+    select: { MemoryId: true, chunk_index: true, content: true },
+  });
+  return chunks.map((chunk) => {
+    const around = neighbors.filter((n) => n.MemoryId === chunk.memoryId);
+    const before = around.find((n) => n.chunk_index === chunk.chunk_index - 1);
+    const after = around.find((n) => n.chunk_index === chunk.chunk_index + 1);
+    return { ...chunk, content: [before?.content, chunk.content, after?.content].filter(Boolean).join(" ") };
+  });
 }
 
 
 const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+const RERANK_TIMEOUT_S = Number(process.env.RERANK_TIMEOUT_S ?? 2.5);
 
 /** Reranks with Cohere and drops results below MIN_RERANK_SCORE; falls back to the vector cutoff. */
 export async function rerankChunks(
@@ -187,20 +198,21 @@ export async function rerankChunks(
   if (chunks.length === 0) return [];
 
   const hasQuota = process.env.COHERE_API_KEY ? await canUseCohere() : false;
-  if (!hasQuota) {
-    console.log("Cohere rerank unavailable — skipping reranking");
-    return applyVectorCutoff(chunks).slice(0, topN);
-  }
+  if (!hasQuota) return applyVectorCutoff(chunks).slice(0, topN);
 
   try {
-    const rerankResponse = await cohere.rerank({
-      model: "rerank-v3.5",
-      query,
-      documents: chunks.map((c) => `${c.title}\n${c.content}`.slice(0, 800)), // cap ~150-200 words per doc for scoring
-      topN,
-    });
+    const rerankResponse = await cohere.rerank(
+      {
+        model: "rerank-v3.5",
+        query,
+        documents: chunks.map((c) => `${c.title}\n${c.content}`.slice(0, 800)), // cap ~150-200 words per doc for scoring
+        topN,
+      },
+      // A slow reranker shouldn't hold up the answer; the fallback ranking is good enough
+      { timeoutInSeconds: RERANK_TIMEOUT_S, maxRetries: 0 }
+    );
 
-    await incrementCohereUsage();
+    void incrementCohereUsage(); // bookkeeping, not on the answer's critical path
 
     return rerankResponse.results
       .filter((result) => result.relevanceScore >= MIN_RERANK_SCORE)
@@ -209,7 +221,7 @@ export async function rerankChunks(
         rerank_score: result.relevanceScore,
       }));
   } catch (error) {
-    console.error("Cohere rerank error, falling back:", error);
+    log("warn", "rerank failed, using fallback ranking", { error: error instanceof Error ? error.message : String(error) });
     return applyVectorCutoff(chunks).slice(0, topN);
   }
 }

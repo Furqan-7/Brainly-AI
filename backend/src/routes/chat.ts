@@ -158,6 +158,7 @@ chatRouter.get("/api/search", MiddleWhere, async (req, res) => {
     const { q, types, from, to, collectionId } = parsed.data;
 
     try {
+        const started = performance.now();
         const { results, filters } = await searchWithFallback(
             res.locals.userId,
             q,
@@ -166,6 +167,7 @@ chatRouter.get("/api/search", MiddleWhere, async (req, res) => {
             40
         );
         const matches = applyVectorCutoff(dedupeByMemory(results)).slice(0, 20);
+        log("info", "search", { ms: Math.round(performance.now() - started), results: matches.length });
         return res.status(200).json({ success: true, results: toSources(matches), filters });
     } catch (error) {
         log("error", "search failed", { error: String(error) });
