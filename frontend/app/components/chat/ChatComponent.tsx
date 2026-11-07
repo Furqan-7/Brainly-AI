@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { AlertCircle, Sparkles } from "lucide-react";
+import { AlertCircle, Check, Copy, Sparkles } from "lucide-react";
 
 import { getConversation, streamChat } from "../../services/api";
 import { ThinkingDots } from "./ThinkingDots";
@@ -92,7 +92,7 @@ function AnswerText({ text, sources, activeN, onCite }: { text: string; sources:
     const byN = new Map(sources.map((s) => [s.n, s]));
     const parts = text.split(/(\[\d+\])/g);
     return (
-        <p className="text-[15px] leading-[1.75] whitespace-pre-wrap text-on-surface">
+        <p className="text-[16px] leading-[1.75] whitespace-pre-wrap text-on-surface">
             {parts.map((part, i) => {
                 const cite = part.match(/^\[(\d+)\]$/);
                 if (!cite) return <Fragment key={i}>{part}</Fragment>;
@@ -103,6 +103,27 @@ function AnswerText({ text, sources, activeN, onCite }: { text: string; sources:
     );
 }
 
+function CopyButton({ text }: { text: string }) {
+    const [copied, setCopied] = useState(false);
+    return (
+        <button
+            type="button"
+            onClick={() => {
+                void navigator.clipboard?.writeText(text.replace(/\s*\[\d+\]/g, "")).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                });
+            }}
+            title="Copy answer"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+        >
+            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+            {copied ? "Copied" : "Copy"}
+        </button>
+    );
+}
+
+/** Brainly's reply: plain text like a chat app, with its sources as cards underneath. */
 function AssistantMessage({ message, activeN, onOpenSource }: { message: ChatMessage; activeN: number | null; onOpenSource: (sources: Source[], n: number) => void }) {
     // Sources the answer actually cites come first; the rest stay available behind "Show more"
     const cited = new Set([...message.content.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])));
@@ -111,34 +132,32 @@ function AssistantMessage({ message, activeN, onOpenSource }: { message: ChatMes
     const waiting = message.streaming && !message.content;
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_24px_50px_-38px_rgba(60,35,20,0.55)] sm:p-6"
-        >
-            <div className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2 text-[11px] font-medium tracking-[0.08em] text-on-surface-variant uppercase">
-                    <span className="grid size-6 place-items-center rounded-lg bg-tertiary-container text-primary">
-                        <Sparkles className="size-3.5" />
-                    </span>
-                    Brainly answer
-                    {message.streaming && <ThinkingDots />}
-                </span>
-                {sources.length > 0 && <span className="text-xs text-on-surface-variant">{sources.length} {sources.length === 1 ? "source" : "sources"}</span>}
-            </div>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid gap-4">
+            <span className={`grid size-7 place-items-center rounded-lg bg-tertiary-container text-primary ${message.streaming ? "animate-pulse" : ""}`} title="Brainly">
+                <Sparkles className="size-4" />
+            </span>
 
             {message.error ? (
-                <div className="flex items-center gap-2 text-sm text-error">
-                    <AlertCircle className="size-4" />
+                <div className="flex items-start gap-2 rounded-xl border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">
+                    <AlertCircle className="mt-0.5 size-4 flex-none" />
                     {message.error}
                 </div>
             ) : waiting ? (
-                <span className="text-sm text-on-surface-variant">Searching your memories…</span>
+                <span className="flex items-center gap-2.5 text-[15px] text-on-surface-variant">
+                    <ThinkingDots /> Searching your memories…
+                </span>
             ) : (
                 <AnswerText text={message.content} sources={sources} activeN={activeN} onCite={open} />
             )}
 
             {sources.length > 0 && <SourceShelf sources={sources} activeN={activeN} onOpen={open} />}
+
+            {!message.streaming && !message.error && message.content && (
+                <div className="-ml-2 flex items-center gap-1">
+                    <CopyButton text={message.content} />
+                    {sources.length > 0 && <span className="px-2 text-[12px] text-on-surface-variant">{sources.length} {sources.length === 1 ? "source" : "sources"}</span>}
+                </div>
+            )}
         </motion.div>
     );
 }
@@ -157,7 +176,7 @@ export function ChatThread({
     onOpenSource: (key: string, sources: Source[], n: number) => void;
 }) {
     return (
-        <div className="grid gap-5">
+        <div className="grid gap-9">
             {messages.map((message, i) =>
                 message.role === "user" ? (
                     <motion.p

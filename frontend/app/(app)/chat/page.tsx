@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
-import Image from "next/image";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUp, Filter, Search, Sparkles } from "lucide-react";
@@ -10,7 +9,7 @@ import { SearchResults } from "@/app/components/chat/SearchResults";
 import { SourceViewer } from "@/app/components/chat/Sources";
 import { ALL_TYPES, TYPE_META } from "@/app/components/memory/typeMeta";
 import type { MemoryType, SearchFilters, Source } from "@/app/types/memory";
-import { NEW_CHAT, PageHeader, useShell } from "../AppShell";
+import { NEW_CHAT, useShell } from "../AppShell";
 
 const dateRanges = [
     { label: "Any time", days: 0 },
@@ -155,9 +154,9 @@ function Ask() {
     const active = mode === "ask" ? chat.messages.length > 0 : search !== null;
 
     useEffect(() => {
-        setDecor(active);
+        setDecor(true);
         return () => setDecor(false);
-    }, [active, setDecor]);
+    }, [setDecor]);
 
     const submit = (text = query) => {
         if (!text.trim() || (mode === "ask" && chat.busy)) return;
@@ -181,137 +180,151 @@ function Ask() {
             ? active ? 'Ask a follow-up, e.g. "show me more like that"' : 'Ask anything, e.g. "that reel about project ideas"'
             : "Search titles, transcripts, notes…";
 
-    const composer = (docked: boolean) => (
+    // Grow the question box with its text (up to a limit), like a chat app
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+    useEffect(() => {
+        const el = inputRef.current;
+        if (!el) return;
+        el.style.height = "auto";
+        el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    }, [query]);
+
+    // Keep the newest message in view as you ask and answers stream in
+    const messageCount = chat.messages.length;
+    useEffect(() => {
+        if (messageCount > 0) window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+    }, [messageCount]);
+
+    const composer = (
         <form
             onSubmit={(e) => {
                 e.preventDefault();
                 submit();
             }}
-            className={`group relative flex items-center gap-2 border border-outline-variant bg-surface-container-lowest transition-[border-color,box-shadow] focus-within:border-on-surface ${docked
-                ? "rounded-2xl p-2 shadow-[0_22px_44px_-26px_rgba(60,35,20,0.55)]"
-                : "p-2 pl-4 shadow-[0_24px_50px_-40px_rgba(60,35,20,0.5)] focus-within:shadow-[0_30px_60px_-40px_rgba(60,35,20,0.6)]"
-                }`}
+            className="grid gap-1 rounded-[20px] border border-outline-variant bg-surface-container-lowest p-2.5 shadow-[0_18px_40px_-28px_rgba(60,35,20,0.55)] transition-[border-color,box-shadow] focus-within:border-on-surface/40 focus-within:shadow-[0_22px_48px_-28px_rgba(60,35,20,0.65)]"
         >
-            {docked ? <ModeSwitch mode={mode} setMode={setMode} compact /> : <Search className="size-4 flex-none text-on-surface-variant" />}
-            <input
+            <textarea
+                ref={inputRef}
+                rows={1}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                    // Enter sends, Shift+Enter starts a new line
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                        submit();
+                    }
+                }}
                 placeholder={placeholder}
-                className={`min-w-0 flex-1 bg-transparent py-2.5 outline-none placeholder:text-on-surface-variant/70 ${docked ? "px-1.5 text-[15px]" : "text-base"}`}
+                className="max-h-[200px] w-full resize-none bg-transparent px-2 pt-1.5 pb-1 text-[15.5px] leading-[1.5] outline-none placeholder:text-on-surface-variant/70"
                 aria-label={mode === "ask" ? "Ask your brain" : "Search your brain"}
             />
-            <button
-                type="button"
-                onClick={() => setShowFilters((s) => !s)}
-                title="Filters"
-                className={`grid size-10 flex-none place-items-center transition-colors ${filtersOn ? "text-primary" : "text-on-surface-variant hover:text-on-surface"}`}
-            >
-                <Filter className="size-4" />
-            </button>
-            <button
-                type="submit"
-                disabled={!query.trim() || (mode === "ask" && chat.busy)}
-                className={`grid size-10 flex-none place-items-center bg-primary-container text-white transition-[background-color,transform] hover:bg-black active:scale-95 disabled:opacity-40 ${docked ? "rounded-xl" : ""}`}
-                title={mode === "ask" ? "Ask" : "Search"}
-            >
-                <ArrowUp className="size-4" />
-            </button>
+            <div className="flex items-center gap-2">
+                <ModeSwitch mode={mode} setMode={setMode} compact />
+                <button
+                    type="button"
+                    onClick={() => setShowFilters((s) => !s)}
+                    title="Filter by type and date"
+                    aria-pressed={showFilters}
+                    className={`flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[12.5px] transition-colors ${filtersOn ? "bg-tertiary-container text-primary" : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"}`}
+                >
+                    <Filter className="size-3.5" />
+                    <span className="max-sm:sr-only">Filters{types.length + (rangeDays ? 1 : 0) ? ` · ${types.length + (rangeDays ? 1 : 0)}` : ""}</span>
+                </button>
+                <button
+                    type="submit"
+                    disabled={!query.trim() || (mode === "ask" && chat.busy)}
+                    className="ml-auto grid size-9 flex-none place-items-center rounded-xl bg-primary-container text-white transition-[background-color,transform,opacity] hover:bg-black active:scale-95 disabled:opacity-30"
+                    title={mode === "ask" ? "Ask (Enter)" : "Search (Enter)"}
+                >
+                    <ArrowUp className="size-4" />
+                </button>
+            </div>
         </form>
     );
 
-    const filtersPanel = (
-        <AnimatePresence initial={false}>
-            {showFilters && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <FiltersPanel types={types} toggleType={toggleType} rangeDays={rangeDays} setRangeDays={setRangeDays} />
-                </motion.div>
-            )}
-        </AnimatePresence>
-    );
-
     const openSource = (key: string, sources: Source[], n: number) => setViewer({ key, sources, n });
-
-    // ── Before the first question: big heading, question box, suggestions ──
-    if (!active) {
-        return (
-            <>
-                <PageHeader eyebrow={mode === "ask" ? "Ask your brain" : "Search your brain"} title={`What are you trying to remember, ${me?.user.username ?? "friend"}?`}>
-                    Ask in plain words. Brainly answers only from what you saved, shows its sources, and plays reels and videos right in the answer.
-                </PageHeader>
-
-                <div className="grid gap-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <ModeSwitch mode={mode} setMode={setMode} />
-                        <span className="text-xs text-on-surface-variant">
-                            {mode === "ask" ? "Uses one of your daily AI answers" : "Instant, doesn't use AI answers"}
-                        </span>
-                    </div>
-                    {composer(false)}
-                    {filtersPanel}
-                </div>
-
-                <div className="mt-10 grid items-center gap-8 lg:grid-cols-[1fr_340px]">
-                    <div className="grid gap-3">
-                        <span className="text-xs tracking-[0.05em] text-on-surface-variant uppercase">Try asking</span>
-                        {SUGGESTIONS.map((s, i) => (
-                            <motion.button
-                                key={s}
-                                type="button"
-                                onClick={() => submit(s)}
-                                initial={{ opacity: 0, y: 12 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 + i * 0.07, duration: 0.5 }}
-                                className="group flex items-center justify-between gap-4 border border-outline-variant bg-surface-container-lowest/70 px-4 py-3.5 text-left text-[15px] transition-[transform,background-color,border-color] hover:translate-x-1 hover:border-on-surface hover:bg-surface-container-lowest"
-                            >
-                                {s}
-                                <ArrowUp className="size-4 rotate-45 text-on-surface-variant transition-transform group-hover:rotate-90 group-hover:text-on-surface" />
-                            </motion.button>
-                        ))}
-                    </div>
-                    <motion.figure
-                        initial={{ opacity: 0, scale: 0.97 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                        className="hidden overflow-hidden rounded-[22px] border border-outline-variant lg:block"
-                    >
-                        <Image src="/art/statue-eye.webp" alt="Collage of a marble head with the sky showing through its eye" width={489} height={792} className="h-[440px] w-full object-cover object-top" priority />
-                    </motion.figure>
-                </div>
-            </>
-        );
-    }
-
-    // ── During a chat or search: title, thread, question box docked at the bottom ──
     const heading = mode === "ask" ? chat.title ?? "New chat" : `Results for “${search?.text}”`;
+    const firstName = me?.user.username ?? "friend";
+
     return (
         <>
-            {/* With the viewer open on wide screens, the thread moves left to stay clear of it */}
-            {/* At least a screen tall, so the question box rests at the bottom even in a short chat */}
-            <div className={`mx-auto flex min-h-[calc(100svh/var(--ui-zoom,1)-4rem)] w-full max-w-[820px] flex-col gap-6 ${viewer ? "xl:ml-0" : ""}`}>
-                <header className="grid gap-2.5">
-                    <span className="w-fit bg-surface-container-high px-2.5 py-1.5 text-[12px] leading-none tracking-[0.05em] uppercase">
-                        {mode === "ask" ? "Ask your brain" : "Search your brain"}
-                    </span>
-                    <h1 className="line-clamp-2 font-headline text-[clamp(1.6rem,2.4vw,2.1rem)] leading-[1.1] font-normal tracking-[-0.02em] first-letter:uppercase">{heading}</h1>
-                </header>
-
-                {mode === "ask" ? (
-                    <ChatThread messages={chat.messages} activeSource={viewer?.key ?? null} onOpenSource={openSource} />
+            {/* A screen tall so the question box rests at the bottom; moves left when the viewer is open */}
+            <div className={`mx-auto -mb-24 flex min-h-[calc(100svh/var(--ui-zoom,1)-3rem)] w-full max-w-[760px] flex-col ${viewer ? "xl:ml-0" : ""}`}>
+                {active ? (
+                    <>
+                        <h1 className="mb-8 truncate text-[14px] font-medium text-on-surface-variant first-letter:uppercase" title={heading}>
+                            {heading}
+                        </h1>
+                        {mode === "ask" ? (
+                            <ChatThread messages={chat.messages} activeSource={viewer?.key ?? null} onOpenSource={openSource} />
+                        ) : (
+                            <SearchResults
+                                query={search}
+                                activeN={viewer?.key.startsWith("search:") ? viewer.n : null}
+                                onOpen={(sources, n) => openSource(`search:${n}`, sources, n)}
+                            />
+                        )}
+                    </>
                 ) : (
-                    <SearchResults
-                        query={search}
-                        activeN={viewer?.key.startsWith("search:") ? viewer.n : null}
-                        onOpen={(sources, n) => openSource(`search:${n}`, sources, n)}
-                    />
+                    // Before the first question: a quiet greeting in the middle of the page
+                    <div className="flex flex-1 flex-col items-center justify-center gap-5 py-10 text-center">
+                        <motion.span
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                            className="grid size-12 place-items-center rounded-2xl bg-tertiary-container text-primary"
+                        >
+                            <Sparkles className="size-6" />
+                        </motion.span>
+                        <motion.h1
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.05 }}
+                            className="max-w-[18ch] font-headline text-[clamp(2rem,3.6vw,2.9rem)] leading-[1.08] font-normal tracking-[-0.025em] text-balance"
+                        >
+                            What are you trying to remember, {firstName}?
+                        </motion.h1>
+                        <p className="max-w-[46ch] text-[15px] leading-[1.6] text-on-surface-variant">
+                            {mode === "ask"
+                                ? "Ask in plain words. Brainly answers only from what you saved and shows where each answer came from."
+                                : "Search everything you saved, instantly. No AI answer, so it doesn't use your daily answers."}
+                        </p>
+                        <div className="mt-2 flex max-w-[600px] flex-wrap justify-center gap-2">
+                            {SUGGESTIONS.map((s, i) => (
+                                <motion.button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => submit(s)}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.15 + i * 0.06, duration: 0.45 }}
+                                    className="rounded-full border border-outline-variant bg-surface-container-lowest/80 px-3.5 py-2 text-[13.5px] text-on-surface-variant transition-colors hover:border-on-surface/40 hover:text-on-surface"
+                                >
+                                    {s}
+                                </motion.button>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
-                <div className="sticky bottom-4 z-20 mt-auto flex flex-col gap-2 pt-2">
-                    {/* fade the page out behind the docked box */}
-                    <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-8 -bottom-4 -z-10 bg-gradient-to-b from-transparent via-background/90 to-background" />
-                    {filtersPanel}
-                    {composer(true)}
-                    <span className="px-1 text-[11.5px] text-on-surface-variant">
-                        {mode === "ask" ? "Ask AI uses one of your daily AI answers." : "Search is instant and doesn't use AI answers."}
+                {/* The question box, always at the bottom */}
+                <div className="sticky bottom-0 z-20 mt-auto flex flex-col gap-2 pt-8 pb-4">
+                    {/* Messages fade out above the box; soft side edges so it doesn't read as a panel */}
+                    <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-x-0 inset-y-0 -z-10 bg-background [mask-composite:intersect] [mask-image:linear-gradient(to_bottom,transparent,#000_32px),linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)] lg:-inset-x-16"
+                    />
+                    <AnimatePresence initial={false}>
+                        {showFilters && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <FiltersPanel types={types} toggleType={toggleType} rangeDays={rangeDays} setRangeDays={setRangeDays} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    {composer}
+                    <span className="text-center text-[11.5px] text-on-surface-variant">
+                        {mode === "ask" ? "Brainly answers only from your memories. Each answer uses one of your daily AI answers." : "Search is instant and doesn't use AI answers."}
                     </span>
                 </div>
             </div>
