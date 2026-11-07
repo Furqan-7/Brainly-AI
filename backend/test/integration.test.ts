@@ -32,7 +32,9 @@ vi.mock("../src/GetHypotheticalAnswer", () => ({ GetHypotheticalAnswer: async (q
 vi.mock("../src/lib/llm", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../src/lib/llm")>()),
     completeJson: async (prompt: string, fallback: any) =>
-        prompt.includes("organise a personal knowledge base") ? { summary: "A saved item.", tags: ["Auto Tag"] } : fallback,
+        prompt.includes("organise a personal knowledge base")
+            ? { summary: "A saved item.", tags: ["Auto Tag"], ...(prompt.includes('"title"') ? { title: "Weeknight pasta recipe" } : {}) }
+            : fallback,
 }));
 vi.mock("../src/ingest/reel", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../src/ingest/reel")>()),
@@ -155,5 +157,30 @@ describe.skipIf(!TEST_DB)("integration (real Postgres)", () => {
         const res = await fetch(`${base}/api/content/${noteId}`, { method: "DELETE", headers: auth });
         expect(res.status).toBe(200);
         expect(await prisma.chunks.count({ where: { MemoryId: noteId } })).toBe(0);
+    });
+    it("names memories saved without a title (share sheet, extension)", async () => {
+        const { processMemory } = await import("../src/processMemory");
+        const post = (body: object) =>
+            fetch(`${base}/api/content`, { method: "POST", headers: { ...auth, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+        // A link: provisional title right away, then the reel's own caption
+        const res = await post({ type: "url", source_url: "https://www.instagram.com/reel/Zz9_shared/" });
+        expect(res.status).toBe(201);
+        const saved = await res.json();
+        expect(saved).toMatchObject({ type: "reel", title: "Instagram reel", autoTitle: true });
+        await processMemory(await prisma.memories.findUnique({ where: { id: saved.id } }));
+        const reel = await prisma.memories.findUnique({ where: { id: saved.id } });
+        expect(reel?.title).toBe("5 full-stack project ideas for your resume");
+        expect((reel?.metadata as any).auto_title).toBe(false);
+
+        // A note with no title: the AI names it from the text
+        const noteRes = await post({ type: "note", note: "Boil pasta 10 min, toss with garlic, olive oil and chilli." });
+        const note = await noteRes.json();
+        await processMemory(await prisma.memories.findUnique({ where: { id: note.id } }));
+        expect((await prisma.memories.findUnique({ where: { id: note.id } }))?.title).toBe("Weeknight pasta recipe");
+
+        // A title the user gave is kept
+        const named = await (await post({ type: "url", source_url: "https://www.instagram.com/reel/Kp2_named/", title: "My favourite ideas" })).json();
+        expect(named).toMatchObject({ title: "My favourite ideas", autoTitle: false });
     });
 });

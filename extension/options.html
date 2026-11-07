@@ -3,14 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <link rel="stylesheet" href="popup.css" />
-  <style>body { width: auto; max-width: 480px; padding: 24px; }</style>
+  <style>body { width: auto; max-width: 480px; padding: 24px; } label { display: block; margin: 10px 0; color: var(--muted); font-size: 12px; } input { margin-top: 4px; }</style>
 </head>
 <body>
-  <h2>Brainly AI — settings</h2>
-  <label>Brainly API URL <input id="apiUrl" placeholder="https://api.your-brainly.com" /></label>
-  <label>Extension token <input id="token" type="password" placeholder="Brainly → profile menu → Copy extension token" /></label>
-  <button id="save">Save</button>
-  <p id="status"></p>
+  <h2 class="big">Brainly extension</h2>
+  <p id="who" class="muted"></p>
+  <button id="connect" class="primary">Connect Brainly</button>
+  <details style="margin-top: 18px">
+    <summary class="muted">Advanced: your own Brainly server</summary>
+    <label>Brainly web address <input id="webUrl" placeholder="https://brainly-ai-frontend.vercel.app" /></label>
+    <label>Extension token <input id="token" type="password" placeholder="Brainly → /extension → Copy token instead" /></label>
+    <button id="save" class="ghost">Save</button>
+  </details>
+  <p id="status" class="small"></p>
   <script type="module" src="options.js"></script>
 </body>
 </html>

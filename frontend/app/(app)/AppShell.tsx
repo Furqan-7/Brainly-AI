@@ -65,18 +65,6 @@ const NAV: { href: string; label: string; icon: LucideIcon; hint: string }[] = [
     { href: "/settings", label: "Settings", icon: Settings, hint: "Account, plan, extension" },
 ];
 
-/** Pulls a shared page from the PWA share sheet (?share_url / ?share_text / ?share_title). */
-function readSharedContent(): SharedContent | undefined {
-    if (typeof window === "undefined") return undefined;
-    const params = new URLSearchParams(window.location.search);
-    const text = params.get("share_text") ?? undefined;
-    // Android often puts the link inside the text instead of the url field
-    const url = params.get("share_url") ?? text?.match(/https?:\/\/\S+/)?.[0];
-    const title = params.get("share_title") ?? undefined;
-    if (!url && !text) return undefined;
-    return { url, title, text };
-}
-
 function UsageBar({ used, limit, label }: { used: number; limit: number; label: string }) {
     const pct = Math.min(100, Math.round((used / Math.max(limit, 1)) * 100));
     return (
@@ -274,8 +262,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const { me, loading, refresh } = useAuth();
     const pathname = usePathname();
     const [collections, setCollections] = useState<Collection[]>([]);
-    const [shared, setShared] = useState<SharedContent | undefined>(readSharedContent);
-    const [adding, setAdding] = useState(() => Boolean(shared));
+    const router = useRouter();
+    const [shared, setShared] = useState<SharedContent | undefined>();
+    const [adding, setAdding] = useState(false);
     const [drawer, setDrawer] = useState(false);
     const [chats, setChats] = useState<ConversationSummary[]>([]);
     const [decor, setDecor] = useState(false);
@@ -294,9 +283,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         reloadCollections();
-        // Drop ?share_* from the address bar once read
-        if (window.location.search.includes("share_")) window.history.replaceState({}, "", window.location.pathname);
     }, [reloadCollections]);
+
+    // Back from Google sign-in (which always returns to /chat): continue where the user was going
+    useEffect(() => {
+        if (!me) return;
+        try {
+            const next = sessionStorage.getItem("brainly:next");
+            if (!next) return;
+            sessionStorage.removeItem("brainly:next");
+            if (next.startsWith("/") && !next.startsWith("//") && next !== window.location.pathname + window.location.search) router.replace(next);
+        } catch {
+            /* storage blocked */
+        }
+    }, [me, router]);
+
+    // Shares used to land on /chat (older installs of the app still send them there): save on /share
+    useEffect(() => {
+        if (pathname !== "/share" && window.location.search.includes("share_")) router.replace(`/share${window.location.search}`);
+    }, [pathname, router]);
 
     const openAddContent = useCallback((initial?: SharedContent) => {
         setShared(initial);

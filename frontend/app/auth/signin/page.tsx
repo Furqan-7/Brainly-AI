@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { afterSignIn } from "@/app/hooks/useAuth";
 import { getMe, signin } from "@/app/services/api";
 import { AuthHeading, AuthLayout, Field, FormError, GoogleButton, OrDivider, SubmitButton } from "@/app/components/auth/AuthLayout";
 
@@ -15,7 +16,7 @@ export default function SignInPage() {
 
   // Already signed in? Go straight to the app.
   useEffect(() => {
-    getMe().then(() => router.replace("/chat")).catch(() => undefined);
+    getMe().then(() => router.replace(afterSignIn())).catch(() => undefined);
   }, [router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -26,7 +27,7 @@ export default function SignInPage() {
       const data = await signin(email, password);
       if (data.success) {
         // The session lives in an httpOnly cookie set by the server
-        router.replace("/chat");
+        router.replace(afterSignIn());
         return;
       }
     } catch (caught) {

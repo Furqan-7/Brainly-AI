@@ -166,7 +166,14 @@ export function GoogleButton({ label }: { label: string }) {
     return (
         <button
             type="button"
-            onClick={() => window.location.assign("/backend/auth/google")}
+            onClick={() => {
+                // Remember where to return after Google (e.g. a link shared while signed out)
+                const next = new URLSearchParams(window.location.search).get("next");
+                try {
+                    if (next) sessionStorage.setItem("brainly:next", next);
+                } catch { /* storage blocked */ }
+                window.location.assign("/backend/auth/google");
+            }}
             className="group relative isolate flex h-[52px] w-full items-center justify-center gap-3 overflow-hidden border border-outline-variant bg-surface-container-lowest text-[15px] font-medium transition-colors before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:bg-surface-container-high before:transition-transform before:duration-500 hover:border-on-surface hover:before:scale-x-100"
         >
             <GoogleLogoAnimation className="size-6" scale={1.8} />

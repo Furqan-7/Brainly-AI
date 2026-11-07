@@ -24,7 +24,8 @@ const optionalId = z.coerce.number().int().positive().optional();
 
 export const addContentSchema = z.object({
     type: memoryType,
-    title: z.string().trim().min(1).max(300),
+    // Optional: without a title Brainly names the memory itself (share sheet, extension)
+    title: z.string().trim().max(300).optional().nullable(),
     source_url: z.string().trim().max(2000).optional().nullable(),
     note: z.string().max(200_000).optional().nullable(),
     // The "Personal Context" field; older clients send it as `metadata`

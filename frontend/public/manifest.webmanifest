@@ -1,11 +1,11 @@
 {
   "name": "Brainly AI",
   "short_name": "Brainly",
-  "description": "Your second brain \u2014 save anything, find it with AI.",
+  "description": "Your second brain — save anything, find it with AI.",
   "start_url": "/chat",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#121212",
+  "background_color": "#faf5f2",
+  "theme_color": "#faf5f2",
   "icons": [
     {
       "src": "/icon.svg",
@@ -25,12 +25,13 @@
     }
   ],
   "share_target": {
-    "action": "/chat",
+    "action": "/share",
     "method": "GET",
     "params": {
       "title": "share_title",
       "text": "share_text",
       "url": "share_url"
     }
-  }
+  },
+  "id": "/chat"
 }
