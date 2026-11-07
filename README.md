@@ -143,12 +143,14 @@ pnpm lint
 ### Browser extension
 
 1. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and pick the `extension/` folder.
-2. In Brainly, open the profile menu → **Copy extension token**.
-3. Open the extension's **Settings**, enter your API URL and paste the token.
+2. A **Connect Brainly** tab opens (or click **Connect Brainly** in the extension). Sign in if asked; the extension connects by itself, with no token to copy.
+3. Click the Brainly icon on any page to save it, or right-click a link or selected text. Brainly adds the title, summary and tags.
+
+The extension talks to `https://brainly-ai-frontend.vercel.app` by default (the API through its `/backend` proxy). For your own deployment, change the address in `extension/api.js` and `extension/manifest.json` (`host_permissions`, `content_scripts.matches`), or use the extension's **Settings → Advanced** with a token from `/extension`.
 
 ### Mobile share sheet
 
-Open Brainly in Chrome on Android and choose **Install app**. Brainly then appears in the system **Share** menu; sharing a reel or link opens *Add Memory* prefilled.
+Open Brainly in Chrome on Android and choose **Install app**. Brainly then appears in the system **Share** menu. Sharing a reel, video, link or text to it saves it straight away (`/share`); Brainly names it from the page or video and adds a summary and tags. Adding a note is optional.
 
 ### Premium
 

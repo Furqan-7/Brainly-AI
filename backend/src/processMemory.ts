@@ -11,10 +11,13 @@ import { fetchTikTok } from "./ingest/tiktok";
 import { transcribeFile } from "./ingest/transcribe";
 import { enrichMemory, cleanTags } from "./ingest/enrich";
 import { withLocalFile } from "./lib/storage";
+import { cleanTitle } from "./lib/memoryTitle";
 
 interface Extracted {
     text: string;
     metadata?: Record<string, unknown>;
+    /** The real title of the page, video or post, when the source has one */
+    title?: string | null;
 }
 
 /** Turns a memory's source (URL, file or note) into indexable text plus display metadata. */
@@ -26,6 +29,7 @@ async function extractText(memory: any): Promise<Extracted> {
             const page = await fetchWebPage(url!);
             return {
                 text: page.text,
+                title: page.title,
                 metadata: { description: page.description, thumbnail_url: page.image, site_name: page.siteName },
             };
         }
@@ -33,6 +37,7 @@ async function extractText(memory: any): Promise<Extracted> {
             const video = await fetchYoutube(url!);
             return {
                 text: video.text,
+                title: video.title,
                 metadata: { thumbnail_url: video.thumbnail, duration: video.duration, author: video.author, video_title: video.title },
             };
         }
@@ -49,6 +54,8 @@ async function extractText(memory: any): Promise<Extracted> {
                     info.caption,
                     info.transcript && `Transcript: ${info.transcript}`,
                 ].filter(Boolean).join("\n\n"),
+                // The caption's first line usually says what the video is
+                title: info.caption ? cleanTitle(info.caption) : null,
                 metadata: {
                     thumbnail_url: info.thumbnail,
                     author: info.author || null,
@@ -95,10 +102,15 @@ export async function processMemory(memory: any) {
     const granularity = wordCount <= ATOMIC_WORD_THRESHOLD ? "atomic" : "long_form";
     const chunks = chunkMemory(text, granularity, { memoryId: memory.id });
 
+    // Saved without a title (share sheet, extension): use the source's own title, or ask the AI
+    const autoTitle = memory.metadata?.auto_title === true;
+    const sourceTitle = autoTitle ? cleanTitle(extracted.title) : null;
+
     const [embeddings, enrichment] = await Promise.all([
         GetEmbeddingsBatch(chunks.map((c) => c.text)),
-        enrichMemory(memory.title, text),
+        enrichMemory(sourceTitle ?? memory.title, text, { wantTitle: autoTitle && !sourceTitle }),
     ]);
+    const title = autoTitle ? sourceTitle ?? cleanTitle(enrichment.title) ?? memory.title : memory.title;
 
     // Fill gaps in fetched metadata, but never overwrite what the user or an earlier run set
     const metadata: Record<string, unknown> = { ...(memory.metadata ?? {}) };
@@ -106,6 +118,8 @@ export async function processMemory(memory: any) {
         if (value !== null && value !== undefined && value !== "") metadata[key] = value;
     }
     if (!metadata.description && enrichment.summary) metadata.description = enrichment.summary;
+    // Once named, the title stays (a retry or edit doesn't rename it)
+    if (autoTitle && title !== memory.title) metadata.auto_title = false;
 
     const tags = cleanTags([...(memory.tags ?? []), ...enrichment.tags], 10);
     const nextReviewAt = memory.nextReviewAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -127,6 +141,7 @@ export async function processMemory(memory: any) {
         prisma.memories.update({
             where: { id: memory.id },
             data: {
+                title,
                 granularity,
                 metadata: metadata as any,
                 summary: enrichment.summary || null,

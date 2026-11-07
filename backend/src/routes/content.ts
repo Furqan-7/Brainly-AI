@@ -11,6 +11,7 @@ import { normalizeUrl, isTikTokUrl, youtubeId } from "../lib/urls";
 import { isInstagramReelUrl } from "../ingest/reel";
 import { youtubeThumbnail } from "../ingest/youtube";
 import { IMPORT_EXTENSIONS, parseImport } from "../ingest/imports";
+import { needsAutoTitle, provisionalTitle } from "../lib/memoryTitle";
 import { cleanTags } from "../ingest/enrich";
 import { assertSafeUrlShape } from "../lib/safeFetch";
 import { deleteStoredFile, persistUpload, sendStoredFile, TMP_UPLOAD_DIR } from "../lib/storage";
@@ -170,11 +171,15 @@ contentRouter.post("/api/content", MiddleWhere, upload.single("file"), async (re
             ? await prisma.collection.findFirst({ where: { id: input.collectionId, userId }, select: { id: true } })
             : null;
 
+        // No title (or just the link)? Show a provisional one now; processing fills in the real one
+        const autoTitle = needsAutoTitle(input.title, sourceUrl);
+        const title = autoTitle ? provisionalTitle(type, sourceUrl, type === "note" ? input.note : null, file?.originalname) : input.title!.trim();
+
         const memory = await prisma.memories.create({
             data: {
                 userId,
                 type: type as any,
-                title: input.title,
+                title,
                 source_url: sourceUrl,
                 file_path: filePath,
                 note: type === "note" ? input.note : null,
@@ -183,13 +188,14 @@ contentRouter.post("/api/content", MiddleWhere, upload.single("file"), async (re
                     context,
                     canonical_url: canonicalUrl,
                     thumbnail_url: type === "youtube" && sourceUrl ? youtubeThumbnail(sourceUrl) : null,
+                    ...(autoTitle ? { auto_title: true } : {}),
                 },
                 collections: collection ? { connect: { id: collection.id } } : undefined,
             },
         });
 
         wakeWorker();
-        return res.status(201).json({ message: "Content saved, processing...", success: true, id: memory.id, type });
+        return res.status(201).json({ message: "Content saved, processing...", success: true, id: memory.id, type, title: memory.title, autoTitle });
     } catch (error) {
         await removeTmp(file);
         log("error", "create memory failed", { error: String(error) });
@@ -387,7 +393,10 @@ contentRouter.patch("/api/content/:id", MiddleWhere, async (req, res) => {
             tags: input.tags ? cleanTags(input.tags, 10) : undefined,
             starred: input.starred,
             archived: input.archived,
-            metadata: contextChanged ? { ...meta, context: input.context?.trim() || null } : undefined,
+            // A title the user typed is kept from then on, instead of the automatic one
+            metadata: contextChanged || (titleChanged && meta.auto_title)
+                ? { ...meta, ...(contextChanged ? { context: input.context?.trim() || null } : {}), ...(titleChanged ? { auto_title: false } : {}) }
+                : undefined,
             ...(reindex ? { status: "pending", attempts: 0, nextAttemptAt: null, error: null } : {}),
         },
         include: { collections: { select: { id: true, name: true } } },

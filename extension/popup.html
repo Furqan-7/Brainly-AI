@@ -5,16 +5,36 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <header><strong>🧠 Brainly AI</strong><a id="options" href="#">Settings</a></header>
+  <header><strong><span class="mark">✦</span> Brainly</strong><a id="options" href="#">Settings</a></header>
 
-  <section id="save">
-    <label>Title <input id="title" /></label>
-    <label>Why are you saving this? <textarea id="context" rows="2" placeholder="Optional — makes it easier to find later"></textarea></label>
-    <button id="saveBtn">Save this page</button>
-    <p id="status"></p>
+  <!-- Not signed in -->
+  <section id="connect" hidden>
+    <p class="big">Connect your Brainly account</p>
+    <p class="muted">One click, no token to copy. Then save any page by clicking this icon.</p>
+    <button id="connectBtn" class="primary">Connect Brainly</button>
   </section>
 
-  <section id="find">
+  <!-- Saving the current page -->
+  <section id="save" hidden>
+    <div class="card">
+      <div id="thumb" class="thumb">✦</div>
+      <div class="info">
+        <p id="state" class="state">Saving this page…</p>
+        <p id="title" class="title"></p>
+        <p id="summary" class="muted small"></p>
+      </div>
+    </div>
+    <p id="status" class="small"></p>
+    <div id="noteBox" hidden>
+      <textarea id="note" rows="2" placeholder="Add a note (optional): why are you saving this?"></textarea>
+      <div class="row">
+        <button id="noteBtn" class="ghost" hidden>Save note</button>
+        <a id="undo" href="#" class="muted small">Undo</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="find" hidden>
     <form id="searchForm"><input id="q" placeholder="Search your brain…" /></form>
     <ul id="results"></ul>
   </section>

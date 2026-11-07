@@ -226,10 +226,6 @@ export default function AddContent({
     }
 
     async function handleSubmit(allowDuplicate = false) {
-        if (!isImport && !title.trim()) {
-            setSaveError("Please add a title so you can find this later.");
-            return;
-        }
         if (isUrlType && !url.trim()) {
             setSaveError("Please paste a link.");
             return;
@@ -249,7 +245,7 @@ export default function AddContent({
                 if (!file) throw new Error("Please choose a file.");
                 const formdata = new FormData();
                 formdata.append("type", activeType);
-                formdata.append("title", title);
+                if (title.trim()) formdata.append("title", title.trim());
                 formdata.append("context", context);
                 formdata.append("tags", tags);
                 if (collectionId) formdata.append("collectionId", String(collectionId));
@@ -258,7 +254,8 @@ export default function AddContent({
             } else {
                 await addMemory({
                     type: activeType,
-                    title,
+                    // Left empty, Brainly names it from the page, video or text
+                    title: title.trim() || undefined,
                     source_url: url,
                     note,
                     context,
@@ -340,19 +337,14 @@ export default function AddContent({
                 <div className="px-5 sm:px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     {!isImport && (
                         <div className="space-y-1.5">
-                            <label className={labelClass}>Title</label>
+                            <label className={labelClass}>Title <span className="normal-case tracking-normal font-normal">(optional)</span></label>
                             <input
                                 type="text"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                placeholder={activeConfig.placeholder}
+                                placeholder="Leave empty and Brainly names it for you"
                                 className={inputClass}
                             />
-                            {(activeType === "reel" || activeType === "tiktok") && (
-                                <p className="text-[11px] text-on-surface-variant">
-                                    Tip: a descriptive title helps you find this video later by searching.
-                                </p>
-                            )}
                         </div>
                     )}
 

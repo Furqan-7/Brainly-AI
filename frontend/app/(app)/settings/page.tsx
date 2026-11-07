@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Copy, LogOut, Puzzle, Smartphone } from "lucide-react";
 import { getExtensionToken, logout } from "@/app/services/api";
@@ -90,25 +91,33 @@ export default function SettingsPage() {
                 <div className="grid gap-4">
                     <ol className="m-0 grid list-decimal gap-1.5 pl-5 text-[14.5px] text-on-surface-variant">
                         <li>Install the Brainly extension in Chrome or Edge.</li>
-                        <li>Copy your extension token below.</li>
-                        <li>Open the extension&apos;s settings and paste it in.</li>
+                        <li>Click <b>Connect Brainly</b> (in the extension, or below). It signs in by itself.</li>
+                        <li>Click the Brainly icon on any page to save it. Brainly adds the title, summary and tags.</li>
                     </ol>
-                    <button
-                        type="button"
-                        onClick={copyToken}
-                        className="flex w-fit items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm transition-colors hover:border-on-surface"
-                    >
-                        {token === "copied" ? <Check className="size-4 text-emerald-600" /> : token === "error" ? <Copy className="size-4 text-error" /> : <Puzzle className="size-4" />}
-                        {token === "copied" ? "Token copied" : token === "error" ? "Couldn't copy, try again" : "Copy extension token"}
-                    </button>
-                    <p className="text-xs text-on-surface-variant">The token signs the extension in for 90 days. Treat it like a password.</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                            href="/extension"
+                            className="flex w-fit items-center gap-2 bg-primary-container px-4 py-2.5 text-sm text-white transition-colors hover:bg-black"
+                        >
+                            <Puzzle className="size-4" /> Connect Brainly
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={copyToken}
+                            className="flex w-fit items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm transition-colors hover:border-on-surface"
+                        >
+                            {token === "copied" ? <Check className="size-4 text-emerald-600" /> : <Copy className={`size-4 ${token === "error" ? "text-error" : ""}`} />}
+                            {token === "copied" ? "Token copied" : token === "error" ? "Couldn't copy, try again" : "Copy token instead"}
+                        </button>
+                    </div>
+                    <p className="text-xs text-on-surface-variant">Connecting signs the extension in for 90 days. Only use the token on your own devices.</p>
                 </div>
             </Section>
 
             <Section title="On your phone" aside="Send reels and links to Brainly from any app.">
                 <p className="flex items-start gap-3 text-[14.5px] text-on-surface-variant">
                     <Smartphone className="mt-0.5 size-4 flex-none text-on-surface" />
-                    Open Brainly in Chrome on Android and choose “Install app”. Brainly then appears in the Share menu, so sharing a reel opens Add memory with the link filled in.
+                    Open Brainly in Chrome on Android and choose “Install app”. Brainly then appears in the Share menu: share a reel, video or link to it and it’s saved straight away, with the title, summary and tags added for you.
                 </p>
             </Section>
 
