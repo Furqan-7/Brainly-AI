@@ -21,7 +21,7 @@ export function Hero() {
 
             <div className="relative z-[2] grid content-center justify-items-center pt-[70px] pb-[74vw] text-center md:pt-10 md:pb-[120px]">
                 <HeroFade delay={0.2}>
-                    <p className="mb-[22px] bg-lp-chip px-[0.7em] py-[0.55em] font-lp-body text-[clamp(13px,1.05vw,17px)] leading-none tracking-[0.02em] uppercase">
+                    <p className="mb-[22px] rounded-md bg-lp-chip px-[0.7em] py-[0.55em] font-lp-body text-[clamp(13px,1.05vw,17px)] leading-none tracking-[0.02em] uppercase">
                         <span className="text-lp-shimmer animate-lp-shimmer motion-reduce:animate-none">Your second brain — now saves reels</span>
                     </p>
                 </HeroFade>

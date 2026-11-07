@@ -38,14 +38,14 @@ function ItemRow({ item, onReviewed }: { item: RediscoverItem; onReviewed?: (id:
                 <div className="flex gap-1 shrink-0">
                     <button
                         onClick={() => review(true)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 cursor-pointer"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 cursor-pointer disabled:cursor-not-allowed"
                         title="I remember this — show it less often"
                     >
                         <Check className="w-3 h-3" /> Got it
                     </button>
                     <button
                         onClick={() => review(false)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-on-surface/5 text-on-surface-variant hover:bg-on-surface/10 cursor-pointer"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-on-surface/5 text-on-surface-variant hover:bg-on-surface/10 cursor-pointer disabled:cursor-not-allowed"
                         title="Show me this again soon"
                     >
                         <RotateCcw className="w-3 h-3" /> Again

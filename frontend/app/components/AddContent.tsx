@@ -317,7 +317,7 @@ export default function AddContent({
                                 <button
                                     key={type}
                                     onClick={() => handleTypeChange(type)}
-                                    className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-all cursor-pointer ${isActive
+                                    className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-all cursor-pointer disabled:cursor-not-allowed ${isActive
                                         ? "bg-primary/15 border-primary/40 text-primary"
                                         : "bg-on-surface/4 border-on-surface/8 text-on-surface-variant hover:bg-on-surface/8 hover:text-on-surface hover:border-on-surface/15"
                                         }`}
@@ -390,7 +390,7 @@ export default function AddContent({
                                         <button
                                             type="button"
                                             onClick={recorder.recording ? recorder.stop : recorder.start}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer ${recorder.recording
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer disabled:cursor-not-allowed ${recorder.recording
                                                 ? "bg-error/20 text-error border border-error/40"
                                                 : "bg-violet-500/15 text-violet-600 border border-violet-500/30"
                                                 }`}
@@ -413,7 +413,7 @@ export default function AddContent({
                                     onDragLeave={() => setDragOver(false)}
                                     onDrop={handleDrop}
                                     onClick={() => fileInputRef.current?.click()}
-                                    className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${dragOver
+                                    className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer disabled:cursor-not-allowed transition-all ${dragOver
                                         ? "border-primary/60 bg-primary/8"
                                         : file
                                             ? "border-primary/40 bg-primary/5"
@@ -510,7 +510,7 @@ export default function AddContent({
                             <select
                                 value={collectionId}
                                 onChange={(e) => setCollectionId(e.target.value ? Number(e.target.value) : "")}
-                                className={`${inputClass} cursor-pointer`}
+                                className={`${inputClass} cursor-pointer disabled:cursor-not-allowed`}
                             >
                                 <option value="">None</option>
                                 {collections.map((c) => (
@@ -527,7 +527,7 @@ export default function AddContent({
                     {duplicateOf && (
                         <div className="flex items-center justify-end gap-3 text-xs text-amber-300">
                             <span>{duplicateOf}.</span>
-                            <button onClick={() => handleSubmit(true)} className="underline hover:text-amber-200 cursor-pointer">
+                            <button onClick={() => handleSubmit(true)} className="underline hover:text-amber-200 cursor-pointer disabled:cursor-not-allowed">
                                 Save anyway
                             </button>
                         </div>
@@ -547,7 +547,7 @@ export default function AddContent({
                             <button
                                 onClick={() => handleSubmit()}
                                 disabled={saving || recorder.recording}
-                                className="px-5 py-2 rounded-lg text-sm font-semibold bg-primary-container hover:bg-black text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/10 disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                                className="px-5 py-2 rounded-lg text-sm font-semibold bg-primary-container hover:bg-black text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/10 disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                             >
                                 {saving ? (
                                     <>

@@ -61,7 +61,7 @@ function CollectionRow({ collection, onChange, onDelete }: {
                         {collection.memoryCount} {collection.memoryCount === 1 ? "memory" : "memories"}
                     </p>
                 </div>
-                <button onClick={remove} className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-error hover:bg-error/10 cursor-pointer" title="Delete collection">
+                <button onClick={remove} className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-error hover:bg-error/10 cursor-pointer disabled:cursor-not-allowed" title="Delete collection">
                     <Trash2 className="w-3.5 h-3.5" />
                 </button>
             </div>
@@ -70,7 +70,7 @@ function CollectionRow({ collection, onChange, onDelete }: {
                 <button
                     onClick={toggleShare}
                     disabled={busy}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer ${collection.shareSlug
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer disabled:cursor-not-allowed ${collection.shareSlug
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600"
                         : "bg-on-surface/5 border-on-surface/10 text-on-surface-variant hover:text-on-surface"
                         }`}
@@ -79,7 +79,7 @@ function CollectionRow({ collection, onChange, onDelete }: {
                     {collection.shareSlug ? "Public — click to make private" : "Private — click to share"}
                 </button>
                 {collection.shareSlug && (
-                    <button onClick={copy} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs bg-on-surface/5 border border-on-surface/10 text-on-surface-variant hover:text-on-surface cursor-pointer">
+                    <button onClick={copy} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs bg-on-surface/5 border border-on-surface/10 text-on-surface-variant hover:text-on-surface cursor-pointer disabled:cursor-not-allowed">
                         {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                         {copied ? "Copied!" : "Copy link"}
                     </button>
@@ -135,7 +135,7 @@ export default function CollectionsPage() {
                     <button
                         type="submit"
                         disabled={!name.trim()}
-                        className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-sm font-bold disabled:opacity-50 cursor-pointer"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-sm font-bold disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                     >
                         <Plus className="w-4 h-4" /> Create
                     </button>

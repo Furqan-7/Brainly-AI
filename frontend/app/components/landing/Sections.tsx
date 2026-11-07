@@ -117,7 +117,7 @@ export function SaveTypes() {
                                 </svg>
                                 {t.name}
                                 {t.isNew && (
-                                    <span className="ml-auto px-1.5 py-1 text-[10.5px] leading-none font-normal tracking-[0.06em] text-lp-signal uppercase shadow-[inset_0_0_0_1px_var(--color-lp-signal)]">
+                                    <span className="rounded-md ml-auto px-1.5 py-1 text-[10.5px] leading-none font-normal tracking-[0.06em] text-lp-signal uppercase shadow-[inset_0_0_0_1px_var(--color-lp-signal)]">
                                         New
                                     </span>
                                 )}
@@ -150,13 +150,13 @@ export function Organise() {
                 <SectionHead eyebrow="Keep it tidy" title="A brain that also tidies up." />
                 <Stagger className="grid gap-5 min-[900px]:grid-cols-3">
                     {FEATURES.map((f) => (
-                        <SpotlightCard key={f.title} className="grid min-w-0 content-start gap-2.5 border border-transparent p-6 transition-[border-color,background-color] duration-300 hover:border-lp-line hover:bg-lp-card">
+                        <SpotlightCard key={f.title} className="rounded-2xl grid min-w-0 content-start gap-2.5 border border-transparent p-6 transition-[border-color,background-color] duration-300 hover:border-lp-line hover:bg-lp-card">
                             <h3 className={h3}>{f.title}</h3>
                             <p className="text-[15.5px] leading-[1.6] text-lp-muted">{f.text}</p>
                             {f.intervals && (
                                 <div className="mt-1 flex flex-wrap gap-1.5 text-[11.5px]" aria-label="Review intervals">
                                     {f.intervals.map((d) => (
-                                        <span key={d} className="px-[7px] py-1 shadow-[inset_0_0_0_1px_var(--color-lp-line)]">{d}</span>
+                                        <span key={d} className="rounded-md px-[7px] py-1 shadow-[inset_0_0_0_1px_var(--color-lp-line)]">{d}</span>
                                     ))}
                                 </div>
                             )}
@@ -186,7 +186,7 @@ export function Faq() {
                 <Reveal className="mx-auto max-w-[820px] border-t border-lp-rule">
                     {FAQS.map((item, i) => (
                         <details key={item.q} open={i === 0} className="group border-b border-lp-rule py-5">
-                            <summary className="flex cursor-pointer list-none justify-between gap-5 font-lp-display text-[1.3rem] leading-[1.3] transition-transform duration-300 hover:translate-x-1 [&::-webkit-details-marker]:hidden">
+                            <summary className="flex cursor-pointer disabled:cursor-not-allowed list-none justify-between gap-5 font-lp-display text-[1.3rem] leading-[1.3] transition-transform duration-300 hover:translate-x-1 [&::-webkit-details-marker]:hidden">
                                 {item.q}
                                 <span aria-hidden="true" className="grid size-7 flex-none place-items-center rounded-full font-lp-body text-lg leading-none text-lp-muted shadow-[inset_0_0_0_1px_var(--color-lp-line)] transition-transform duration-300 group-open:rotate-45">+</span>
                             </summary>

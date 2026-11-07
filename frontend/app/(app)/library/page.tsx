@@ -87,14 +87,14 @@ export default function LibraryPage() {
             {/* Controls */}
             <div className="mt-8 grid gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex shadow-[inset_0_0_0_1px_var(--color-outline-variant)]" role="group" aria-label="View">
+                    <div className="overflow-hidden rounded-lg inline-flex shadow-[inset_0_0_0_1px_var(--color-outline-variant)]" role="group" aria-label="View">
                         {viewTabs.map((t) => (
                             <button
                                 key={t.id}
                                 type="button"
                                 onClick={() => setView(t.id)}
                                 aria-pressed={view === t.id}
-                                className={`px-3.5 py-2 text-[13.5px] transition-colors cursor-pointer ${view === t.id ? "bg-primary-container text-white" : "text-on-surface-variant hover:text-on-surface"}`}
+                                className={`px-3.5 py-2 text-[13.5px] transition-colors cursor-pointer disabled:cursor-not-allowed ${view === t.id ? "bg-primary-container text-white" : "text-on-surface-variant hover:text-on-surface"}`}
                             >
                                 {t.label}
                             </button>
@@ -104,7 +104,7 @@ export default function LibraryPage() {
                         <select
                             value={collectionId ?? ""}
                             onChange={(e) => setCollectionId(e.target.value ? Number(e.target.value) : undefined)}
-                            className="cursor-pointer border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13.5px] outline-none"
+                            className="rounded-lg cursor-pointer disabled:cursor-not-allowed border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13.5px] outline-none"
                             aria-label="Collection"
                         >
                             <option value="">All collections</option>
@@ -121,7 +121,7 @@ export default function LibraryPage() {
                             key={f.label}
                             type="button"
                             onClick={() => setFilter(f.label)}
-                            className={`px-3 py-1.5 text-[13px] transition-colors cursor-pointer ${filter === f.label
+                            className={`rounded-lg px-3 py-1.5 text-[13px] transition-colors cursor-pointer disabled:cursor-not-allowed ${filter === f.label
                                 ? "bg-primary-container text-white"
                                 : "text-on-surface-variant shadow-[inset_0_0_0_1px_var(--color-outline-variant)] hover:bg-surface-container-high hover:text-on-surface"
                                 }`}
@@ -138,14 +138,14 @@ export default function LibraryPage() {
                         onChange={(e) => setText(e.target.value)}
                         placeholder="Filter by title, summary, tag or link…"
                         aria-label="Filter memories"
-                        className="w-full border border-outline-variant bg-surface-container-lowest py-2.5 pr-3 pl-10 text-[14.5px] outline-none placeholder:text-on-surface-variant/70 focus:border-on-surface"
+                        className="rounded-xl w-full border border-outline-variant bg-surface-container-lowest py-2.5 pr-3 pl-10 text-[14.5px] outline-none placeholder:text-on-surface-variant/70 focus:border-on-surface"
                     />
                 </div>
 
                 {(topTags.length > 0 || tag) && (
                     <div className="flex flex-wrap items-center gap-1.5">
                         {tag && (
-                            <button type="button" onClick={() => setTag(null)} className="flex items-center gap-1 bg-primary px-2 py-1 text-[12px] text-white cursor-pointer">
+                            <button type="button" onClick={() => setTag(null)} className="flex items-center gap-1 bg-primary px-2 py-1 text-[12px] text-white cursor-pointer disabled:cursor-not-allowed">
                                 #{tag} <X className="size-3" />
                             </button>
                         )}
@@ -154,7 +154,7 @@ export default function LibraryPage() {
                                 key={t.tag}
                                 type="button"
                                 onClick={() => setTag(t.tag)}
-                                className="px-2 py-1 text-[12px] text-on-surface-variant shadow-[inset_0_0_0_1px_var(--color-outline-variant)] transition-colors hover:text-on-surface cursor-pointer"
+                                className="rounded-md px-2 py-1 text-[12px] text-on-surface-variant shadow-[inset_0_0_0_1px_var(--color-outline-variant)] transition-colors hover:text-on-surface cursor-pointer disabled:cursor-not-allowed"
                             >
                                 #{t.tag} <span className="opacity-50">{t.count}</span>
                             </button>
@@ -199,7 +199,7 @@ export default function LibraryPage() {
             ) : filtered ? (
                 <p className="py-16 text-center text-sm text-on-surface-variant">Nothing matches these filters.</p>
             ) : (
-                <div className="mt-10 grid items-center gap-8 border border-outline-variant bg-surface-container-lowest p-6 md:grid-cols-[1fr_320px] md:p-10">
+                <div className="rounded-2xl mt-10 grid items-center gap-8 border border-outline-variant bg-surface-container-lowest p-6 md:grid-cols-[1fr_320px] md:p-10">
                     <div className="grid gap-4">
                         <h2 className="font-headline text-3xl leading-tight font-normal tracking-[-0.02em]">Plant your first memory.</h2>
                         <p className="max-w-[46ch] text-on-surface-variant">
@@ -208,7 +208,7 @@ export default function LibraryPage() {
                         <button
                             type="button"
                             onClick={() => openAddContent()}
-                            className="flex w-fit items-center gap-2 bg-primary-container px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-black"
+                            className="rounded-xl flex w-fit items-center gap-2 bg-primary-container px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-black"
                         >
                             <Plus className="size-4" /> Add your first memory
                         </button>

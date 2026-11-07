@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
     Copy,
+    Download,
     FolderOpen,
     Library,
     Loader2,
@@ -21,6 +22,7 @@ import {
     type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/app/hooks/useAuth";
+import { useInstall } from "@/app/components/pwa";
 import { deleteConversation, getCollections, getConversations, logout } from "@/app/services/api";
 import type { Collection, ConversationSummary, Me } from "@/app/types/memory";
 import AddContent from "@/app/components/AddContent";
@@ -107,6 +109,28 @@ const chatRow = (active: boolean) =>
 
 const VISIBLE_CHATS = 8;
 
+/** "Install app" in the sidebar, only when the browser can install Brainly right now. */
+function InstallRow({ onNavigate }: { onNavigate?: () => void }) {
+    const { state, install } = useInstall();
+    if (state !== "available") return null;
+    return (
+        <button
+            type="button"
+            onClick={() => {
+                onNavigate?.();
+                void install();
+            }}
+            className="-mb-1 flex items-center gap-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-left text-[13px] transition-colors hover:border-on-surface/40"
+        >
+            <Download className="size-4 flex-none" />
+            <span className="grid">
+                <span className="font-medium">Install Brainly app</span>
+                <span className="text-[11.5px] text-on-surface-variant">Save from any app&apos;s Share menu</span>
+            </span>
+        </button>
+    );
+}
+
 function ChatsNav({ onNavigate }: { onNavigate?: () => void }) {
     const { chats, reloadChats } = useShell();
     const pathname = usePathname();
@@ -190,7 +214,7 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
             <button
                 type="button"
                 onClick={onAdd}
-                className={`group/btn ${shine} flex items-center justify-center gap-2 bg-primary-container px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-black`}
+                className={`rounded-xl group/btn ${shine} flex items-center justify-center gap-2 bg-primary-container px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-black`}
             >
                 <Plus className="size-4 transition-transform duration-300 group-hover/btn:rotate-90" />
                 Add memory
@@ -211,7 +235,7 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
                             {active && (
                                 <motion.span
                                     layoutId="nav-active"
-                                    className="absolute inset-0 -z-10 bg-surface-container-high shadow-[inset_2px_0_0_var(--color-primary)]"
+                                    className="rounded-lg absolute inset-0 -z-10 bg-surface-container-high shadow-[inset_2px_0_0_var(--color-primary)]"
                                     transition={{ type: "spring", stiffness: 380, damping: 32 }}
                                 />
                             )}
@@ -227,6 +251,7 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
             </Suspense>
 
             <div className="mt-auto grid gap-4 border-t border-outline-variant pt-5">
+                <InstallRow onNavigate={onNavigate} />
                 {me && (
                     <div className="grid gap-3 px-1">
                         <UsageBar label="Memories" used={me.usage.memoryCount} limit={me.plan.maxMemories} />
@@ -355,10 +380,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <header className="sticky top-0 z-30 flex items-center justify-between border-b border-outline-variant bg-background/90 px-4 py-3 backdrop-blur md:hidden">
                     <Logo />
                     <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => openAddContent()} className="grid size-9 place-items-center bg-primary-container text-white" title="Add memory">
+                        <button type="button" onClick={() => openAddContent()} className="rounded-lg grid size-9 place-items-center bg-primary-container text-white" title="Add memory">
                             <Plus className="size-4" />
                         </button>
-                        <button type="button" onClick={() => setDrawer(true)} className="grid size-9 place-items-center shadow-[inset_0_0_0_1px_var(--color-outline-variant)]" title="Menu">
+                        <button type="button" onClick={() => setDrawer(true)} className="rounded-lg grid size-9 place-items-center shadow-[inset_0_0_0_1px_var(--color-outline-variant)]" title="Menu">
                             <Menu className="size-4" />
                         </button>
                     </div>
@@ -426,7 +451,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 export function PageHeader({ eyebrow, title, children }: { eyebrow: string; title: React.ReactNode; children?: React.ReactNode }) {
     return (
         <header className="mb-8 grid gap-3">
-            <span className="w-fit bg-surface-container-high px-2.5 py-1.5 text-[12px] leading-none tracking-[0.05em] uppercase">{eyebrow}</span>
+            <span className="rounded-md w-fit bg-surface-container-high px-2.5 py-1.5 text-[12px] leading-none tracking-[0.05em] uppercase">{eyebrow}</span>
             <h1 className="font-headline text-[clamp(2rem,3.4vw,3rem)] leading-[1.05] font-normal tracking-[-0.025em] text-balance">{title}</h1>
             {children && <div className="max-w-[60ch] text-[15.5px] leading-[1.6] text-on-surface-variant">{children}</div>}
         </header>

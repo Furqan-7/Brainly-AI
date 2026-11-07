@@ -92,7 +92,7 @@ export function AuthLayout({
 export function AuthHeading({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) {
     return (
         <div className="grid gap-3">
-            <span className="w-fit bg-surface-container-high px-2.5 py-1.5 text-[12px] leading-none tracking-[0.05em] uppercase">{eyebrow}</span>
+            <span className="rounded-md w-fit bg-surface-container-high px-2.5 py-1.5 text-[12px] leading-none tracking-[0.05em] uppercase">{eyebrow}</span>
             <h1 className="font-headline text-[2.6rem] leading-[1.02] font-normal tracking-[-0.03em] text-balance">{title}</h1>
             <p className="text-[15px] leading-[1.6] text-on-surface-variant">{children}</p>
         </div>
@@ -132,7 +132,7 @@ export function Field({
                     placeholder={placeholder}
                     autoComplete={autoComplete}
                     required
-                    className="w-full border border-outline-variant bg-surface-container-lowest px-3.5 py-3 text-[15px] outline-none transition-[border-color,box-shadow] placeholder:text-on-surface-variant/60 focus:border-on-surface focus:shadow-[0_0_0_3px_rgba(20,20,20,0.06)]"
+                    className="rounded-xl w-full border border-outline-variant bg-surface-container-lowest px-3.5 py-3 text-[15px] outline-none transition-[border-color,box-shadow] placeholder:text-on-surface-variant/60 focus:border-on-surface focus:shadow-[0_0_0_3px_rgba(20,20,20,0.06)]"
                 />
                 {isPassword && (
                     <button
@@ -155,7 +155,7 @@ export function SubmitButton({ loading, children }: { loading: boolean; children
         <button
             type="submit"
             disabled={loading}
-            className={`group/btn ${shine} flex h-[52px] w-full items-center justify-center gap-2.5 bg-primary-container text-[15.5px] font-medium text-white transition-[background-color,transform] hover:bg-black active:scale-[0.99] disabled:opacity-70`}
+            className={`rounded-xl group/btn ${shine} flex h-[52px] w-full items-center justify-center gap-2.5 bg-primary-container text-[15.5px] font-medium text-white transition-[background-color,transform] hover:bg-black active:scale-[0.99] disabled:opacity-70`}
         >
             {loading ? <Loader2 className="size-4 animate-spin" /> : <>{children}<ArrowChip /></>}
         </button>
@@ -174,7 +174,7 @@ export function GoogleButton({ label }: { label: string }) {
                 } catch { /* storage blocked */ }
                 window.location.assign("/backend/auth/google");
             }}
-            className="group relative isolate flex h-[52px] w-full items-center justify-center gap-3 overflow-hidden border border-outline-variant bg-surface-container-lowest text-[15px] font-medium transition-colors before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:bg-surface-container-high before:transition-transform before:duration-500 hover:border-on-surface hover:before:scale-x-100"
+            className="rounded-xl group relative isolate flex h-[52px] w-full items-center justify-center gap-3 overflow-hidden border border-outline-variant bg-surface-container-lowest text-[15px] font-medium transition-colors before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:bg-surface-container-high before:transition-transform before:duration-500 hover:border-on-surface hover:before:scale-x-100"
         >
             <GoogleLogoAnimation className="size-6" scale={1.8} />
             {label}
@@ -199,7 +199,7 @@ export function FormError({ message }: { message: string }) {
             role="alert"
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-start gap-2 border border-error/30 bg-error/5 px-3 py-2.5 text-[13.5px] text-error"
+            className="rounded-xl flex items-start gap-2 border border-error/30 bg-error/5 px-3 py-2.5 text-[13.5px] text-error"
         >
             <AlertCircle className="mt-0.5 size-4 flex-none" />
             {message}

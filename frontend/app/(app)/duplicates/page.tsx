@@ -64,7 +64,7 @@ export default function DuplicatesPage() {
                                 const meta = TYPE_META[m.type];
                                 const Icon = meta.icon;
                                 return (
-                                    <label key={m.id} className="flex items-center gap-3 text-sm cursor-pointer">
+                                    <label key={m.id} className="flex items-center gap-3 text-sm cursor-pointer disabled:cursor-not-allowed">
                                         <input
                                             type="radio"
                                             name={group.key}
@@ -82,7 +82,7 @@ export default function DuplicatesPage() {
                                 <button
                                     onClick={() => merge(group.key)}
                                     disabled={busy === group.key}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold disabled:opacity-50 cursor-pointer"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                                 >
                                     {busy === group.key ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Merge className="w-3.5 h-3.5" />}
                                     Keep selected, merge {group.memories.length - 1} other{group.memories.length > 2 ? "s" : ""}

@@ -48,6 +48,34 @@
   --color-inverse-primary: #f0a88f;
 }
 
+/* Everything clickable shows the hand cursor (Tailwind v4 leaves buttons on the arrow), and
+   form fields get soft corners unless a component sets its own. Utilities still override these. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary,
+  label[for],
+  label:has(> input[type="checkbox"]),
+  select,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="range"],
+  input[type="color"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    border-radius: 0.625rem;
+  }
+}
+
 @layer utilities {
   .lavender-glow {
     box-shadow: 0 0 40px 10px rgba(201, 190, 255, 0.1);

@@ -69,7 +69,7 @@ export function ContentGrid({
             <div ref={sentinel} className="flex justify-center py-6">
                 {loadingMore && <Loader2 className="w-5 h-5 text-on-surface-variant/40 animate-spin" />}
                 {hasMore && !loadingMore && onLoadMore && (
-                    <button onClick={onLoadMore} className="text-xs text-on-surface-variant/60 hover:text-on-surface cursor-pointer">
+                    <button onClick={onLoadMore} className="text-xs text-on-surface-variant/60 hover:text-on-surface cursor-pointer disabled:cursor-not-allowed">
                         Load more
                     </button>
                 )}

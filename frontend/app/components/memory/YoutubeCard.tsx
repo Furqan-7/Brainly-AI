@@ -24,7 +24,7 @@ export function YoutubeCard({
             {/* Delete button */}
             <button
                 onClick={handleDelete}
-                className="absolute top-2 right-2 z-20 p-1.5 rounded-lg bg-surface-container/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer"
+                className="absolute top-2 right-2 z-20 p-1.5 rounded-lg bg-surface-container/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                 title="Delete memory"
             >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -103,7 +103,7 @@ export function YoutubeCard({
                     <span className="text-[9px] font-medium text-on-surface-variant/50">
                         {new Date(memory.createdAt).toLocaleDateString()}
                     </span>
-                    <Bookmark className="w-3.5 h-3.5 text-on-surface-variant/40 hover:text-primary transition-colors cursor-pointer" />
+                    <Bookmark className="w-3.5 h-3.5 text-on-surface-variant/40 hover:text-primary transition-colors cursor-pointer disabled:cursor-not-allowed" />
                 </div>
             </div>
         </div>

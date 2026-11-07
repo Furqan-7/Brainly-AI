@@ -92,7 +92,7 @@ function CollectionPicker({
         >
             <p className="px-2 py-1 text-[10px] uppercase tracking-widest text-on-surface-variant">Collections</p>
             {collections.map((c) => (
-                <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-on-surface/6 text-xs text-on-surface cursor-pointer">
+                <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-on-surface/6 text-xs text-on-surface cursor-pointer disabled:cursor-not-allowed">
                     <input type="checkbox" checked={current.has(c.id)} onChange={() => toggle(c)} className="accent-primary" />
                     <span className="truncate">{c.name}</span>
                 </label>
@@ -127,7 +127,7 @@ export function MemoryCard({ memory, collections = [], onDelete, onUpdate, onTag
         setRetrying(false);
     };
 
-    const actionClass = "p-1.5 rounded-lg text-on-surface-variant/60 hover:text-on-surface hover:bg-on-surface/8 transition-colors cursor-pointer";
+    const actionClass = "p-1.5 rounded-lg text-on-surface-variant/60 hover:text-on-surface hover:bg-on-surface/8 transition-colors cursor-pointer disabled:cursor-not-allowed";
 
     return (
         <div className="relative group/memory flex flex-col gap-2">
@@ -148,7 +148,7 @@ export function MemoryCard({ memory, collections = [], onDelete, onUpdate, onTag
                     <span className="flex-1 line-clamp-2" title={memory.error ?? undefined}>
                         Couldn&apos;t process this{memory.error ? `: ${memory.error}` : "."}
                     </span>
-                    <button onClick={retry} disabled={retrying} className="flex items-center gap-1 font-semibold hover:text-on-surface cursor-pointer">
+                    <button onClick={retry} disabled={retrying} className="flex items-center gap-1 font-semibold hover:text-on-surface cursor-pointer disabled:cursor-not-allowed">
                         <RotateCw className={`w-3 h-3 ${retrying ? "animate-spin" : ""}`} /> Retry
                     </button>
                 </div>
@@ -161,7 +161,7 @@ export function MemoryCard({ memory, collections = [], onDelete, onUpdate, onTag
                         <button
                             key={tag}
                             onClick={() => onTagClick?.(tag)}
-                            className="px-1.5 py-0.5 rounded-md bg-on-surface/5 border border-on-surface/8 text-[10px] text-on-surface-variant/70 hover:text-on-surface hover:border-on-surface/20 cursor-pointer"
+                            className="px-1.5 py-0.5 rounded-md bg-on-surface/5 border border-on-surface/8 text-[10px] text-on-surface-variant/70 hover:text-on-surface hover:border-on-surface/20 cursor-pointer disabled:cursor-not-allowed"
                         >
                             #{tag}
                         </button>
