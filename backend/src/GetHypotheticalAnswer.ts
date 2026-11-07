@@ -11,8 +11,12 @@ export async function GetHypotheticalAnswer(question: string): Promise<string> {
                     content: `Write a short, plausible-sounding paragraph that could answer this question. It doesn't need to be factually correct — it's used only to improve semantic search.\n\nQuestion: ${question}`,
                 },
             ],
-            max_tokens: 150,
+            max_tokens: 120,
             reasoning_effort: "low", // gpt-oss-20b requires low/medium/high, not "none"
+        }, {
+            // The search only waits ~1.5s for this (rag.ts); don't keep a slow request alive or retry it
+            timeout: Number(process.env.HYDE_TIMEOUT_MS ?? 1500) + 1000,
+            maxRetries: 0,
         });
         return completion.choices[0].message.content ?? question;
     } catch (error) {

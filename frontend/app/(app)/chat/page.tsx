@@ -9,7 +9,8 @@ import { SearchResults } from "@/app/components/chat/SearchResults";
 import { SourceViewer } from "@/app/components/chat/Sources";
 import { ALL_TYPES, TYPE_META } from "@/app/components/memory/typeMeta";
 import type { MemoryType, SearchFilters, Source } from "@/app/types/memory";
-import { NEW_CHAT, useShell } from "../AppShell";
+import { clearSearchCache } from "@/app/services/api";
+import { MEMORIES_CHANGED, NEW_CHAT, useShell } from "../AppShell";
 
 const dateRanges = [
     { label: "Any time", days: 0 },
@@ -31,7 +32,8 @@ type Mode = "ask" | "search";
 function buildFilters(types: MemoryType[], rangeDays: number): SearchFilters {
     return {
         types: types.length ? types : undefined,
-        from: rangeDays ? new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        // Rounded to the minute, so the same search can come from the cache
+        from: rangeDays ? new Date(Math.floor(Date.now() / 60_000) * 60_000 - rangeDays * 24 * 60 * 60 * 1000).toISOString() : undefined,
     };
 }
 
@@ -170,6 +172,28 @@ function Ask() {
         }
     };
 
+    // Search mode: results follow the text as you type (Enter still searches at once)
+    useEffect(() => {
+        if (mode !== "search") return;
+        const text = query.trim();
+        if (text.length < 2) return;
+        const timer = setTimeout(() => {
+            const filters = buildFilters(types, rangeDays);
+            setSearch((current) =>
+                current && current.text === text && JSON.stringify(current.filters) === JSON.stringify(filters)
+                    ? current
+                    : { text, nonce: newNonce(), filters }
+            );
+        }, 350);
+        return () => clearTimeout(timer);
+    }, [mode, query, types, rangeDays]);
+
+    // Saved something new: don't show cached results that miss it
+    useEffect(() => {
+        window.addEventListener(MEMORIES_CHANGED, clearSearchCache);
+        return () => window.removeEventListener(MEMORIES_CHANGED, clearSearchCache);
+    }, []);
+
     const toggleType = (type: MemoryType) =>
         setTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
 
@@ -178,7 +202,7 @@ function Ask() {
     const placeholder =
         mode === "ask"
             ? active ? 'Ask a follow-up, e.g. "show me more like that"' : 'Ask anything, e.g. "that reel about project ideas"'
-            : "Search titles, transcripts, notes…";
+            : "Search titles, transcripts, notes… (results appear as you type)";
 
     // Grow the question box with its text (up to a limit), like a chat app
     const inputRef = useRef<HTMLTextAreaElement>(null);

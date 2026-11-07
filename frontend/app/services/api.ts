@@ -178,11 +178,25 @@ export async function getPublicCollection(slug: string): Promise<{
 // Search, chat & conversations
 // ─────────────────────────────────────────────────────────────
 
-/** Plain search: ranked memories, no AI answer. */
-export async function searchMemories(q: string, filters: SearchFilters = {}): Promise<Source[]> {
-    const res = await api.get("/api/search", {
-        params: { q, types: filters.types?.join(","), from: filters.from, to: filters.to, collectionId: filters.collectionId },
-    });
+// Recent search results, so going back to a query (or retyping it) shows results instantly
+const searchCache = new Map<string, { results: Source[]; at: number }>();
+const SEARCH_CACHE_MS = 2 * 60 * 1000;
+
+/** Drops cached search results (after saving, editing or deleting memories). */
+export function clearSearchCache() {
+    searchCache.clear();
+}
+
+/** Plain search: ranked memories, no AI answer. `signal` cancels a search that's no longer needed. */
+export async function searchMemories(q: string, filters: SearchFilters = {}, signal?: AbortSignal): Promise<Source[]> {
+    const params = { q: q.trim(), types: filters.types?.join(","), from: filters.from, to: filters.to, collectionId: filters.collectionId };
+    const key = JSON.stringify(params).toLowerCase();
+    const hit = searchCache.get(key);
+    if (hit && Date.now() - hit.at < SEARCH_CACHE_MS) return hit.results;
+
+    const res = await api.get("/api/search", { params, signal });
+    searchCache.set(key, { results: res.data.results, at: Date.now() });
+    if (searchCache.size > 50) searchCache.delete(searchCache.keys().next().value!);
     return res.data.results;
 }
 

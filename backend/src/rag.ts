@@ -1,5 +1,6 @@
 import { GetHypotheticalAnswer } from "./GetHypotheticalAnswer";
-import { dedupeByMemory, expandWithNeighbors, hybridSearch, rerankChunks, RetrievedChunk } from "./Retrieval";
+import { dedupeByMemory, embedOne, expandWithNeighbors, hybridSearch, rerankChunks, RetrievedChunk } from "./Retrieval";
+import { log } from "./lib/logger";
 import { completeJson, ChatMessage } from "./lib/llm";
 import { hasFilters, mergeFilters, parseSearchFilters, SearchFilters } from "./lib/searchFilters";
 
@@ -32,10 +33,30 @@ export interface Source {
  * Turns a follow-up like "show me more like that" into a standalone search query using the
  * conversation so far. Returns the question unchanged when there's no history.
  */
+// How long the HyDE answer and the follow-up rewrite may take before the search goes ahead without them
+const HYDE_TIMEOUT_MS = Number(process.env.HYDE_TIMEOUT_MS ?? 1500);
+const REWRITE_TIMEOUT_MS = Number(process.env.REWRITE_TIMEOUT_MS ?? 2000);
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+    let timer: ReturnType<typeof setTimeout>;
+    const late = new Promise<T>((resolve) => {
+        timer = setTimeout(() => resolve(fallback), ms);
+    });
+    return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
+
+/** Whether a follow-up leans on the conversation ("that one", "more like it") or stands alone. */
+export function needsContext(question: string): boolean {
+    const words = question.trim().split(/\s+/).length;
+    return words <= 3 || /\b(that|this|those|these|it|its|they|them|their|he|him|she|her|his|more|another|other|others|same|similar|again|also|else|previous|earlier|above|last one|first one|second one|the one)\b/i.test(question);
+}
+
 export async function standaloneQuestion(question: string, history: ChatTurn[]): Promise<string> {
-    if (history.length === 0) return question;
+    // A self-contained follow-up needs no rewriting, which saves an AI call before the search
+    if (history.length === 0 || !needsContext(question)) return question;
     const transcript = history.slice(-6).map((t) => `${t.role}: ${t.content.slice(0, 600)}`).join("\n");
-    const { query } = await completeJson(
+    // Time-boxed like HyDE: if the rewrite is slow, search with the follow-up as typed
+    const { query } = await withTimeout(completeJson(
         `Rewrite the user's latest message as a standalone search query for their personal knowledge base,
 resolving references like "that", "it" or "more like this" from the conversation. Keep it short.
 Reply as JSON: {"query": "..."}
@@ -45,7 +66,7 @@ ${transcript}
 
 Latest message: ${question}`,
         { query: question }
-    );
+    ), REWRITE_TIMEOUT_MS, { query: question });
     return typeof query === "string" && query.trim() ? query.trim() : question;
 }
 
@@ -80,23 +101,56 @@ export async function searchWithFallback(
     question: string,
     explicit: SearchFilters,
     hypotheticalAnswer?: string,
-    topK = 10
+    topK = 10,
+    embeddings?: { question: number[] | null; hyde: number[] | null }
 ): Promise<{ results: RetrievedChunk[]; filters: SearchFilters }> {
     const filters = mergeFilters(explicit, parseSearchFilters(question));
-    let results = await hybridSearch({ userId, question, hypotheticalAnswer, topK, filters });
+    let results = await hybridSearch({ userId, question, hypotheticalAnswer, topK, filters, embeddings });
     if (results.length === 0 && hasFilters(filters) && !hasFilters(explicit)) {
-        results = await hybridSearch({ userId, question, hypotheticalAnswer, topK, filters: explicit });
+        results = await hybridSearch({ userId, question, hypotheticalAnswer, topK, filters: explicit, embeddings });
         return { results, filters: explicit };
     }
     return { results, filters };
 }
 
-/** Full retrieval for an AI answer: HyDE → hybrid search → dedupe → rerank (with cutoff) → expand. */
+
+/**
+ * Full retrieval for an AI answer: HyDE → hybrid search → dedupe → rerank (with cutoff) → expand.
+ * The question is embedded while HyDE runs, HyDE is time-boxed, and every external call has a
+ * fallback, so a slow provider costs a little quality instead of seconds.
+ */
 export async function retrieveContext(userId: number, question: string, explicit: SearchFilters) {
-    const hyde = await GetHypotheticalAnswer(question);
-    const { results, filters } = await searchWithFallback(userId, question, explicit, hyde);
+    const started = performance.now();
+    const lap = (() => {
+        let last = started;
+        return () => {
+            const now = performance.now();
+            const ms = Math.round(now - last);
+            last = now;
+            return ms;
+        };
+    })();
+
+    const [hyde, questionEmbedding] = await Promise.all([
+        withTimeout(GetHypotheticalAnswer(question), HYDE_TIMEOUT_MS, null),
+        embedOne(question, "search_query"),
+    ]);
+    const useHyde = hyde && hyde !== question ? hyde : undefined;
+    const hydeEmbedding = useHyde && questionEmbedding ? await embedOne(useHyde, "search_document") : null;
+    const tEmbed = lap();
+
+    const { results, filters } = await searchWithFallback(userId, question, explicit, useHyde, 10, { question: questionEmbedding, hyde: hydeEmbedding });
+    const tSearch = lap();
     const reranked = await rerankChunks(question, dedupeByMemory(results), 5);
+    const tRerank = lap();
     const chunks = await expandWithNeighbors(reranked);
+    const tExpand = lap();
+
+    log("info", "retrieval timings", {
+        ms: Math.round(performance.now() - started),
+        hydeAndEmbed: tEmbed, search: tSearch, rerank: tRerank, expand: tExpand,
+        hyde: Boolean(useHyde), vector: Boolean(questionEmbedding), results: results.length, kept: chunks.length,
+    });
     return { chunks, sources: toSources(chunks), filters };
 }
 
