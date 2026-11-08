@@ -6,37 +6,6 @@ const block = "scroll-mt-6 border-t border-lp-rule py-20 min-[560px]:py-[120px]"
 const h3 = "font-lp-display text-[1.45rem] leading-[1.04] font-normal tracking-[-0.025em]";
 const lead = "max-w-[58ch] text-[17px] leading-[1.6] text-lp-muted";
 
-/* ── The problem ─────────────────────────────────────────── */
-
-const LOST = [
-    { where: "Instagram", what: "The reel with five project ideas, somewhere in a \"Saved\" folder of 600 others." },
-    { where: "Browser", what: "Forty open tabs and a bookmarks bar nobody has opened since March." },
-    { where: "Downloads", what: "The paper you meant to finish, now called final_v2 (3).pdf." },
-    { where: "Camera roll", what: "A screenshot of a diagram, between a receipt and a parking spot." },
-];
-
-export function Problem() {
-    return (
-        <section className={block}>
-            <Wrap className="grid items-center gap-10 min-[900px]:grid-cols-[1.05fr_1fr] min-[900px]:gap-16">
-                <Reveal>
-                    <h2 className="font-lp-display text-[clamp(2.1rem,3.9vw,3.7rem)] leading-[1.04] font-normal tracking-[-0.025em] text-balance">
-                        You saved it. <em className="text-lp-muted">You just can&apos;t find it.</em>
-                    </h2>
-                </Reveal>
-                <Stagger as="dl" className="m-0 border-t border-lp-rule">
-                    {LOST.map((item) => (
-                        <StaggerItem key={item.where} className="group grid gap-1 border-b border-lp-rule py-[18px] transition-colors hover:bg-lp-card/60 min-[560px]:grid-cols-[9.5rem_1fr] min-[560px]:gap-[18px]">
-                            <dt className="text-[13px] tracking-[0.04em] text-lp-ink uppercase transition-transform duration-300 group-hover:translate-x-1.5">{item.where}</dt>
-                            <dd className="m-0 min-w-0 text-base leading-[1.55] text-lp-muted">{item.what}</dd>
-                        </StaggerItem>
-                    ))}
-                </Stagger>
-            </Wrap>
-        </section>
-    );
-}
-
 /* ── How it works (a real sequence, so it is numbered) ───── */
 
 const STEPS = [
