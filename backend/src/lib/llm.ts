@@ -6,7 +6,8 @@ export const groq = new OpenAI({
     baseURL: "https://api.groq.com/openai/v1",
 });
 
-export const ANSWER_MODEL = "qwen/qwen3.6-27b";
+// Overridable so a retired Groq model can be swapped without a deploy
+export const ANSWER_MODEL = process.env.ANSWER_MODEL ?? "qwen/qwen3.6-27b";
 export const FAST_MODEL = "openai/gpt-oss-20b";
 export const WHISPER_MODEL = "whisper-large-v3-turbo";
 

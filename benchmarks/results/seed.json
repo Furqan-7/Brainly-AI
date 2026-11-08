@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-08T05:08:33.740Z",
+  "saved": 20,
+  "failed": 0,
+  "saveRequestMs": {
+    "n": 20,
+    "min": 4,
+    "median": 5.3,
+    "mean": 9.6,
+    "p90": 18.5,
+    "p95": 30.3,
+    "max": 31.1
+  },
+  "workerSecondsUntilAllReady": 6
+}

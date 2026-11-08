@@ -1,0 +1,37 @@
+{
+  "description": "Each question has exactly one relevant note (by corpus key). 'lexical' questions share distinctive words with the note; 'paraphrase' questions avoid them on purpose, so only semantic retrieval can find the note. 'none' questions have no answer in the corpus.",
+  "questions": [
+    { "id": "L01", "kind": "lexical", "expected": "sourdough", "q": "how often should I feed my sourdough starter" },
+    { "id": "L02", "kind": "lexical", "expected": "postgres-vacuum", "q": "what autovacuum scale factor should I use for large postgres tables" },
+    { "id": "L03", "kind": "lexical", "expected": "k8s-probes", "q": "difference between liveness and readiness probe" },
+    { "id": "L04", "kind": "lexical", "expected": "marathon", "q": "how long should the marathon taper be" },
+    { "id": "L05", "kind": "lexical", "expected": "anki", "q": "what desired retention should I set for FSRS in Anki" },
+    { "id": "L06", "kind": "lexical", "expected": "react-effect", "q": "useEffect cleanup with AbortController" },
+    { "id": "L07", "kind": "lexical", "expected": "roth-ira", "q": "Roth IRA contribution limit and backdoor Roth" },
+    { "id": "L08", "kind": "lexical", "expected": "rust-ownership", "q": "rust borrow checker mutable reference rules" },
+    { "id": "L09", "kind": "lexical", "expected": "git-rebase", "q": "when to use git rebase instead of merge and force-with-lease" },
+    { "id": "L10", "kind": "lexical", "expected": "espresso", "q": "espresso shot tastes sour should I grind finer" },
+    { "id": "L11", "kind": "lexical", "expected": "oauth-pkce", "q": "how does PKCE code_verifier work" },
+    { "id": "L12", "kind": "lexical", "expected": "docker-multistage", "q": "docker multi-stage build to shrink image size" },
+    { "id": "L13", "kind": "lexical", "expected": "kyoto", "q": "Kyoto itinerary Fushimi Inari Arashiyama" },
+
+    { "id": "P01", "kind": "paraphrase", "expected": "sourdough", "q": "my jar of wild yeast smells like nail varnish, what is wrong with it" },
+    { "id": "P02", "kind": "paraphrase", "expected": "postgres-vacuum", "q": "database table keeps growing after deleting rows, how do I reclaim the space" },
+    { "id": "P03", "kind": "paraphrase", "expected": "k8s-probes", "q": "my containers keep getting restarted in a loop whenever the database goes down" },
+    { "id": "P04", "kind": "paraphrase", "expected": "marathon", "q": "how much should I ease off running in the weeks before my 42k race" },
+    { "id": "P05", "kind": "paraphrase", "expected": "anki", "q": "best way to memorise vocabulary with flashcards so I don't forget it" },
+    { "id": "P06", "kind": "paraphrase", "expected": "compost", "q": "the pile of kitchen scraps in my garden stinks, how do I fix it" },
+    { "id": "P07", "kind": "paraphrase", "expected": "sleep", "q": "I'm wide awake at 2am, is my afternoon latte to blame" },
+    { "id": "P08", "kind": "paraphrase", "expected": "salary", "q": "the recruiter asked what pay I expect, what should I say" },
+    { "id": "P09", "kind": "paraphrase", "expected": "monstera", "q": "the big leafy houseplant's bottom leaves are turning yellow" },
+    { "id": "P10", "kind": "paraphrase", "expected": "stoicism", "q": "ancient philosophy advice on not worrying about things outside my power" },
+    { "id": "P11", "kind": "paraphrase", "expected": "bike-flat", "q": "I got a puncture on my cycle commute, how do I swap the tube" },
+    { "id": "P12", "kind": "paraphrase", "expected": "deep-work", "q": "technique of working in short timed sprints with breaks to beat procrastination" },
+    { "id": "P13", "kind": "paraphrase", "expected": "react-effect", "q": "stale results overwrite newer ones when the user types quickly in my search component" },
+
+    { "id": "N01", "kind": "none", "expected": null, "q": "what is the capital of Australia" },
+    { "id": "N02", "kind": "none", "expected": null, "q": "how do I change the oil in my car" },
+    { "id": "N03", "kind": "none", "expected": null, "q": "recipe for chicken tikka masala" },
+    { "id": "N04", "kind": "none", "expected": null, "q": "who won the 2018 football world cup" }
+  ]
+}

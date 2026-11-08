@@ -1,0 +1,102 @@
+[
+  {
+    "key": "sourdough",
+    "title": "Keeping my sourdough starter alive",
+    "note": "My starter lives in a glass jar on the counter. I feed it twice a day at a 1:1:1 ratio by weight: 50 g starter, 50 g flour (half whole wheat, half bread flour) and 50 g water at about 26°C. It peaks 4 to 6 hours after a feed and roughly doubles. If it smells like nail polish remover (acetone) it is hungry and I should feed it more often or use a higher ratio like 1:5:5. Hooch, the grey liquid on top, also means it is hungry; I pour it off. When I go away I keep it in the fridge and feed it once a week. Do the float test before baking: a spoonful should float in water when it is ready to leaven a loaf."
+  },
+  {
+    "key": "postgres-vacuum",
+    "title": "Postgres VACUUM and autovacuum tuning",
+    "note": "Postgres uses MVCC, so updates and deletes leave dead tuples behind. VACUUM marks that space reusable; VACUUM FULL rewrites the table and takes an exclusive lock, so avoid it in production. Autovacuum triggers when dead tuples exceed autovacuum_vacuum_threshold + autovacuum_vacuum_scale_factor * reltuples. The default scale factor of 0.2 is too lazy for big tables; for a 100 million row table set it to 0.01 per table with ALTER TABLE ... SET (autovacuum_vacuum_scale_factor = 0.01). Watch n_dead_tup in pg_stat_user_tables. Long-running transactions block cleanup, so check pg_stat_activity for idle in transaction sessions. Transaction ID wraparound is the real danger: monitor age(datfrozenxid)."
+  },
+  {
+    "key": "k8s-probes",
+    "title": "Kubernetes liveness vs readiness probes",
+    "note": "A readiness probe decides whether a pod receives traffic from its Service; failing it removes the pod from the endpoints but does not restart it. A liveness probe decides whether the kubelet should restart the container; failing it kills the container. A startup probe holds off liveness checks while a slow app boots. Common mistake: pointing liveness at an endpoint that checks the database, so a database outage restarts every pod in a loop. Liveness should only check that the process itself is not deadlocked. Use initialDelaySeconds or a startup probe for JVM apps, and keep timeoutSeconds above the p99 of the health endpoint."
+  },
+  {
+    "key": "marathon",
+    "title": "Marathon training plan notes",
+    "note": "Eighteen-week plan peaking at about 70 km per week. Most running should be easy, conversational pace, around 80 percent of weekly volume. One long run every weekend, building from 16 km to a 32 km peak three weeks before race day. One quality session a week: tempo runs at half-marathon effort or marathon-pace blocks inside the long run. Taper for the final three weeks, cutting volume by roughly 20, 40 and 60 percent while keeping a little intensity. Practise fuelling on long runs: 60 to 90 grams of carbohydrate per hour from gels. Do not try new shoes on race day."
+  },
+  {
+    "key": "anki",
+    "title": "Spaced repetition with Anki",
+    "note": "Spaced repetition schedules reviews right before you would forget, which follows the Ebbinghaus forgetting curve. In Anki, keep cards atomic: one fact per card, and prefer cloze deletions for definitions. Do reviews every day; skipping days creates a backlog that snowballs. Twenty new cards a day turns into roughly 200 reviews a day after a month. Turn on the FSRS scheduler and set desired retention to 0.9. Suspend leeches, cards you fail eight times, and rewrite them instead of grinding. Add images and your own examples so the memory has more hooks."
+  },
+  {
+    "key": "react-effect",
+    "title": "React useEffect cleanup and race conditions",
+    "note": "useEffect can return a cleanup function that React runs before the effect runs again and when the component unmounts. Use it to clear intervals, remove event listeners and cancel subscriptions. For data fetching, create an AbortController inside the effect and call controller.abort() in the cleanup, otherwise a slow earlier request can resolve after a newer one and overwrite state with stale data. In development StrictMode mounts, unmounts and remounts every component once, so effects run twice; that is intended and exposes missing cleanups. Do not lie about dependencies to silence the lint rule."
+  },
+  {
+    "key": "roth-ira",
+    "title": "Roth IRA contribution rules",
+    "note": "A Roth IRA is funded with after-tax money; qualified withdrawals in retirement are tax free. The contribution limit for 2026 is 7,500 dollars, plus a 1,000 dollar catch-up if you are 50 or older. Eligibility phases out at higher modified adjusted gross income; above the limit, people use a backdoor Roth by contributing to a traditional IRA and converting it. Contributions, not earnings, can be withdrawn any time without penalty. The five-year rule applies to earnings. You can contribute for the previous tax year until the filing deadline in April. Keep low-cost index funds inside it for the long run."
+  },
+  {
+    "key": "compost",
+    "title": "Composting at home",
+    "note": "A healthy compost pile balances greens and browns at roughly one part greens to two or three parts browns by volume. Greens are nitrogen-rich: vegetable scraps, coffee grounds, fresh grass clippings. Browns are carbon-rich: dry leaves, cardboard, straw. If the pile smells like ammonia or is slimy, add browns; if it is dry and not heating up, add greens and water until it feels like a wrung-out sponge. Turn it every week or two to add oxygen. A hot pile reaches 55 to 65°C and finishes in about two months. Keep out meat, dairy and oily food because they attract rats."
+  },
+  {
+    "key": "kyoto",
+    "title": "Kyoto trip itinerary",
+    "note": "Three days in Kyoto in early April for cherry blossom season. Day one: Fushimi Inari at 7 am before the crowds, hike to the summit, then Tofuku-ji. Day two: Arashiyama bamboo grove at dawn, Tenryu-ji garden, the monkey park, and dinner in Pontocho alley. Day three: Kiyomizu-dera, walk down Sannenzaka and Ninenzaka to Gion, and the Philosopher's Path for the blossoms. Buy an ICOCA card for buses and trains. Book the Shinkansen from Tokyo in advance during sakura week. Many temples close at 5 pm."
+  },
+  {
+    "key": "rust-ownership",
+    "title": "Rust ownership and borrowing",
+    "note": "Every value in Rust has exactly one owner, and the value is dropped when its owner goes out of scope. Assigning a String moves it; the old variable can no longer be used, while Copy types like integers are duplicated instead. Borrowing lets you use a value without taking ownership: you can have any number of shared references (&T) or exactly one mutable reference (&mut T), never both at once. The borrow checker enforces this at compile time, which prevents data races and use-after-free. Lifetimes annotate how long references are valid when the compiler cannot infer it. Reach for clone() only when you really need a second owned copy."
+  },
+  {
+    "key": "sleep",
+    "title": "Sleep hygiene notes",
+    "note": "Caffeine has a half-life of about five to six hours, so a 3 pm coffee still leaves a quarter of the dose in your system at 3 am. Stop caffeine at least eight hours before bed. Keep the bedroom cool, around 18°C, and dark. Get bright morning daylight within an hour of waking to anchor the circadian rhythm. Wake up at the same time every day, including weekends. Alcohol helps you fall asleep but fragments REM sleep in the second half of the night. If you cannot sleep after 20 minutes, get up and read in dim light instead of lying in bed awake."
+  },
+  {
+    "key": "salary",
+    "title": "Negotiating a job offer",
+    "note": "Never give the first number if you can avoid it; when asked for expectations, say you want to learn more about the role and ask for their range. Once there is a written offer, always counter, politely. Anchor with market data from levels.fyi or salary surveys and a competing offer if you have one. Negotiate total compensation: base, signing bonus, equity, refresh grants, start date and remote days. Ask for a specific number slightly above your target, explain why, then stay quiet. Get every agreed term in writing before you resign from your current job."
+  },
+  {
+    "key": "monstera",
+    "title": "Monstera care",
+    "note": "Water the monstera when the top 5 cm of soil is dry, roughly once a week in summer and every two weeks in winter. Yellow lower leaves with soggy soil mean overwatering and possibly root rot; brown crispy edges mean underwatering or low humidity. It wants bright indirect light; direct afternoon sun scorches the leaves. Leaves without holes (fenestrations) usually mean not enough light or a young plant. Give it a moss pole to climb so the leaves get bigger. Use a chunky aroid mix with bark and perlite and repot every two years in spring."
+  },
+  {
+    "key": "git-rebase",
+    "title": "Git rebase vs merge",
+    "note": "git merge creates a merge commit and preserves the exact history of both branches. git rebase replays your commits on top of another branch, producing a linear history but new commit hashes. Golden rule: never rebase commits that others have already pulled, such as a shared main branch. Use git rebase -i to squash fixup commits before opening a pull request. If a rebase goes wrong, git reflog shows where the branch pointed before and git reset --hard can take you back. After rebasing a pushed feature branch, push with --force-with-lease, not --force, so you do not overwrite a teammate's work."
+  },
+  {
+    "key": "espresso",
+    "title": "Dialing in espresso",
+    "note": "Start with a 1:2 brew ratio: 18 g of coffee in, 36 g of espresso out, in 25 to 30 seconds. If the shot runs fast and tastes sour and thin, it is under-extracted: grind finer. If it runs slow and tastes bitter and harsh, it is over-extracted: grind coarser. Change only one variable at a time. Fresh beans, 7 to 21 days after roasting, behave best; very fresh beans gush and channel. Distribute the grounds evenly and tamp level to avoid channeling. Lighter roasts often taste better with a longer ratio like 1:2.5 and hotter water around 94°C."
+  },
+  {
+    "key": "stoicism",
+    "title": "Stoicism: the dichotomy of control",
+    "note": "Epictetus opens the Enchiridion by splitting the world into things up to us and things not up to us. Up to us: our judgments, intentions, desires and actions. Not up to us: our body, reputation, property, other people and outcomes. Suffering comes from treating the second group as if it were the first. The archer metaphor: practise, aim and release well, but whether the arrow hits is not fully yours. Marcus Aurelius wrote in the Meditations that it is not events that disturb us but our judgments about them. Evening review, as Seneca recommends: what did I do well today, where did I fall short."
+  },
+  {
+    "key": "bike-flat",
+    "title": "Fixing a flat bike tire",
+    "note": "Shift to the smallest cog, open the brake if it is a rim brake, and remove the wheel. Use two tyre levers to unseat one side of the tyre and pull out the inner tube. Run your fingers carefully around the inside of the tyre to find the thorn or glass, or the new tube will puncture again. Inflate the old tube to find the hole and match it against the tyre. Put a little air in the new tube so it holds its shape, tuck it in starting at the valve, and roll the bead back on with your thumbs. Check the tube is not pinched under the bead, then inflate to the pressure printed on the sidewall."
+  },
+  {
+    "key": "oauth-pkce",
+    "title": "OAuth 2.0 authorization code flow with PKCE",
+    "note": "PKCE protects the authorization code flow for public clients such as single-page apps and mobile apps, which cannot keep a client secret. The client generates a random code_verifier, hashes it with SHA-256 into a code_challenge, and sends the challenge with the authorization request. When it later exchanges the authorization code for tokens, it sends the original verifier; the server hashes it and compares. An attacker who intercepts the code cannot redeem it without the verifier. The implicit flow is deprecated in OAuth 2.1. Always validate the state parameter to prevent CSRF, and store refresh tokens securely."
+  },
+  {
+    "key": "deep-work",
+    "title": "Deep work and the Pomodoro technique",
+    "note": "Pomodoro: work for 25 minutes on a single task, take a 5 minute break, and after four rounds take a longer 15 to 30 minute break. It works best for tasks I keep procrastinating on. For hard thinking work I prefer 90 minute deep work blocks in the morning with notifications off, phone in another room and email closed. Cal Newport argues that attention residue from switching tasks lowers performance for a while after each switch. Batch shallow work like email and Slack into two fixed windows a day. Track deep hours on a tally sheet; aim for three to four per day."
+  },
+  {
+    "key": "docker-multistage",
+    "title": "Docker multi-stage builds",
+    "note": "A multi-stage Dockerfile uses one stage with the full toolchain to build the app and a second, minimal stage that only copies the build output with COPY --from=build. For a Node service the final image can drop from over 1 GB to around 150 MB on node:22-slim or distroless. Order layers from least to most frequently changing: copy the lockfile and install dependencies before copying the source, so dependency layers stay cached. Use a .dockerignore to keep node_modules and .git out of the build context. Run as a non-root user in the final stage and pin base images by digest for reproducible builds."
+  }
+]

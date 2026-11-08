@@ -1,0 +1,476 @@
+{
+  "at": "2026-11-08T05:10:04.114Z",
+  "endpoint": "GET /api/search",
+  "corpusSize": 20,
+  "overall": {
+    "n": 26,
+    "hitAt1": 26,
+    "hitAt3": 26,
+    "hitAt5": 26,
+    "hit@1": 1,
+    "hit@3": 1,
+    "hit@5": 1,
+    "MRR@10": 1
+  },
+  "lexical": {
+    "n": 13,
+    "hitAt1": 13,
+    "hitAt3": 13,
+    "hitAt5": 13,
+    "hit@1": 1,
+    "hit@3": 1,
+    "hit@5": 1,
+    "MRR@10": 1
+  },
+  "paraphrase": {
+    "n": 13,
+    "hitAt1": 13,
+    "hitAt3": 13,
+    "hitAt5": 13,
+    "hit@1": 1,
+    "hit@3": 1,
+    "hit@5": 1,
+    "MRR@10": 1
+  },
+  "outOfCorpus": {
+    "n": 4,
+    "returnedNothing": 0,
+    "resultsReturned": [
+      19,
+      20,
+      17,
+      13
+    ]
+  },
+  "coldSearchLatencyMs": {
+    "n": 30,
+    "min": 192.1,
+    "median": 241.1,
+    "mean": 284.6,
+    "p90": 357,
+    "p95": 533.1,
+    "max": 571.6
+  },
+  "rows": [
+    {
+      "id": "L01",
+      "kind": "lexical",
+      "q": "how often should I feed my sourdough starter",
+      "expected": "sourdough",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "sourdough",
+        "espresso",
+        "compost"
+      ],
+      "ms": 571.6
+    },
+    {
+      "id": "L02",
+      "kind": "lexical",
+      "q": "what autovacuum scale factor should I use for large postgres tables",
+      "expected": "postgres-vacuum",
+      "rank": 1,
+      "returned": 19,
+      "top3": [
+        "postgres-vacuum",
+        "rust-ownership",
+        "docker-multistage"
+      ],
+      "ms": 216.8
+    },
+    {
+      "id": "L03",
+      "kind": "lexical",
+      "q": "difference between liveness and readiness probe",
+      "expected": "k8s-probes",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "k8s-probes",
+        "sourdough",
+        "anki"
+      ],
+      "ms": 197.3
+    },
+    {
+      "id": "L04",
+      "kind": "lexical",
+      "q": "how long should the marathon taper be",
+      "expected": "marathon",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "marathon",
+        "roth-ira",
+        "postgres-vacuum"
+      ],
+      "ms": 221.7
+    },
+    {
+      "id": "L05",
+      "kind": "lexical",
+      "q": "what desired retention should I set for FSRS in Anki",
+      "expected": "anki",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "anki",
+        "postgres-vacuum",
+        "stoicism"
+      ],
+      "ms": 218.8
+    },
+    {
+      "id": "L06",
+      "kind": "lexical",
+      "q": "useEffect cleanup with AbortController",
+      "expected": "react-effect",
+      "rank": 1,
+      "returned": 10,
+      "top3": [
+        "react-effect",
+        "postgres-vacuum",
+        "oauth-pkce"
+      ],
+      "ms": 203.8
+    },
+    {
+      "id": "L07",
+      "kind": "lexical",
+      "q": "Roth IRA contribution limit and backdoor Roth",
+      "expected": "roth-ira",
+      "rank": 1,
+      "returned": 19,
+      "top3": [
+        "roth-ira",
+        "oauth-pkce",
+        "rust-ownership"
+      ],
+      "ms": 204.7
+    },
+    {
+      "id": "L08",
+      "kind": "lexical",
+      "q": "rust borrow checker mutable reference rules",
+      "expected": "rust-ownership",
+      "rank": 1,
+      "returned": 19,
+      "top3": [
+        "rust-ownership",
+        "git-rebase",
+        "react-effect"
+      ],
+      "ms": 335
+    },
+    {
+      "id": "L09",
+      "kind": "lexical",
+      "q": "when to use git rebase instead of merge and force-with-lease",
+      "expected": "git-rebase",
+      "rank": 1,
+      "returned": 19,
+      "top3": [
+        "git-rebase",
+        "rust-ownership",
+        "docker-multistage"
+      ],
+      "ms": 203.8
+    },
+    {
+      "id": "L10",
+      "kind": "lexical",
+      "q": "espresso shot tastes sour should I grind finer",
+      "expected": "espresso",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "espresso",
+        "anki",
+        "compost"
+      ],
+      "ms": 533.1
+    },
+    {
+      "id": "L11",
+      "kind": "lexical",
+      "q": "how does PKCE code_verifier work",
+      "expected": "oauth-pkce",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "oauth-pkce",
+        "git-rebase",
+        "deep-work"
+      ],
+      "ms": 208.3
+    },
+    {
+      "id": "L12",
+      "kind": "lexical",
+      "q": "docker multi-stage build to shrink image size",
+      "expected": "docker-multistage",
+      "rank": 1,
+      "returned": 18,
+      "top3": [
+        "docker-multistage",
+        "anki",
+        "marathon"
+      ],
+      "ms": 195.9
+    },
+    {
+      "id": "L13",
+      "kind": "lexical",
+      "q": "Kyoto itinerary Fushimi Inari Arashiyama",
+      "expected": "kyoto",
+      "rank": 1,
+      "returned": 15,
+      "top3": [
+        "kyoto",
+        "anki",
+        "marathon"
+      ],
+      "ms": 202.5
+    },
+    {
+      "id": "P01",
+      "kind": "paraphrase",
+      "q": "my jar of wild yeast smells like nail varnish, what is wrong with it",
+      "expected": "sourdough",
+      "rank": 1,
+      "returned": 18,
+      "top3": [
+        "sourdough",
+        "compost",
+        "rust-ownership"
+      ],
+      "ms": 308.9
+    },
+    {
+      "id": "P02",
+      "kind": "paraphrase",
+      "q": "database table keeps growing after deleting rows, how do I reclaim the space",
+      "expected": "postgres-vacuum",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "postgres-vacuum",
+        "anki",
+        "compost"
+      ],
+      "ms": 215.6
+    },
+    {
+      "id": "P03",
+      "kind": "paraphrase",
+      "q": "my containers keep getting restarted in a loop whenever the database goes down",
+      "expected": "k8s-probes",
+      "rank": 1,
+      "returned": 19,
+      "top3": [
+        "k8s-probes",
+        "anki",
+        "git-rebase"
+      ],
+      "ms": 192.1
+    },
+    {
+      "id": "P04",
+      "kind": "paraphrase",
+      "q": "how much should I ease off running in the weeks before my 42k race",
+      "expected": "marathon",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "marathon",
+        "espresso",
+        "monstera"
+      ],
+      "ms": 207.8
+    },
+    {
+      "id": "P05",
+      "kind": "paraphrase",
+      "q": "best way to memorise vocabulary with flashcards so I don't forget it",
+      "expected": "anki",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "anki",
+        "deep-work",
+        "espresso"
+      ],
+      "ms": 295.2
+    },
+    {
+      "id": "P06",
+      "kind": "paraphrase",
+      "q": "the pile of kitchen scraps in my garden stinks, how do I fix it",
+      "expected": "compost",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "compost",
+        "deep-work",
+        "kyoto"
+      ],
+      "ms": 334.8
+    },
+    {
+      "id": "P07",
+      "kind": "paraphrase",
+      "q": "I'm wide awake at 2am, is my afternoon latte to blame",
+      "expected": "sleep",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "sleep",
+        "monstera",
+        "deep-work"
+      ],
+      "ms": 344.5
+    },
+    {
+      "id": "P08",
+      "kind": "paraphrase",
+      "q": "the recruiter asked what pay I expect, what should I say",
+      "expected": "salary",
+      "rank": 1,
+      "returned": 19,
+      "top3": [
+        "salary",
+        "k8s-probes",
+        "sourdough"
+      ],
+      "ms": 253.1
+    },
+    {
+      "id": "P09",
+      "kind": "paraphrase",
+      "q": "the big leafy houseplant's bottom leaves are turning yellow",
+      "expected": "monstera",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "monstera",
+        "compost",
+        "postgres-vacuum"
+      ],
+      "ms": 335.3
+    },
+    {
+      "id": "P10",
+      "kind": "paraphrase",
+      "q": "ancient philosophy advice on not worrying about things outside my power",
+      "expected": "stoicism",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "stoicism",
+        "monstera",
+        "k8s-probes"
+      ],
+      "ms": 517
+    },
+    {
+      "id": "P11",
+      "kind": "paraphrase",
+      "q": "I got a puncture on my cycle commute, how do I swap the tube",
+      "expected": "bike-flat",
+      "rank": 1,
+      "returned": 17,
+      "top3": [
+        "bike-flat",
+        "k8s-probes",
+        "react-effect"
+      ],
+      "ms": 244.6
+    },
+    {
+      "id": "P12",
+      "kind": "paraphrase",
+      "q": "technique of working in short timed sprints with breaks to beat procrastination",
+      "expected": "deep-work",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "deep-work",
+        "sleep",
+        "anki"
+      ],
+      "ms": 357
+    },
+    {
+      "id": "P13",
+      "kind": "paraphrase",
+      "q": "stale results overwrite newer ones when the user types quickly in my search component",
+      "expected": "react-effect",
+      "rank": 1,
+      "returned": 20,
+      "top3": [
+        "react-effect",
+        "rust-ownership",
+        "anki"
+      ],
+      "ms": 341.4
+    },
+    {
+      "id": "N01",
+      "kind": "none",
+      "q": "what is the capital of Australia",
+      "expected": null,
+      "rank": null,
+      "returned": 19,
+      "top3": [
+        "k8s-probes",
+        "rust-ownership",
+        "stoicism"
+      ],
+      "ms": 304.6
+    },
+    {
+      "id": "N02",
+      "kind": "none",
+      "q": "how do I change the oil in my car",
+      "expected": null,
+      "rank": null,
+      "returned": 20,
+      "top3": [
+        "espresso",
+        "docker-multistage",
+        "bike-flat"
+      ],
+      "ms": 237.7
+    },
+    {
+      "id": "N03",
+      "kind": "none",
+      "q": "recipe for chicken tikka masala",
+      "expected": null,
+      "rank": null,
+      "returned": 17,
+      "top3": [
+        "sourdough",
+        "espresso",
+        "compost"
+      ],
+      "ms": 314.6
+    },
+    {
+      "id": "N04",
+      "kind": "none",
+      "q": "who won the 2018 football world cup",
+      "expected": null,
+      "rank": null,
+      "returned": 13,
+      "top3": [
+        "stoicism",
+        "marathon",
+        "k8s-probes"
+      ],
+      "ms": 219.4
+    }
+  ]
+}
