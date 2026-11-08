@@ -1,7 +1,20 @@
+import Link from "next/link";
 import { Logo } from "./ui";
 import { CtaPair, HeroArt, HeroFade, HeroHeadline } from "./motion";
+import { HeroSaves } from "./HeroSaves";
+import { BrandLogo, type LogoName } from "./logos";
 
-const icon = "size-[15px]";
+const SOURCES: [LogoName, string][] = [
+    ["Instagram", "#E4405F"],
+    ["YouTube", "#FF0000"],
+    ["TikTok", "#000000"],
+    ["X", "#000000"],
+    ["LinkedIn", "#0A66C2"],
+    ["Notion", "#000000"],
+    ["GoogleDocs", "#4285F4"],
+];
+
+const navLink = "text-[15px] text-lp-muted transition-colors hover:text-lp-ink";
 
 /** First screen: the "Creation of Adam" composition with Brainly's pitch in the middle. */
 export function Hero() {
@@ -12,10 +25,19 @@ export function Hero() {
         >
             {/* Robot reaching down from the top-right, Adam reclining bottom-left */}
             <HeroArt />
+            {/* saves floating up toward the robot's hand (wide screens only) */}
+            <HeroSaves />
 
             <nav className="relative z-[2] pt-[30px] md:pl-[max(0px,calc(9vw-16px))]">
-                <HeroFade delay={0}>
+                <HeroFade delay={0} className="flex items-center gap-14">
                     <Logo />
+                    <span className="hidden items-center gap-7 md:flex">
+                        <a href="#how" className={navLink}>How it works</a>
+                        <a href="#save" className={navLink}>What you can save</a>
+                        <a href="#pricing" className={navLink}>Pricing</a>
+                        <a href="#faq" className={navLink}>FAQ</a>
+                        <Link href="/auth/signin" className="text-[15px] text-lp-ink underline decoration-lp-line underline-offset-4 transition-colors hover:decoration-lp-ink">Sign in</Link>
+                    </span>
                 </HeroFade>
             </nav>
 
@@ -46,19 +68,15 @@ export function Hero() {
                 </HeroFade>
 
                 <HeroFade delay={1.1}>
-                    <p className="mt-1.5 flex items-center gap-3 font-lp-body text-[clamp(13px,1vw,17px)] text-lp-muted">
-                        <span className="flex" aria-hidden="true">
-                            {[
-                                <svg key="reel" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className={icon}><rect x="5" y="3" width="14" height="18" rx="3" /><path d="M10.5 9.5v5l4-2.5z" fill="currentColor" /></svg>,
-                                <svg key="pdf" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className={icon}><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4M9 13h6M9 17h4" /></svg>,
-                                <svg key="voice" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={icon}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" /></svg>,
-                            ].map((svg, i) => (
-                                <span key={i} className={`grid size-7 place-items-center rounded-full bg-white text-lp-ink shadow-[0_0_0_2px_var(--color-lp-paper)] ${i ? "-ml-[9px]" : ""}`}>
-                                    {svg}
-                                </span>
-                            ))}
+                    <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 font-lp-body text-[clamp(13px,1vw,16px)] text-lp-muted">
+                        <span className="flex items-center gap-3">
+                            Saves from
+                            <span className="flex items-center gap-3" aria-label="Instagram, YouTube, TikTok, X, LinkedIn, Notion and Google Docs">
+                                {SOURCES.map(([name, color]) => <BrandLogo key={name} name={name} color={color} className="size-[17px]" />)}
+                            </span>
                         </span>
-                        Free to start · no card needed
+                        <span aria-hidden="true" className="hidden h-4 w-px bg-lp-line min-[480px]:block" />
+                        <span>Free to start · no card needed</span>
                     </p>
                 </HeroFade>
             </div>
