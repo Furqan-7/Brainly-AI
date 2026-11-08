@@ -12,7 +12,6 @@ import { createContext, useContext, useRef } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
 import { Wrap } from "./ui";
 import { Reveal } from "./motion";
-import { BrandLogo } from "./logos";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -411,7 +410,6 @@ function PhotosScene() {
 const SCENES = [
     {
         place: "Instagram",
-        mark: <BrandLogo name="Instagram" color="#E4405F" className="size-[15px]" />,
         where: "Saved · All posts",
         line: "The reel with five project ideas. One of 612 saves, and the search bar can't see inside any of them.",
         cost: "about 4 minutes of scrolling",
@@ -420,7 +418,6 @@ const SCENES = [
     },
     {
         place: "Browser",
-        mark: <BrandLogo name="Chrome" color="#4285F4" className="size-[15px]" />,
         where: "43 tabs · 6 bookmark folders",
         line: "The video you'll watch later, in a tab you're scared to close, next to a \"Watch later\" list of 318.",
         cost: "closed by accident twice",
@@ -429,7 +426,6 @@ const SCENES = [
     },
     {
         place: "Downloads",
-        mark: <svg viewBox="0 0 16 16" aria-hidden="true" className="size-[15px] fill-[#4b9be0]"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.6l1.5 1.5h5.9A1.5 1.5 0 0 1 15 5v7.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5z" /></svg>,
         where: "1,284 items",
         line: "The paper you meant to finish, saved four times over. You remember what it said, not what it's called.",
         cost: "4 files with the same name",
@@ -438,13 +434,6 @@ const SCENES = [
     },
     {
         place: "Camera roll",
-        mark: (
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="size-[15px]">
-                {["#f5b400", "#f07a1a", "#e2344b", "#a34fd6", "#3b82f6", "#22b07d"].map((c, i) => (
-                    <ellipse key={c} cx="12" cy="6.5" rx="3.2" ry="5.5" fill={c} opacity="0.85" transform={`rotate(${i * 60} 12 12)`} />
-                ))}
-            </svg>
-        ),
         where: "9,406 photos",
         line: "A screenshot of a system design diagram, filed between a receipt and a parking spot.",
         cost: "1 of 9,406 photos",
@@ -467,10 +456,7 @@ function SceneCard({ scene, index }: { scene: (typeof SCENES)[number]; index: nu
                 </div>
                 <figcaption className="grid content-start gap-2.5 px-5 pt-5 pb-6 min-[560px]:px-6">
                     <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                        <span className="flex items-center gap-2 text-[13px] tracking-[0.04em] text-lp-ink uppercase">
-                            <span className="grid size-[26px] place-items-center rounded-[7px] bg-white shadow-[0_0_0_1px_rgb(20_20_20/0.07)]">{scene.mark}</span>
-                            {scene.place}
-                        </span>
+                        <span className="text-[13px] tracking-[0.04em] text-lp-ink uppercase">{scene.place}</span>
                         <span className="text-[12.5px] text-lp-muted">{scene.where}</span>
                     </span>
                     <p className="text-[16px] leading-[1.5] text-lp-ink">{scene.line}</p>

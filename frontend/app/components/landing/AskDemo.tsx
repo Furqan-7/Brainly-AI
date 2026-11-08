@@ -13,7 +13,6 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SectionHead, Wrap } from "./ui";
 import { Reveal } from "./motion";
-import { BrandLogo } from "./logos";
 
 /* ── Example data (labelled "Example" in the window) ─────── */
 
@@ -144,13 +143,6 @@ const KIND_NAME: Record<Source["kind"], string> = {
     note: "Note",
     image: "Screenshot",
 };
-
-/** Where a source came from: the platform's logo, or a coloured square for files and notes. */
-function SourceMark({ s, className = "size-3.5" }: { s: Source; className?: string }) {
-    if (s.kind === "reel") return <BrandLogo name="Instagram" color="#E4405F" className={`flex-none ${className}`} />;
-    if (s.kind === "video") return <BrandLogo name="YouTube" color="#FF0000" className={`flex-none ${className}`} />;
-    return <i aria-hidden="true" className="size-2 flex-none rounded-[2px]" style={{ background: KIND_DOT[s.kind] }} />;
-}
 
 function PlayGlyph({ className = "" }: { className?: string }) {
     return <svg viewBox="0 0 10 10" aria-hidden="true" className={`fill-current ${className}`}><path d="M2.5 1.2l6.3 3.8-6.3 3.8z" /></svg>;
@@ -440,7 +432,7 @@ export function AskDemo() {
                                                 </span>
                                                 <span className="min-w-0">
                                                     <strong className="block truncate text-[13px] leading-[1.3] font-semibold">{s.title}</strong>
-                                                    <span className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-lp-muted"><SourceMark s={s} className="size-3" /><span className="truncate">{s.meta}</span></span>
+                                                    <span className="block truncate text-[11.5px] text-lp-muted">{s.meta}</span>
                                                 </span>
                                             </button>
                                         ))}
@@ -482,7 +474,7 @@ export function AskDemo() {
                                 <div className="flex items-start justify-between gap-3">
                                     <span className="min-w-0">
                                         <span className="flex items-center gap-1.5 text-[10.5px] tracking-[0.06em] text-lp-muted uppercase">
-                                            <SourceMark s={source} />
+                                            <i className="size-2 rounded-[2px]" style={{ background: KIND_DOT[source.kind] }} />
                                             Source {open + 1} · {KIND_NAME[source.kind]}
                                         </span>
                                         <strong className="mt-1 block truncate text-[14.5px] font-semibold">{source.title}</strong>
