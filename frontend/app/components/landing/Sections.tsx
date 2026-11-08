@@ -4,52 +4,6 @@ import { CtaPair, Reveal, SpotlightCard, Stagger } from "./motion";
 
 const block = "scroll-mt-6 border-t border-lp-rule py-20 min-[560px]:py-[120px]";
 const h3 = "font-lp-display text-[1.45rem] leading-[1.04] font-normal tracking-[-0.025em]";
-const lead = "max-w-[58ch] text-[17px] leading-[1.6] text-lp-muted";
-
-/* ── What you can save ───────────────────────────────────── */
-
-const TYPES: { name: string; isNew?: boolean; icon: React.ReactNode; what: string; keeps: string }[] = [
-    { name: "Instagram reels", isNew: true, icon: <><rect x="4" y="3" width="16" height="18" rx="3" /><path d="M10 9.5v5l4-2.5z" /></>, what: "The reel you'll want again in three weeks.", keeps: "Keeps the caption, the creator and a transcript of what's said." },
-    { name: "YouTube & Shorts", icon: <><rect x="2.5" y="6" width="19" height="12" rx="3" /><path d="M10 9.5v5l4-2.5z" /></>, what: "Lectures, tutorials and talks.", keeps: "Keeps captions (or a transcript), title, channel and length." },
-    { name: "TikTok", isNew: true, icon: <><path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5" /><path d="M14 4c.5 2.5 2.2 4 5 4" /></>, what: "Recipes, hacks and how-tos.", keeps: "Keeps the caption, creator and a transcript." },
-    { name: "Web pages", icon: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18" /></>, what: "Articles, docs and LinkedIn posts.", keeps: "Keeps the article text without ads or menus, plus the preview image." },
-    { name: "Posts on X", icon: <path d="M4 4l16 16M20 4L4 20" />, what: "Threads worth rereading.", keeps: "Keeps the post, author and hashtags." },
-    { name: "PDFs", icon: <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4M9 13h6M9 17h4" /></>, what: "Papers, resumes and reports.", keeps: "Reads every page, including scanned ones." },
-    { name: "Images", icon: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="M21 17l-5-5-9 8" /></>, what: "Screenshots, diagrams and whiteboards.", keeps: "Reads the text in the picture and describes the rest." },
-    { name: "Notes", icon: <><path d="M5 4h14v12l-4 4H5z" /><path d="M15 20v-4h4M8 9h8M8 13h5" /></>, what: "Your own thoughts, in Markdown.", keeps: "Or bring them in from Notion and Google Docs." },
-    { name: "Voice notes", isNew: true, icon: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></>, what: "Ideas you say out loud.", keeps: "Record in the browser or upload. Brainly writes it down." },
-];
-
-export function SaveTypes() {
-    return (
-        <section id="save" className={block}>
-            <Wrap>
-                <SectionHead eyebrow="What you can save" title="Nine kinds of things, one memory.">
-                    <p className={lead}>For each one, here is what Brainly keeps so you can find it later.</p>
-                </SectionHead>
-                <Stagger className="grid border-t border-l border-lp-rule min-[560px]:grid-cols-2 min-[900px]:grid-cols-3">
-                    {TYPES.map((t) => (
-                        <SpotlightCard key={t.name} className="grid min-w-0 content-start gap-2.5 border-r border-b border-lp-rule bg-lp-paper/75 px-6 pt-6 pb-[26px] transition-[background-color,box-shadow] duration-300 hover:z-10 hover:bg-lp-card hover:shadow-[0_24px_40px_-28px_rgba(60,35,20,0.45)]">
-                            <span className="flex items-center gap-[9px] text-[15px] leading-[1.2] font-semibold">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-[18px] flex-none transition-transform duration-300 group-hover/card:scale-125 group-hover/card:-rotate-6">
-                                    {t.icon}
-                                </svg>
-                                {t.name}
-                                {t.isNew && (
-                                    <span className="rounded-md ml-auto px-1.5 py-1 text-[10.5px] leading-none font-normal tracking-[0.06em] text-lp-signal uppercase shadow-[inset_0_0_0_1px_var(--color-lp-signal)]">
-                                        New
-                                    </span>
-                                )}
-                            </span>
-                            <p className="text-[15px] text-lp-muted">{t.what}</p>
-                            <span className="text-sm leading-[1.5] text-lp-ink">{t.keeps}</span>
-                        </SpotlightCard>
-                    ))}
-                </Stagger>
-            </Wrap>
-        </section>
-    );
-}
 
 /* ── Keeping it tidy ─────────────────────────────────────── */
 
