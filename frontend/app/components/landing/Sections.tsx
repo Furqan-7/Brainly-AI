@@ -1,60 +1,10 @@
 import Link from "next/link";
 import { Eyebrow, SectionHead, Wrap } from "./ui";
-import { CtaPair, Reveal, SpotlightCard, Stagger, StaggerItem } from "./motion";
+import { CtaPair, Reveal, SpotlightCard, Stagger } from "./motion";
 
 const block = "scroll-mt-6 border-t border-lp-rule py-20 min-[560px]:py-[120px]";
 const h3 = "font-lp-display text-[1.45rem] leading-[1.04] font-normal tracking-[-0.025em]";
 const lead = "max-w-[58ch] text-[17px] leading-[1.6] text-lp-muted";
-
-/* ── How it works (a real sequence, so it is numbered) ───── */
-
-const STEPS = [
-    {
-        title: "Save from anywhere",
-        text: "Paste a link, drop a file, record a voice note, or share straight from your phone or browser.",
-        points: ["Browser extension, one click", "\"Share → Brainly\" on Android", "Import Notion and Google Docs"],
-    },
-    {
-        title: "Brainly reads it",
-        text: "In the background it pulls out what's inside, so a video is as searchable as an article.",
-        points: ["Transcribes what's said in reels and videos", "Reads scanned PDFs and screenshots", "Writes a two-line summary and tags"],
-    },
-    {
-        title: "Ask, and get it back",
-        text: "Ask a question or just search. Every answer comes only from your saves and says where it came from.",
-        points: ["Numbered sources you can click", "Watch reels and videos inline", "Follow-ups like \"more like that\""],
-    },
-];
-
-export function HowItWorks() {
-    return (
-        <section id="how" className={block}>
-            <Wrap>
-                <SectionHead eyebrow="How it works" title="Save it once. Brainly does the reading." />
-                <Stagger className="grid border-t border-lp-ink min-[900px]:grid-cols-3">
-                    {STEPS.map((step, i) => (
-                        <StaggerItem
-                            key={step.title}
-                            className={`grid min-w-0 content-start gap-3.5 border-b border-lp-rule py-6 min-[900px]:border-b-0 min-[900px]:pt-[26px] min-[900px]:pr-7 min-[900px]:pb-[30px] ${i ? "min-[900px]:border-l min-[900px]:pl-7" : ""}`}
-                        >
-                            <span className="flex items-center gap-2 text-xs tracking-[0.06em] text-lp-muted">
-                                <span className="grid size-6 place-items-center rounded-full bg-lp-button text-[11px] text-white">{i + 1}</span>
-                                STEP {i + 1}
-                            </span>
-                            <h3 className={h3}>{step.title}</h3>
-                            <p className="text-[15.5px] leading-[1.6] text-lp-muted">{step.text}</p>
-                            <ul className="m-0 grid list-none gap-1.5 p-0 text-[14.5px]">
-                                {step.points.map((p) => (
-                                    <li key={p}><span className="text-lp-muted">→ </span>{p}</li>
-                                ))}
-                            </ul>
-                        </StaggerItem>
-                    ))}
-                </Stagger>
-            </Wrap>
-        </section>
-    );
-}
 
 /* ── What you can save ───────────────────────────────────── */
 
