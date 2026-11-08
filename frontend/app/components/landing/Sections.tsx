@@ -1,45 +1,8 @@
 import Link from "next/link";
 import { Eyebrow, SectionHead, Wrap } from "./ui";
-import { CtaPair, Reveal, SpotlightCard, Stagger } from "./motion";
+import { CtaPair, Reveal } from "./motion";
 
 const block = "scroll-mt-6 border-t border-lp-rule py-20 min-[560px]:py-[120px]";
-const h3 = "font-lp-display text-[1.45rem] leading-[1.04] font-normal tracking-[-0.025em]";
-
-/* ── Keeping it tidy ─────────────────────────────────────── */
-
-const FEATURES = [
-    { title: "Collections", text: "Group saves into boards like \"Portfolio ideas\" or \"Trip to Lisbon\", and share any board with a public link." },
-    { title: "Rediscover", text: "Brainly brings back things you saved and forgot. Tap \"Got it\" and you'll see it less often.", intervals: ["1 day", "2 days", "4 days", "8 days", "… up to 6 months"] },
-    { title: "Knowledge graph", text: "See how your saves connect. A cooking reel sits next to the recipe note it reminded you of." },
-    { title: "No duplicates", text: "Saving the same reel twice? Brainly notices, even when the link looks different, and lets you merge copies." },
-    { title: "Tags and stars", text: "Your own tags plus a few Brainly suggests. Star what matters, archive what doesn't." },
-    { title: "Search without AI", text: "Need it fast? Search mode lists matching saves instantly and doesn't use your daily AI answers." },
-];
-
-export function Organise() {
-    return (
-        <section className={block}>
-            <Wrap>
-                <SectionHead eyebrow="Keep it tidy" title="A brain that also tidies up." />
-                <Stagger className="grid gap-5 min-[900px]:grid-cols-3">
-                    {FEATURES.map((f) => (
-                        <SpotlightCard key={f.title} className="rounded-2xl grid min-w-0 content-start gap-2.5 border border-transparent p-6 transition-[border-color,background-color] duration-300 hover:border-lp-line hover:bg-lp-card">
-                            <h3 className={h3}>{f.title}</h3>
-                            <p className="text-[15.5px] leading-[1.6] text-lp-muted">{f.text}</p>
-                            {f.intervals && (
-                                <div className="mt-1 flex flex-wrap gap-1.5 text-[11.5px]" aria-label="Review intervals">
-                                    {f.intervals.map((d) => (
-                                        <span key={d} className="rounded-md px-[7px] py-1 shadow-[inset_0_0_0_1px_var(--color-lp-line)]">{d}</span>
-                                    ))}
-                                </div>
-                            )}
-                        </SpotlightCard>
-                    ))}
-                </Stagger>
-            </Wrap>
-        </section>
-    );
-}
 
 /* ── FAQ ─────────────────────────────────────────────────── */
 
