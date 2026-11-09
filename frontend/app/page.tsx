@@ -11,11 +11,12 @@ import { HowItWorks } from "./components/landing/HowItWorks";
 import { Problem } from "./components/landing/Problem";
 import { SessionRedirect } from "./components/landing/SessionRedirect";
 import { ScrollProgress, SmoothScroll } from "./components/landing/motion";
+import { SITE_DESCRIPTION, SITE_TITLE } from "./lib/site";
 
 export const metadata: Metadata = {
-  title: "Brainly AI — Remember everything you save",
-  description:
-    "Save reels, videos, links, PDFs and notes from anywhere. Ask in plain words and Brainly brings back the exact one.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
 };
 
 export default function Home() {
