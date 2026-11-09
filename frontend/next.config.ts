@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
     root: resolve(__dir, ".."),
   },
   allowedDevOrigins: ['10.195.218.238'],
+  // Website previews (/api/preview) run headless Chrome. Keep these packages out of the bundle and
+  // ship Chromium's compressed binary with that one function.
+  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  outputFileTracingIncludes: {
+    "/api/preview": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+  },
   async rewrites() {
     return [{ source: "/backend/:path*", destination: `${BACKEND_URL}/:path*` }];
   },

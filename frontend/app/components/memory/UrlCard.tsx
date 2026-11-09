@@ -3,6 +3,7 @@
 import { ExternalLink, Globe, Trash2 } from "lucide-react";
 import type { Memory } from "../../types/memory";
 import { deleteMemory } from "../../services/api";
+import { SitePreview } from "./SitePreview";
 
 export function UrlCard({
     memory,
@@ -47,6 +48,10 @@ export function UrlCard({
                         </a>
                     )}
                 </div>
+
+                {memory.source_url && /^https?:\/\//i.test(memory.source_url) && (
+                    <SitePreview url={memory.source_url} fallbackImage={meta.thumbnail_url} title={memory.title} />
+                )}
 
                 <h3 className="text-sm font-bold leading-snug mb-1.5">{memory.title}</h3>
 
