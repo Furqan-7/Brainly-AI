@@ -258,7 +258,8 @@ contentRouter.get("/api/content", MiddleWhere, async (req, res) => {
     const userId = res.locals.userId;
     const parsed = listContentSchema.safeParse(req.query);
     if (!parsed.success) return res.status(411).json({ message: "Invalid query", success: false });
-    const { types, q, tag, view, collectionId, cursor, limit } = parsed.data;
+    const { types, q, tag, view, collectionId, cursor, sort, limit } = parsed.data;
+    const oldest = sort === "oldest";
 
     const where: Prisma.MemoriesWhereInput = {
         userId,
@@ -278,13 +279,13 @@ contentRouter.get("/api/content", MiddleWhere, async (req, res) => {
                 ],
             }
             : {}),
-        ...(cursor ? { id: { lt: cursor } } : {}),
+        ...(cursor ? { id: oldest ? { gt: cursor } : { lt: cursor } } : {}),
     };
 
     try {
         const rows = await prisma.memories.findMany({
             where,
-            orderBy: { id: "desc" },
+            orderBy: { id: oldest ? "asc" : "desc" },
             take: limit + 1,
             include: { collections: { select: { id: true, name: true } } },
         });
@@ -297,6 +298,34 @@ contentRouter.get("/api/content", MiddleWhere, async (req, res) => {
         });
     } catch (error) {
         log("error", "list memories failed", { error: String(error) });
+        return res.status(500).json({ message: "Internal Server Error", success: false });
+    }
+});
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Counts for the library's type tabs and the sidebar: per type, starred, archived and added this week. */
+contentRouter.get("/api/content/counts", MiddleWhere, async (req, res) => {
+    const userId = res.locals.userId;
+    const active = { userId, archived: false };
+    try {
+        const [byType, starred, archived, thisWeek] = await Promise.all([
+            prisma.memories.groupBy({ by: ["type"], where: active, _count: { _all: true } }),
+            prisma.memories.count({ where: { ...active, starred: true } }),
+            prisma.memories.count({ where: { userId, archived: true } }),
+            prisma.memories.count({ where: { ...active, createdAt: { gte: new Date(Date.now() - WEEK_MS) } } }),
+        ]);
+        const types = Object.fromEntries(byType.map((r) => [r.type, r._count._all]));
+        return res.status(200).json({
+            success: true,
+            total: byType.reduce((sum, r) => sum + r._count._all, 0),
+            types,
+            starred,
+            archived,
+            thisWeek,
+        });
+    } catch (error) {
+        log("error", "count memories failed", { error: String(error) });
         return res.status(500).json({ message: "Internal Server Error", success: false });
     }
 });

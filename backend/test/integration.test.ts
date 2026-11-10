@@ -140,6 +140,22 @@ describe.skipIf(!TEST_DB)("integration (real Postgres)", () => {
         await prisma.memories.update({ where: { id: noteId }, data: { archived: false } });
     });
 
+    it("counts memories by type, starred, archived and this week", async () => {
+        await prisma.memories.update({ where: { id: reelId }, data: { starred: true } });
+        const res = await fetch(`${base}/api/content/counts`, { headers: auth });
+        const body = await res.json();
+        expect(res.status).toBe(200);
+        expect(body).toMatchObject({ total: 2, types: { reel: 1, note: 1 }, starred: 1, archived: 0, thisWeek: 2 });
+        await prisma.memories.update({ where: { id: reelId }, data: { starred: false } });
+    });
+
+    it("lists memories newest or oldest first", async () => {
+        const ids = async (sort: string) =>
+            (await (await fetch(`${base}/api/content?sort=${sort}`, { headers: auth })).json()).memories.map((m: any) => m.id);
+        expect(await ids("newest")).toEqual([noteId, reelId]);
+        expect(await ids("oldest")).toEqual([reelId, noteId]);
+    });
+
     it("builds the knowledge graph from stored embeddings", async () => {
         const res = await fetch(`${base}/api/graph`, { headers: auth });
         const body = await res.json();
