@@ -1,6 +1,8 @@
 import { connect, getSettings, saveLink, saveNote } from "./api.js";
 
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+  // Updates keep the old menu items, and creating an id twice throws
+  await chrome.contextMenus.removeAll();
   chrome.contextMenus.create({ id: "save-page", title: "Save page to Brainly", contexts: ["page"] });
   chrome.contextMenus.create({ id: "save-link", title: "Save link to Brainly", contexts: ["link"] });
   chrome.contextMenus.create({ id: "save-selection", title: "Save selection to Brainly", contexts: ["selection"] });

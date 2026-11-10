@@ -7,11 +7,12 @@ import { AUTH_COOKIE } from "./lib/auth";
  * clients send the token in an `Authorization: Bearer` header (or the legacy `token` header).
  */
 function readToken(req: Request): string | null {
-    const cookieToken = req.cookies?.[AUTH_COOKIE];
-    if (typeof cookieToken === "string" && cookieToken) return cookieToken;
-
+    // An explicit token wins: browsers can attach a stale site cookie to extension requests
     const auth = req.headers.authorization;
     if (auth?.startsWith("Bearer ")) return auth.slice(7);
+
+    const cookieToken = req.cookies?.[AUTH_COOKIE];
+    if (typeof cookieToken === "string" && cookieToken) return cookieToken;
 
     const legacy = req.headers.token;
     if (typeof legacy === "string" && legacy) return legacy;

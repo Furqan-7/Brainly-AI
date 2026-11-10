@@ -83,8 +83,9 @@ async function runSearch(e) {
 }
 
 (async () => {
+  const { webUrl, token } = await getSettings();
   $("options").onclick = (e) => { e.preventDefault(); chrome.runtime.openOptionsPage(); };
-  $("connectBtn").onclick = () => connect().then(() => window.close());
+  $("connectBtn").onclick = () => connect(webUrl).then(() => window.close());
   $("searchForm").onsubmit = runSearch;
   $("note").oninput = () => show("noteBtn", Boolean($("note").value.trim()));
   $("noteBtn").onclick = async () => {
@@ -109,7 +110,6 @@ async function runSearch(e) {
     show("noteBox", false);
   };
 
-  const { token } = await getSettings();
   if (!token) return showConnect();
   show("find");
 

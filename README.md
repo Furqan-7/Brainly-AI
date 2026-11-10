@@ -71,7 +71,7 @@ Brainly-AI/
 │   └── test/                # vitest unit + integration tests
 ├── frontend/                # Next.js app (dashboard, collections, graph, duplicates, public /c/[slug])
 ├── db/                      # Prisma schema, migrations, client (Neon or plain Postgres)
-├── extension/               # Chrome/Edge extension (Manifest V3)
+├── extension/               # Browser extension (Manifest V3): Chrome, Edge, Brave, Opera, Firefox, Safari
 └── docker-compose.yml       # Postgres + pgvector, API, web
 ```
 
@@ -142,9 +142,42 @@ pnpm lint
 
 ### Browser extension
 
-1. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and pick the `extension/` folder.
-2. A **Connect Brainly** tab opens (or click **Connect Brainly** in the extension). Sign in if asked; the extension connects by itself, with no token to copy.
-3. Click the Brainly icon on any page to save it, or right-click a link or selected text. Brainly adds the title, summary and tags.
+One extension works in every desktop browser. Build the packages first:
+
+```bash
+pnpm build:extension
+```
+
+This writes `extension/dist/chromium/` and `extension/dist/firefox/` (plus a `.zip` of each, ready to upload to the stores).
+
+**Install it yourself (no store needed)**
+
+| Browser | How |
+| --- | --- |
+| Chrome, Brave, Arc, Vivaldi | `chrome://extensions` → turn on **Developer mode** → **Load unpacked** → pick `extension/` (or `extension/dist/chromium/`) |
+| Edge | `edge://extensions` → **Developer mode** → **Load unpacked** → same folder |
+| Opera | `opera://extensions` → **Developer mode** → **Load unpacked** → same folder |
+| Firefox | `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → pick `extension/dist/firefox/manifest.json` (removed when Firefox restarts; see below to install it for good) |
+| Safari (Mac) | `xcrun safari-web-extension-converter extension/dist/chromium` (needs Xcode), run the app it creates, then enable it in Safari → Settings → Extensions |
+
+Then:
+
+1. A **Connect Brainly** tab opens (or click **Connect Brainly** in the extension). Sign in if asked; the extension connects by itself, with no token to copy. In Firefox and Safari, allow access to the Brainly site when asked.
+2. Click the Brainly icon on any page to save it, or right-click a link or selected text. Brainly adds the title, summary and tags.
+
+After pulling a new version, click **Reload** (↻) on the extension in the extensions page, or the browser keeps running the old one.
+
+**Publish it so anyone can install it in one click**
+
+| Store | Covers | Upload | Cost |
+| --- | --- | --- | --- |
+| [Chrome Web Store](https://chrome.google.com/webstore/devconsole) | Chrome, Brave, Arc, Vivaldi, Opera (with its "Install Chrome extensions" add-on) | `brainly-chromium-<version>.zip` | one-time $5 developer fee |
+| [Microsoft Edge Add-ons](https://partner.microsoft.com/dashboard/microsoftedge) | Edge | `brainly-chromium-<version>.zip` | free |
+| [Firefox Add-ons (AMO)](https://addons.mozilla.org/developers/) | Firefox desktop and Android | `brainly-firefox-<version>.zip` | free |
+| [Opera Add-ons](https://addons.opera.com/developer/) | Opera | `brainly-chromium-<version>.zip` | free |
+| App Store (Safari) | Safari on Mac, iPhone and iPad | the Xcode project from `safari-web-extension-converter` | Apple Developer Program, $99/year |
+
+Bump `version` in `extension/manifest.json` before each upload. On phones without extensions, the installable web app's **Share → Brainly** does the same job (below).
 
 The extension talks to `https://brainly-ai-frontend.vercel.app` by default (the API through its `/backend` proxy). For your own deployment, change the address in `extension/api.js` and `extension/manifest.json` (`host_permissions`, `content_scripts.matches`), or use the extension's **Settings → Advanced** with a token from `/extension`.
 
