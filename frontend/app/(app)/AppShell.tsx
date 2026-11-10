@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
+    Archive,
     Copy,
     Download,
     FolderOpen,
@@ -17,14 +18,15 @@ import {
     Plus,
     Settings,
     Sparkles,
+    Star,
     Trash2,
     X,
     type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useInstall } from "@/app/components/pwa";
-import { deleteConversation, getCollections, getConversations, logout } from "@/app/services/api";
-import type { Collection, ConversationSummary, Me } from "@/app/types/memory";
+import { deleteConversation, getCollections, getConversations, getCounts, logout } from "@/app/services/api";
+import type { Collection, ConversationSummary, Me, MemoryCounts } from "@/app/types/memory";
 import AddContent from "@/app/components/AddContent";
 import { Logo } from "@/app/components/landing/ui";
 import { shine } from "@/app/components/landing/motion";
@@ -42,6 +44,9 @@ interface Shell {
     refreshMe: () => Promise<void>;
     collections: Collection[];
     reloadCollections: () => void;
+    /** Library totals for the sidebar and the library's type tabs */
+    counts: MemoryCounts | null;
+    reloadCounts: () => void;
     openAddContent: (initial?: SharedContent) => void;
     /** Past conversations for the sidebar, newest first */
     chats: ConversationSummary[];
@@ -58,20 +63,28 @@ export function useShell(): Shell {
     return shell;
 }
 
-const NAV: { href: string; label: string; icon: LucideIcon; hint: string }[] = [
+type NavItem = { href: string; label: string; icon: LucideIcon; hint: string; count?: (c: MemoryCounts | null, cols: Collection[]) => number | undefined; sub?: boolean };
+
+const NAV: NavItem[] = [
     { href: "/chat", label: "Ask", icon: Sparkles, hint: "Ask your brain anything" },
-    { href: "/library", label: "Library", icon: Library, hint: "Everything you've saved" },
-    { href: "/collections", label: "Collections", icon: FolderOpen, hint: "Boards you can share" },
+    { href: "/library", label: "Library", icon: Library, hint: "Everything you've saved", count: (c) => c?.total },
+    { href: "/library?view=starred", label: "Starred", icon: Star, hint: "What you starred", count: (c) => c?.starred, sub: true },
+    { href: "/library?view=archived", label: "Archive", icon: Archive, hint: "Out of the way, still searchable by you", count: (c) => c?.archived, sub: true },
+    { href: "/collections", label: "Collections", icon: FolderOpen, hint: "Boards you can share", count: (_c, cols) => cols.length },
     { href: "/graph", label: "Knowledge graph", icon: Network, hint: "How your saves connect" },
-    { href: "/duplicates", label: "Duplicates", icon: Copy, hint: "Tidy up repeats" },
-    { href: "/settings", label: "Settings", icon: Settings, hint: "Account, plan, extension" },
 ];
+
+/** A stable colour per collection, so its dot looks the same everywhere */
+const COLLECTION_COLORS = ["#b4472b", "#5f6a2e", "#4e6aa8", "#c08a2b", "#8a4f7d", "#2f7f7a"];
+export const collectionColor = (id: number) => COLLECTION_COLORS[id % COLLECTION_COLORS.length];
+
+const VISIBLE_COLLECTIONS = 5;
 
 function UsageBar({ used, limit, label }: { used: number; limit: number; label: string }) {
     const pct = Math.min(100, Math.round((used / Math.max(limit, 1)) * 100));
     return (
-        <div className="grid gap-1">
-            <div className="flex justify-between text-[11px] text-on-surface-variant">
+        <div className="grid gap-1.5">
+            <div className="flex justify-between text-[11.5px] text-on-surface-variant">
                 <span>{label}</span>
                 <span className="tabular-nums">{used} / {limit}</span>
             </div>
@@ -107,7 +120,7 @@ const chatRow = (active: boolean) =>
         : "text-on-surface-variant hover:bg-surface-container-high/70 hover:text-on-surface"
     }`;
 
-const VISIBLE_CHATS = 8;
+const VISIBLE_CHATS = 6;
 
 /** "Install app" in the sidebar, only when the browser can install Brainly right now. */
 function InstallRow({ onNavigate }: { onNavigate?: () => void }) {
@@ -153,9 +166,9 @@ function ChatsNav({ onNavigate }: { onNavigate?: () => void }) {
     };
 
     return (
-        <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
             <span className="px-3 text-[11px] tracking-[0.08em] text-on-surface-variant uppercase">Chats</span>
-            <div className="-mx-1 grid min-h-0 content-start gap-px overflow-y-auto px-1 [scrollbar-width:thin]">
+            <div className="grid content-start gap-px">
                 <Link href="/chat" onClick={newChat} className={chatRow(false)}>
                     <Plus className="size-4 flex-none" />
                     New chat
@@ -196,14 +209,107 @@ function ChatsNav({ onNavigate }: { onNavigate?: () => void }) {
     );
 }
 
-function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; onNavigate?: () => void }) {
+/** Which nav row is active, from the path and the library's ?view= / ?collection= */
+function useActiveNav() {
     const pathname = usePathname();
+    const params = useSearchParams();
+    return (href: string) => {
+        const [path, query] = href.split("?");
+        if (pathname !== path && !pathname.startsWith(path + "/")) return false;
+        if (path !== "/library") return true;
+        const view = params.get("view");
+        if (params.get("collection")) return false;
+        return query ? query === `view=${view}` : !view;
+    };
+}
+
+function MainNav({ onNavigate }: { onNavigate?: () => void }) {
+    const { counts, collections } = useShell();
+    const isActive = useActiveNav();
+    return (
+        <nav aria-label="App" className="grid gap-px">
+            {NAV.map(({ href, label, icon: Icon, hint, count, sub }) => {
+                const active = isActive(href);
+                const n = count?.(counts, collections);
+                return (
+                    <Link
+                        key={href}
+                        href={href}
+                        onClick={onNavigate}
+                        title={hint}
+                        aria-current={active ? "page" : undefined}
+                        className={`group relative flex items-center gap-3 rounded-lg transition-colors ${sub ? "py-1.5 pr-3 pl-10 text-[13.5px]" : "px-3 py-2.5 text-[15px]"} ${active ? "font-medium text-on-surface" : "text-on-surface-variant hover:bg-surface-container-high/60 hover:text-on-surface"}`}
+                    >
+                        {active && (
+                            <motion.span
+                                layoutId="nav-active"
+                                className="rounded-lg absolute inset-0 -z-10 bg-surface-container-high shadow-[inset_2px_0_0_var(--color-primary)]"
+                                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                            />
+                        )}
+                        <Icon className={`${sub ? "size-[15px]" : "size-[18px]"} flex-none transition-transform duration-300 group-hover:scale-110`} />
+                        <span className="truncate">{label}</span>
+                        {n !== undefined && n > 0 && <span className="ml-auto text-[12px] tabular-nums text-on-surface-variant/70">{n.toLocaleString()}</span>}
+                    </Link>
+                );
+            })}
+        </nav>
+    );
+}
+
+function CollectionsNav({ onNavigate }: { onNavigate?: () => void }) {
+    const { collections } = useShell();
+    const pathname = usePathname();
+    const params = useSearchParams();
+    const activeId = pathname === "/library" ? Number(params.get("collection")) || null : null;
+    const shown = [...collections].sort((a, b) => b.memoryCount - a.memoryCount).slice(0, VISIBLE_COLLECTIONS);
+
+    return (
+        <div className="grid gap-px">
+            <div className="flex items-center justify-between px-3 pb-1">
+                <span className="text-[11px] tracking-[0.08em] text-on-surface-variant uppercase">Collections</span>
+                <Link href="/collections" onClick={onNavigate} className="grid size-5 place-items-center rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface" title="New collection">
+                    <Plus className="size-3.5" />
+                </Link>
+            </div>
+            {shown.length === 0 && (
+                <Link href="/collections" onClick={onNavigate} className="rounded-md px-3 py-1.5 text-[13px] text-on-surface-variant hover:bg-surface-container-high/70 hover:text-on-surface">
+                    Group saves into boards →
+                </Link>
+            )}
+            {shown.map((c) => (
+                <Link
+                    key={c.id}
+                    href={`/library?collection=${c.id}`}
+                    onClick={onNavigate}
+                    aria-current={activeId === c.id ? "page" : undefined}
+                    className={`flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] transition-colors ${activeId === c.id ? "bg-surface-container-high font-medium text-on-surface" : "text-on-surface-variant hover:bg-surface-container-high/70 hover:text-on-surface"}`}
+                >
+                    <span className="size-2.5 flex-none rounded-[3px]" style={{ background: collectionColor(c.id) }} />
+                    <span className="truncate">{c.name}</span>
+                    <span className="ml-auto text-[12px] tabular-nums text-on-surface-variant/70">{c.memoryCount}</span>
+                </Link>
+            ))}
+            {collections.length > VISIBLE_COLLECTIONS && (
+                <Link href="/collections" onClick={onNavigate} className="rounded-md px-3 py-1.5 text-[12.5px] text-on-surface-variant hover:text-on-surface">
+                    All {collections.length} collections →
+                </Link>
+            )}
+        </div>
+    );
+}
+
+function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; onNavigate?: () => void }) {
     const router = useRouter();
+    const pathname = usePathname();
 
     const signOut = async () => {
         await logout().catch(() => undefined);
         router.push("/");
     };
+
+    const toolRow = (href: string) =>
+        `flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors ${pathname === href ? "bg-surface-container-high text-on-surface" : "text-on-surface-variant hover:bg-surface-container-high/70 hover:text-on-surface"}`;
 
     return (
         <div className="flex h-full flex-col gap-5 px-4 py-6">
@@ -220,59 +326,49 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
                 Add memory
             </button>
 
-            <nav aria-label="App" className="grid gap-0.5">
-                {NAV.map(({ href, label, icon: Icon, hint }) => {
-                    const active = pathname === href || pathname.startsWith(href + "/");
-                    return (
-                        <Link
-                            key={href}
-                            href={href}
-                            onClick={onNavigate}
-                            title={hint}
-                            aria-current={active ? "page" : undefined}
-                            className={`group relative flex items-center gap-3 px-3 py-2.5 text-[15px] transition-colors ${active ? "text-on-surface" : "text-on-surface-variant hover:text-on-surface"}`}
-                        >
-                            {active && (
-                                <motion.span
-                                    layoutId="nav-active"
-                                    className="rounded-lg absolute inset-0 -z-10 bg-surface-container-high shadow-[inset_2px_0_0_var(--color-primary)]"
-                                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                                />
-                            )}
-                            <Icon className="size-[18px] transition-transform duration-300 group-hover:scale-110" />
-                            {label}
-                        </Link>
-                    );
-                })}
-            </nav>
+            <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1 [scrollbar-width:thin]">
+                <Suspense fallback={<div className="h-64" />}>
+                    <MainNav onNavigate={onNavigate} />
+                    <CollectionsNav onNavigate={onNavigate} />
+                    <ChatsNav onNavigate={onNavigate} />
+                </Suspense>
+            </div>
 
-            <Suspense fallback={<div className="flex-1" />}>
-                <ChatsNav onNavigate={onNavigate} />
-            </Suspense>
-
-            <div className="mt-auto grid gap-4 border-t border-outline-variant pt-5">
+            <div className="grid gap-3 border-t border-outline-variant pt-4">
                 <InstallRow onNavigate={onNavigate} />
+                <Link href="/duplicates" onClick={onNavigate} className={toolRow("/duplicates")} title="Find and merge saves you added twice">
+                    <Copy className="size-4" /> Tidy up duplicates
+                </Link>
                 {me && (
-                    <div className="grid gap-3 px-1">
+                    <div className="grid gap-2.5 rounded-xl bg-surface-container-high/50 px-3 py-2.5">
                         <UsageBar label="Memories" used={me.usage.memoryCount} limit={me.plan.maxMemories} />
                         <UsageBar label="AI answers today" used={me.usage.chatsToday} limit={me.plan.chatsPerDay} />
                     </div>
                 )}
-                <div className="flex items-center gap-3 px-1">
+                <div className="flex items-center gap-2.5 px-1">
                     <span className="grid size-9 flex-none place-items-center rounded-full bg-primary-container font-headline text-base text-white">
                         {me?.user.username.slice(0, 1).toUpperCase() ?? "·"}
                     </span>
-                    <Link href="/settings" onClick={onNavigate} className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{me?.user.username}</span>
                         <span className="block truncate text-xs text-on-surface-variant">
                             {me?.plan.name === "premium" ? "Pro plan" : "Free plan"}
                         </span>
+                    </span>
+                    <Link
+                        href="/settings"
+                        onClick={onNavigate}
+                        title="Settings"
+                        aria-current={pathname === "/settings" ? "page" : undefined}
+                        className={`grid size-8 place-items-center rounded-lg transition-colors ${pathname === "/settings" ? "bg-surface-container-high text-on-surface" : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"}`}
+                    >
+                        <Settings className="size-4" />
                     </Link>
                     <button
                         type="button"
                         onClick={signOut}
                         title="Sign out"
-                        className="grid size-8 place-items-center text-on-surface-variant transition-colors hover:bg-error/10 hover:text-error"
+                        className="grid size-8 place-items-center rounded-lg text-on-surface-variant transition-colors hover:bg-error/10 hover:text-error"
                     >
                         <LogOut className="size-4" />
                     </button>
@@ -310,6 +406,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         reloadCollections();
     }, [reloadCollections]);
 
+    const [counts, setCounts] = useState<MemoryCounts | null>(null);
+    const reloadCounts = useCallback(() => {
+        getCounts().then(setCounts).catch(() => undefined);
+    }, []);
+
+    // Totals change when memories are added (any page) or starred, archived and deleted (library)
+    useEffect(() => {
+        reloadCounts();
+        window.addEventListener(MEMORIES_CHANGED, reloadCounts);
+        return () => window.removeEventListener(MEMORIES_CHANGED, reloadCounts);
+    }, [reloadCounts]);
+
     // Back from Google sign-in (which always returns to /chat): continue where the user was going
     useEffect(() => {
         if (!me) return;
@@ -342,7 +450,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <ShellContext.Provider value={{ me, refreshMe: refresh, collections, reloadCollections, openAddContent, chats, reloadChats, setDecor }}>
+        <ShellContext.Provider value={{ me, refreshMe: refresh, collections, reloadCollections, counts, reloadCounts, openAddContent, chats, reloadChats, setDecor }}>
             <div className="ui-zoom-75 isolate min-h-[calc(100svh/var(--ui-zoom,1))] w-full flex-1 bg-lp-dots text-on-surface">
                 {/* Faint collage art at the right edge during a chat (wide screens only, behind everything) */}
                 <AnimatePresence>

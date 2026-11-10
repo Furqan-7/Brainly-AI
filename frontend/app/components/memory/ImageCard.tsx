@@ -1,66 +1,28 @@
 "use client";
 
-import { FileText, Trash2 } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import type { Memory } from "../../types/memory";
-import { deleteMemory, fileUrl } from "../../services/api";
+import { fileUrl } from "../../services/api";
+import { CardSummary, CardText, CardTitle, SourceLine } from "./cardParts";
 
-export function ImageCard({
-    memory,
-    onDelete,
-}: {
-    memory: Memory;
-    onDelete?: (id: number) => void;
-}) {
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        await deleteMemory(memory.id);
-        onDelete?.(memory.id);
-    };
-
+export function ImageCard({ memory }: { memory: Memory }) {
     // Served by the API, which checks that the file belongs to the signed-in user
-    const imgSrc = memory.file_path ? fileUrl(memory.id) : null;
-
+    const src = memory.file_path ? fileUrl(memory.id) : null;
     return (
-        <div className="bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all group relative flex flex-col">
-            {/* Delete button */}
-            <button
-                onClick={handleDelete}
-                className="absolute top-2 right-2 z-20 p-1.5 rounded-lg bg-surface-container/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
-                title="Delete memory"
-            >
-                <Trash2 className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Image area */}
-            <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
-                {imgSrc ? (
-                    <img
-                        src={imgSrc}
-                        alt={memory.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                ) : (
-                    <div className="w-full h-full bg-surface-container-highest flex items-center justify-center">
-                        <FileText className="w-10 h-10 text-on-surface-variant/30" />
-                    </div>
-                )}
-            </div>
-
-            {/* Info */}
-            <div className="p-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 min-w-0">
-                    <FileText className="w-3 h-3 text-primary shrink-0" />
-                    <span className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant shrink-0">
-                        Image
-                    </span>
-                    <h3 className="text-xs font-semibold leading-tight text-on-surface truncate">
-                        {memory.title}
-                    </h3>
-                </div>
-                <span className="text-[9px] text-on-surface-variant/40 shrink-0">
-                    {new Date(memory.createdAt).toLocaleDateString()}
-                </span>
-            </div>
-        </div>
+        <>
+            {src ? (
+                <a href={src} target="_blank" rel="noopener noreferrer" className="block overflow-hidden bg-surface-container-high" title="Open image">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- private file served by the API */}
+                    <img src={src} alt={memory.title} loading="lazy" className="max-h-[420px] w-full object-cover transition-transform duration-500 group-hover/memory:scale-[1.03]" />
+                </a>
+            ) : (
+                <span className="grid aspect-[4/3] place-items-center bg-surface-container-high"><ImageIcon className="size-10 text-on-surface-variant/30" /></span>
+            )}
+            <CardText>
+                <SourceLine memory={memory} />
+                <CardTitle>{memory.title}</CardTitle>
+                <CardSummary text={memory.summary} />
+            </CardText>
+        </>
     );
 }

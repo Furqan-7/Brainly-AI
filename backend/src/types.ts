@@ -52,6 +52,7 @@ export const listContentSchema = z.object({
     view: z.enum(["recent", "starred", "archived"]).default("recent"),
     collectionId: optionalId,
     cursor: optionalId,
+    sort: z.enum(["newest", "oldest"]).default("newest"),
     limit: z.coerce.number().int().min(1).max(100).default(24),
 });
 
