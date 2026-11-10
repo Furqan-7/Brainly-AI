@@ -24,12 +24,14 @@ export const app: Express = express();
 app.set("trust proxy", Number(process.env.TRUST_PROXY ?? 1));
 
 const allowedOrigins = (process.env.CLIENT_URL ?? "http://localhost:3000").split(",").map((o) => o.trim());
+// The browser extension's pages: Chrome / Edge / Brave / Opera, Firefox, Safari
+const EXTENSION_ORIGIN = /^(chrome-extension|moz-extension|safari-web-extension):\/\//;
 
 app.use(requestLogger);
 app.use(cors({
     // Cookies need an explicit origin (not "*"). Requests without an Origin (curl, the
     // browser extension's background worker) are allowed and authenticate with a Bearer token.
-    origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin) || origin.startsWith("chrome-extension://")),
+    origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin) || EXTENSION_ORIGIN.test(origin)),
     credentials: true,
 }));
 app.use(cookieParser());

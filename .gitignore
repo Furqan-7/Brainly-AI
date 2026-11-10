@@ -9,3 +9,4 @@ node_modules
 /db/dist
 /backend/dist
 !.env.example
+extension/dist/
