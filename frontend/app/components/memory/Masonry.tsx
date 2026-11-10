@@ -109,7 +109,7 @@ export function Masonry<T>({ items, getKey, render, minColumnWidth = 280, maxCol
                     ref={attach}
                     data-key={key}
                     // Raised while in use, so its pop-ups (collection picker) sit above the cards below
-                    className={`hover:z-20 focus-within:z-20 ${width > 0 ? "absolute" : "mb-4"} ${animate ? "transition-[top,left] duration-300 ease-out" : ""}`}
+                    className={`hover:z-20 focus-within:z-20 has-[[data-open]]:z-30 ${width > 0 ? "absolute" : "mb-4"} ${animate ? "transition-[top,left] duration-300 ease-out" : ""}`}
                     style={width > 0 ? { top, left, width: columnWidth, visibility: key in heights ? undefined : "hidden" } : undefined}
                 >
                     {render(item)}

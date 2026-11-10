@@ -2,10 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy, Maximize2, StickyNote, Trash2, X } from "lucide-react";
+import { Check, Copy, StickyNote, X } from "lucide-react";
 import type { Memory } from "../../types/memory";
-import { deleteMemory } from "../../services/api";
 import { NoteMarkdown } from "./NoteMarkdown";
+import { CardText, CardTitle, SourceLine } from "./cardParts";
 
 function readingTime(text: string) {
     const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -75,13 +75,7 @@ function NoteReader({ memory, onClose }: { memory: Memory; onClose: () => void }
     );
 }
 
-export function NoteCard({
-    memory,
-    onDelete,
-}: {
-    memory: Memory;
-    onDelete?: (id: number) => void;
-}) {
+export function NoteCard({ memory }: { memory: Memory }) {
     const [open, setOpen] = useState(false);
     const [clipped, setClipped] = useState(false);
     const preview = useRef<HTMLDivElement>(null);
@@ -97,76 +91,33 @@ export function NoteCard({
         return () => ro.disconnect();
     }, [memory.note]);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        await deleteMemory(memory.id);
-        onDelete?.(memory.id);
-    };
-
     return (
-        <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col justify-between group relative">
-            <div className="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
-                {memory.note && (
-                    <button
-                        onClick={() => setOpen(true)}
-                        className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-on-surface/8 cursor-pointer"
-                        title="Open note"
-                    >
-                        <Maximize2 className="w-3.5 h-3.5" />
-                    </button>
-                )}
-                <button
-                    onClick={handleDelete}
-                    className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 cursor-pointer disabled:cursor-not-allowed"
-                    title="Delete memory"
+        <CardText>
+            <SourceLine memory={memory} />
+            <CardTitle>{memory.title}</CardTitle>
+
+            {memory.note && (
+                <div
+                    className="relative mt-1.5 cursor-pointer"
+                    onClick={() => setOpen(true)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setOpen(true))}
+                    aria-label={`Open note: ${memory.title}`}
                 >
-                    <Trash2 className="w-3.5 h-3.5" />
-                </button>
-            </div>
-
-            <div>
-                <div className="flex items-center gap-1.5 mb-3">
-                    <div className="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center">
-                        <StickyNote className="w-3 h-3 text-secondary" />
+                    <div ref={preview} className="max-h-[22rem] overflow-hidden">
+                        <NoteMarkdown text={memory.note} />
                     </div>
-                    <span className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
-                        Note
-                    </span>
+                    {clipped && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-surface-container-lowest to-transparent" />}
                 </div>
-
-                <h3 className="text-sm font-semibold text-on-surface mb-2 pr-12">
-                    {memory.title}
-                </h3>
-
-                {memory.note && (
-                    <div
-                        className="relative cursor-pointer"
-                        onClick={() => setOpen(true)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setOpen(true))}
-                        aria-label={`Open note: ${memory.title}`}
-                    >
-                        <div ref={preview} className="max-h-[22rem] overflow-hidden">
-                            <NoteMarkdown text={memory.note} />
-                        </div>
-                        {clipped && (
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-surface-container-low to-transparent" />
-                        )}
-                    </div>
-                )}
-            </div>
-
-            <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-on-surface-variant/60">
-                <span>{new Date(memory.createdAt).toLocaleDateString()}</span>
-                {clipped && (
-                    <button onClick={() => setOpen(true)} className="font-semibold text-primary hover:underline underline-offset-2 cursor-pointer">
-                        Read full note →
-                    </button>
-                )}
-            </div>
+            )}
+            {clipped && (
+                <button onClick={() => setOpen(true)} className="mt-2 text-[12.5px] font-semibold text-primary hover:underline underline-offset-2 cursor-pointer">
+                    Read full note →
+                </button>
+            )}
 
             {open && <NoteReader memory={memory} onClose={() => setOpen(false)} />}
-        </div>
+        </CardText>
     );
 }

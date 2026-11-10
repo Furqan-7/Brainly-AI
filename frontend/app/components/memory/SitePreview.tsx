@@ -30,7 +30,7 @@ export function SitePreview({ url, fallbackImage, title }: { url: string; fallba
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block mb-3 rounded-lg overflow-hidden border border-outline-variant/15 bg-surface-container-highest/40 hover:border-outline-variant/30 transition-colors"
+            className="block rounded-[11px] overflow-hidden border border-outline-variant/50 bg-surface-container-highest/40 hover:border-outline-variant/30 transition-colors"
             title={title ? `Open ${title}` : `Open ${host}`}
         >
             <div className="flex items-center gap-1.5 px-2.5 h-5 border-b border-outline-variant/10 bg-surface-container-high/60">

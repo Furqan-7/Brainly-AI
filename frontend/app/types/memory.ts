@@ -44,7 +44,19 @@ export interface Memory {
 
 export type MemoryView = "recent" | "starred" | "archived";
 
+export type MemorySort = "newest" | "oldest";
+
+/** Totals for the library tabs and the sidebar (archived memories only count in `archived`) */
+export interface MemoryCounts {
+    total: number;
+    types: Partial<Record<MemoryType, number>>;
+    starred: number;
+    archived: number;
+    thisWeek: number;
+}
+
 export interface MemoryQuery {
+    sort?: MemorySort;
     view?: MemoryView;
     types?: MemoryType[];
     q?: string;

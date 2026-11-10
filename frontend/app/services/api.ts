@@ -10,7 +10,7 @@
 
 import axios from "axios";
 import type {
-    ChatMessage, Collection, ConversationSummary, GraphEdge, GraphNode, Me, Memory, MemoryQuery,
+    ChatMessage, Collection, ConversationSummary, GraphEdge, GraphNode, Me, Memory, MemoryCounts, MemoryQuery,
     PublicMemory, RediscoverItem, SearchFilters, Source,
 } from "../types/memory";
 
@@ -78,9 +78,15 @@ export async function getMemories(
             tag: query.tag || undefined,
             collectionId: query.collectionId,
             cursor: cursor ?? undefined,
+            sort: query.sort && query.sort !== "newest" ? query.sort : undefined,
         },
     });
     return { memories: res.data.memories ?? [], nextCursor: res.data.nextCursor ?? null };
+}
+
+export async function getCounts(): Promise<MemoryCounts> {
+    const { total, types, starred, archived, thisWeek } = (await api.get("/api/content/counts")).data;
+    return { total, types, starred, archived, thisWeek };
 }
 
 export async function getMemoryStatuses(ids: number[]): Promise<Memory[]> {

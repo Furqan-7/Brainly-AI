@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, Heart, MessageCircle, Play, Trash2 } from "lucide-react";
+import { BadgeCheck, Heart, MessageCircle, Play } from "lucide-react";
 import type { Memory } from "../../types/memory";
-import { deleteMemory } from "../../services/api";
 import { compactCount, tweetIdFromUrl, type TweetData, type TweetMedia, type TweetPart } from "../../lib/tweet";
 
 // One request per post per page load, shared by every card that shows it
@@ -122,8 +121,9 @@ function RichTweet({ tweet }: { tweet: TweetData }) {
     const date = new Date(tweet.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
     return (
         <>
-            <div className="pr-14">
+            <div className="flex items-start justify-between gap-2">
                 <Author author={tweet.author} />
+                <OpenOnX href={tweet.url} />
             </div>
 
             {tweet.parts.length > 0 && <Text parts={tweet.parts} className="mt-3 text-[14px] leading-[1.55] text-on-surface line-clamp-[12]" />}
@@ -168,7 +168,7 @@ function SimpleTweet({ memory, loading }: { memory: Memory; loading: boolean }) 
     const meta = memory.metadata ?? {};
     return (
         <>
-            <div className="flex items-center gap-2.5 pr-14">
+            <div className="flex items-center gap-2.5">
                 <span className={`grid size-10 shrink-0 place-items-center rounded-full bg-on-surface/6 text-on-surface ${loading ? "animate-pulse" : ""}`}>
                     <XMark className="size-4" />
                 </span>
@@ -183,39 +183,15 @@ function SimpleTweet({ memory, loading }: { memory: Memory; loading: boolean }) 
     );
 }
 
-export function TweetCard({
-    memory,
-    onDelete,
-}: {
-    memory: Memory;
-    onDelete?: (id: number) => void;
-}) {
-    const { tweet, loading } = useTweet(memory.source_url);
-
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        await deleteMemory(memory.id);
-        onDelete?.(memory.id);
-    };
-
+function OpenOnX({ href }: { href: string }) {
     return (
-        <div className="bg-surface-container-high/40 border border-outline-variant/10 rounded-xl p-4 hover:bg-surface-container-high/60 transition-all flex flex-col group relative">
-            <div className="absolute top-3 right-3 flex items-center gap-0.5">
-                <button
-                    onClick={handleDelete}
-                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 focus:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
-                    title="Delete memory"
-                >
-                    <Trash2 className="w-3.5 h-3.5" />
-                </button>
-                {memory.source_url && (
-                    <a href={tweet?.url ?? memory.source_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-on-surface-variant/70 hover:text-on-surface hover:bg-on-surface/6" title="Open on X">
-                        <XMark className="size-3.5" />
-                    </a>
-                )}
-            </div>
-
-            {tweet ? <RichTweet tweet={tweet} /> : <SimpleTweet memory={memory} loading={loading} />}
-        </div>
+        <a href={href} target="_blank" rel="noopener noreferrer" onClick={stop} className="-mt-0.5 rounded-lg p-1.5 text-on-surface-variant/70 hover:bg-on-surface/6 hover:text-on-surface" title="Open on X">
+            <XMark className="size-3.5" />
+        </a>
     );
+}
+
+export function TweetCard({ memory }: { memory: Memory }) {
+    const { tweet, loading } = useTweet(memory.source_url);
+    return <div className="px-4 pt-4">{tweet ? <RichTweet tweet={tweet} /> : <SimpleTweet memory={memory} loading={loading} />}</div>;
 }

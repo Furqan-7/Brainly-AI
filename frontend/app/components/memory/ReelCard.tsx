@@ -1,105 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Play, Trash2 } from "lucide-react";
 import type { Memory } from "../../types/memory";
-import { deleteMemory } from "../../services/api";
 import { TYPE_META } from "./typeMeta";
+import { CardSummary, CardText, CardTitle, PlayButton, SourceLine } from "./cardParts";
 
 /** Short vertical videos: Instagram Reels and TikToks. */
-export function ReelCard({
-    memory,
-    onDelete,
-}: {
-    memory: Memory;
-    onDelete?: (id: number) => void;
-}) {
+export function ReelCard({ memory }: { memory: Memory }) {
     const meta = memory.metadata ?? {};
-    const { label, icon: Icon } = TYPE_META[memory.type];
+    const { icon: Icon } = TYPE_META[memory.type];
     // Instagram CDN thumbnails expire, so fall back to the icon if the image fails
     const [thumbFailed, setThumbFailed] = useState(false);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        await deleteMemory(memory.id);
-        onDelete?.(memory.id);
-    };
-
     return (
-        <div className="flex flex-col bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden hover:border-pink-500/40 transition-all group relative">
-            {/* Delete button */}
-            <button
-                onClick={handleDelete}
-                className="absolute top-2 right-2 z-20 p-1.5 rounded-lg bg-surface-container/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
-                title="Delete memory"
-            >
-                <Trash2 className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Thumbnail */}
-            <a
-                href={memory.source_url ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative overflow-hidden block"
-                style={{ aspectRatio: "4/5" }}
-            >
+        <>
+            <a href={memory.source_url ?? undefined} target="_blank" rel="noopener noreferrer" className="relative block aspect-[4/5] overflow-hidden bg-surface-container-high" title="Open original">
                 {meta.thumbnail_url && !thumbFailed ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- remote reel thumbnail
                     <img
                         src={meta.thumbnail_url}
-                        alt={memory.title}
+                        alt=""
+                        loading="lazy"
                         referrerPolicy="no-referrer"
                         onError={() => setThumbFailed(true)}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="size-full object-cover transition-transform duration-500 group-hover/memory:scale-[1.03]"
                     />
                 ) : (
-                    <div className="w-full h-full bg-surface-container-high bg-[radial-gradient(rgb(20_20_20/0.18)_1px,transparent_1.4px)] bg-[length:6px_6px] flex items-center justify-center">
-                        <Icon className="w-10 h-10 text-on-surface/40" />
-                    </div>
-                )}
-
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Play className="w-10 h-10 text-on-surface" fill="white" />
-                </div>
-            </a>
-
-            {/* Info */}
-            <div className="p-4 flex flex-col gap-2">
-                <div>
-                    <div className="flex items-center justify-between gap-1.5 mb-2">
-                        <div className="flex items-center gap-1.5">
-                            <Icon className="w-3 h-3 text-pink-500" />
-                            <span className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
-                                {label}{meta.author ? ` · @${meta.author}` : ""}
-                            </span>
-                        </div>
-                        {memory.source_url && (
-                            <a
-                                href={memory.source_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Open original"
-                            >
-                                <ExternalLink className="w-3 h-3 text-on-surface-variant/40 hover:text-pink-500 transition-colors" />
-                            </a>
-                        )}
-                    </div>
-
-                    <h3 className="text-sm font-bold leading-snug mb-1.5">{memory.title}</h3>
-
-                    {(meta.context || memory.summary || meta.description) && (
-                        <p className="text-xs text-on-surface-variant/70 line-clamp-3">
-                            {meta.context || memory.summary || meta.description}
-                        </p>
-                    )}
-                </div>
-
-                <div className="flex items-center justify-between border-t border-outline-variant/10 pt-3 mt-1">
-                    <span className="text-[9px] font-medium text-on-surface-variant/50">
-                        {new Date(memory.createdAt).toLocaleDateString()}
+                    <span className="grid size-full place-items-center bg-[radial-gradient(rgb(20_20_20/0.18)_1px,transparent_1.4px)] bg-[length:6px_6px]">
+                        <Icon className="size-10 text-on-surface/40" />
                     </span>
-                </div>
-            </div>
-        </div>
+                )}
+                <PlayButton />
+            </a>
+            <CardText>
+                <SourceLine memory={memory} detail={meta.author ? `@${meta.author}` : null} />
+                <CardTitle>{memory.title}</CardTitle>
+                <CardSummary text={meta.context || memory.summary || meta.description} />
+            </CardText>
+        </>
     );
 }

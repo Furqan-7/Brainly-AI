@@ -1,86 +1,25 @@
 "use client";
 
-import { FileText, Trash2 } from "lucide-react";
 import type { Memory } from "../../types/memory";
-import { deleteMemory, fileUrl } from "../../services/api";
+import { fileUrl } from "../../services/api";
+import { CardSummary, CardText, CardTitle, SourceLine } from "./cardParts";
 
-export function PdfCard({
-    memory,
-    onDelete,
-}: {
-    memory: Memory;
-    onDelete?: (id: number) => void;
-}) {
+export function PdfCard({ memory }: { memory: Memory }) {
     const meta = memory.metadata ?? {};
-
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        await deleteMemory(memory.id);
-        onDelete?.(memory.id);
-    };
-
+    const href = memory.file_path ? fileUrl(memory.id) : memory.source_url;
     return (
-        <div className="bg-surface-container-low border border-outline-variant/10 rounded-xl p-4 hover:border-secondary/40 transition-all group relative overflow-hidden">
-            {/* Delete button */}
-            <button
-                onClick={handleDelete}
-                className="absolute top-2 right-2 z-20 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error/10 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
-                title="Delete memory"
-            >
-                <Trash2 className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                <FileText className="w-20 h-20" />
-            </div>
-
-            <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                <div className="space-y-3">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-tertiary-container/20 rounded border border-tertiary/20">
-                        <FileText className="w-3 h-3 text-tertiary" />
-                        <span className="text-[9px] font-bold tracking-widest uppercase text-tertiary">
-                            Document
-                        </span>
-                    </div>
-
-                    <h3 className="text-sm font-bold leading-snug">{memory.title}</h3>
-
-                    {memory.summary && (
-                        <p className="text-xs text-on-surface-variant/70 line-clamp-3">{memory.summary}</p>
-                    )}
-
-                    <div className="space-y-1">
-                        <div className="h-1 w-full bg-surface-container-highest rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-primary-container rounded-full transition-all"
-                                style={{
-                                    width:
-                                        memory.status === "ready"
-                                            ? "100%"
-                                            : memory.status === "processing"
-                                            ? "60%"
-                                            : "10%",
-                                }}
-                            />
-                        </div>
-                        <div className="flex justify-between text-[9px] font-bold text-on-surface-variant/60">
-                            <span>
-                                {memory.status === "ready" ? "Analyzed" : memory.status}
-                            </span>
-                            {meta.file_size_mb && <span>{meta.file_size_mb} MB</span>}
-                        </div>
-                    </div>
-                </div>
-
-                <a
-                    href={fileUrl(memory.id)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 bg-surface-container-highest rounded-lg border border-outline-variant/30 text-[10px] font-bold tracking-widest uppercase hover:bg-primary-container hover:text-on-primary-container transition-all cursor-pointer disabled:cursor-not-allowed"
-                >
-                    Open Document
+        <CardText>
+            <div className="flex items-center gap-3.5">
+                {/* A page with ruled lines, standing in for the document */}
+                <a href={href ?? undefined} target="_blank" rel="noopener noreferrer" title="Open document" className="relative h-[70px] w-[54px] flex-none rounded-md border border-outline-variant bg-white shadow-[3px_3px_0_var(--color-surface-container-high)]">
+                    <span className="absolute inset-x-2 top-2.5 h-11 bg-[repeating-linear-gradient(var(--color-outline-variant)_0_2px,transparent_2px_7px)]" />
                 </a>
+                <div className="min-w-0">
+                    <SourceLine memory={memory} label="PDF" detail={meta.file_size_mb ? `${meta.file_size_mb} MB` : null} />
+                    <CardTitle href={href}>{memory.title}</CardTitle>
+                </div>
             </div>
-        </div>
+            <CardSummary text={memory.summary} />
+        </CardText>
     );
 }
