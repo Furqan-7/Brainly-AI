@@ -2,14 +2,17 @@ import { connect, getSettings } from "./api.js";
 
 const $ = (id) => document.getElementById(id);
 
+let current = null;
+
 (async () => {
-  const { webUrl, token } = await getSettings();
+  current = await getSettings();
+  const { webUrl, token } = current;
   $("webUrl").value = webUrl;
   $("token").value = token;
   $("who").textContent = token ? `Connected to ${webUrl}` : "Not connected yet.";
 })();
 
-$("connect").onclick = () => connect();
+$("connect").onclick = () => connect(current?.webUrl);
 
 $("save").onclick = async () => {
   let webUrl;

@@ -11,9 +11,20 @@ export async function getSettings() {
   return { webUrl: web, apiUrl: (apiUrl || `${web}/backend`).replace(/\/+$/, ""), token };
 }
 
+/**
+ * Some browsers (Firefox, Safari) don't grant site access at install, and without it the
+ * connect script can't run on Brainly and requests are blocked. Asking must happen straight
+ * from a click, so pass the web address you already loaded (no await before this call).
+ */
+export function ensureAccess(webUrl) {
+  // Already-granted access resolves straight away, without a prompt
+  return chrome.permissions.request({ origins: [`${webUrl}/*`] }).catch(() => false);
+}
+
 /** Opens Brainly's connect page; it signs the extension in automatically. */
-export async function connect() {
-  const { webUrl } = await getSettings();
+export async function connect(webUrl) {
+  if (webUrl) await ensureAccess(webUrl);
+  else ({ webUrl } = await getSettings());
   await chrome.tabs.create({ url: `${webUrl}/extension` });
 }
 
@@ -26,6 +37,9 @@ export async function apiFetch(path, options = {}) {
   }
   const res = await fetch(`${apiUrl}${path}`, {
     ...options,
+    // Sign in with the extension's own token only: a stale or different account's cookie for
+    // the site must not be sent along with it
+    credentials: "omit",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(options.headers || {}) },
   });
   const body = await res.json().catch(() => ({}));

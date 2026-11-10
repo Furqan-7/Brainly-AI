@@ -82,7 +82,7 @@ export default function ConnectExtensionPage() {
                     <>
                         <p className="font-headline text-2xl">Extension not found</p>
                         <p className="text-[14.5px] leading-[1.6] text-on-surface-variant">
-                            Install the Brainly extension in Chrome or Edge, then click <b>Connect</b> in it (or reload this page). Using a custom setup? Copy a token and paste it in the extension&apos;s settings.
+                            Install the Brainly extension in your browser (Chrome, Edge, Brave, Opera, Firefox or Safari), then click <b>Connect</b> in it (or reload this page). Just updated it? Reload it on your browser&apos;s extensions page first. Using a custom setup? Copy a token and paste it in the extension&apos;s settings.
                         </p>
                         <button type="button" onClick={copyToken} className="mx-auto flex items-center gap-2 rounded-xl border border-outline-variant px-4 py-2.5 text-[14px] hover:border-on-surface">
                             {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
