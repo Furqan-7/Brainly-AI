@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { Brain, Loader2 } from "lucide-react";
 import type { Collection, Memory } from "../../types/memory";
 import { MemoryCard } from "./MemoryCard";
+import { Masonry } from "./Masonry";
 
 interface ContentGridProps {
     memories: Memory[];
@@ -51,19 +52,23 @@ export function ContentGrid({
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto mt-6 items-start"
+                className="mt-6"
             >
-                {memories.map((memory) => (
-                    <MemoryCard
-                        key={memory.id}
-                        memory={memory}
-                        collections={collections}
-                        onDelete={onDelete}
-                        onUpdate={onUpdate}
-                        onTagClick={onTagClick}
-                        onCollectionsChanged={onCollectionsChanged}
-                    />
-                ))}
+                {/* Pinterest-style: each card fills the shortest column, so no space is wasted */}
+                <Masonry
+                    items={memories}
+                    getKey={(memory) => memory.id}
+                    render={(memory) => (
+                        <MemoryCard
+                            memory={memory}
+                            collections={collections}
+                            onDelete={onDelete}
+                            onUpdate={onUpdate}
+                            onTagClick={onTagClick}
+                            onCollectionsChanged={onCollectionsChanged}
+                        />
+                    )}
+                />
             </motion.section>
 
             <div ref={sentinel} className="flex justify-center py-6">
