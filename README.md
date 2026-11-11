@@ -10,7 +10,7 @@
 Reels, YouTube videos, tweets, articles, PDFs and notes in one place.<br>
 Ask in plain words and get answers that cite exactly what you saved.
 
-[**Open Brainly**](https://brainly-ai-frontend.vercel.app) · [Features](#features) · [How it works](#how-it-works) · [Run it locally](#run-it-locally) · [API](#api)
+[**Open Brainly**](https://brainlyai.me) · [Features](#features) · [How it works](#how-it-works) · [Run it locally](#run-it-locally) · [API](#api)
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=flat&logo=next.js&logoColor=white)
@@ -166,6 +166,7 @@ The web app proxies every API request through its own domain at `/backend`, so t
 - **Backend:** set `CLIENT_URL` to the web app's address, `COOKIE_SAMESITE=lax` and `TRUST_PROXY=2`.
 - **Backend build command (Render):** `pnpm install --frozen-lockfile && pnpm build`. `pnpm build` applies pending migrations when `DATABASE_URL` is set, so schema changes reach production with each deploy.
 - **Google sign-in:** set `GOOGLE_CALLBACK_URL` to `https://<your-web-app>/backend/auth/google/callback` and add the same URL to the authorised redirect URIs in Google Cloud Console.
+- **Custom domain:** put it first in the backend's `CLIENT_URL` (e.g. `https://brainlyai.me,https://brainly-ai-frontend.vercel.app`) and set `NEXT_PUBLIC_SITE_URL=https://brainlyai.me` on Vercel. Visitors on the production `*.vercel.app` address are then redirected to the domain, and Google / GitHub sign-in returns to the address it started from.
 
 </details>
 
@@ -202,7 +203,7 @@ Then a **Connect Brainly** tab opens (or click **Connect Brainly** in the extens
 | [Opera Add-ons](https://addons.opera.com/developer/) | Opera | `brainly-chromium-<version>.zip` | free |
 | App Store (Safari) | Safari on Mac, iPhone and iPad | the Xcode project from `safari-web-extension-converter` | $99/year |
 
-Bump `version` in `extension/manifest.json` before each upload. The extension talks to `https://brainly-ai-frontend.vercel.app` by default. For your own deployment, change the address in `extension/api.js` and `extension/manifest.json` (`host_permissions`, `content_scripts.matches`), or use the extension's **Settings → Advanced** with a token from `/extension`.
+Bump `version` in `extension/manifest.json` before each upload. The extension talks to `https://brainlyai.me` by default (installs from before 1.3.0 keep using the vercel.app address, which still works). For your own deployment, change the address in `extension/api.js` and `extension/manifest.json` (`host_permissions`, `content_scripts.matches`), or use the extension's **Settings → Advanced** with a token from `/extension`.
 
 </details>
 

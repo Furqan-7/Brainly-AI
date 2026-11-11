@@ -5,7 +5,7 @@
  */
 export const SITE_URL = (
     process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://brainly-ai-frontend.vercel.app")
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://brainlyai.me")
 ).replace(/\/+$/, "");
 
 /** The Express API, called directly from the server (the browser goes through the /backend proxy). */

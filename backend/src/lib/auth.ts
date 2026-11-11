@@ -8,9 +8,44 @@ export function signToken(userId: number, username: string, expiresIn: jwt.SignO
     return jwt.sign({ userId, username }, process.env.JWT_TOKEN as string, { expiresIn });
 }
 
-/** The web app's address (CLIENT_URL may list several origins; the first is the main one). */
+/** Every address the web app is served from (CLIENT_URL may list several origins). */
+export function clientOrigins(): string[] {
+    return (process.env.CLIENT_URL ?? "http://localhost:3000").split(",").map((o) => o.trim().replace(/\/+$/, "")).filter(Boolean);
+}
+
+/** The web app's main address: the first one in CLIENT_URL. */
 export function clientUrl(): string {
-    return (process.env.CLIENT_URL ?? "http://localhost:3000").split(",")[0].trim().replace(/\/+$/, "");
+    return clientOrigins()[0] ?? "http://localhost:3000";
+}
+
+/** `url`'s origin, if it is one of the web app's own addresses */
+export function allowedClientOrigin(url: string | undefined | null): string | null {
+    if (!url) return null;
+    try {
+        const origin = new URL(url).origin;
+        return clientOrigins().includes(origin) ? origin : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * OAuth `state`: remembers which of the web app's addresses sign-in started from (e.g. the
+ * custom domain rather than the vercel.app one), signed so it can't point anywhere else.
+ */
+export function signOAuthState(origin: string): string {
+    return jwt.sign({ origin, purpose: "oauth-state" }, process.env.JWT_TOKEN as string, { expiresIn: "15m" });
+}
+
+export function verifyOAuthState(state: unknown): string | null {
+    if (typeof state !== "string" || !state) return null;
+    try {
+        const decoded = jwt.verify(state, process.env.JWT_TOKEN as string);
+        if (typeof decoded !== "object" || decoded.purpose !== "oauth-state") return null;
+        return allowedClientOrigin(decoded.origin);
+    } catch {
+        return null;
+    }
 }
 
 /**
