@@ -326,7 +326,7 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
                 Add memory
             </button>
 
-            <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1 [scrollbar-width:thin]">
+            <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto px-1 [scrollbar-color:transparent_transparent] [scrollbar-width:thin] hover:[scrollbar-color:var(--color-outline-variant)_transparent]">
                 <Suspense fallback={<div className="h-64" />}>
                     <MainNav onNavigate={onNavigate} />
                     <CollectionsNav onNavigate={onNavigate} />
