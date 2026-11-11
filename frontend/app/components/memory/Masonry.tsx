@@ -17,6 +17,9 @@ interface MasonryProps<T> {
  * of different heights pack together with no gaps. Cards keep their order (left to right, top
  * to bottom) and stay mounted when the layout changes, so playing videos aren't reset.
  *
+ * The grid is its own stacking layer (isolate): a hovered card rises above the other cards, but
+ * never above things outside the grid, like the library's sticky toolbar.
+ *
  * Positions use top/left, not transforms: a transform would make the cards' fixed-position
  * pop-ups (edit dialog) position themselves inside the card instead of the window.
  */
@@ -102,7 +105,7 @@ export function Masonry<T>({ items, getKey, render, minColumnWidth = 280, maxCol
     const height = Math.max(0, ...columnHeights) - gap;
 
     return (
-        <div ref={container} className="relative w-full" style={{ height: width > 0 ? Math.max(height, 0) : undefined }}>
+        <div ref={container} className="relative isolate w-full" style={{ height: width > 0 ? Math.max(height, 0) : undefined }}>
             {placed.map(({ item, key, top, left }) => (
                 <div
                     key={key}

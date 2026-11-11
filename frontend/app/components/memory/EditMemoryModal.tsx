@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, X } from "lucide-react";
 import type { Memory } from "../../types/memory";
 import { errorMessage, updateMemory } from "../../services/api";
@@ -36,7 +37,8 @@ export function EditMemoryModal({ memory, onClose, onSaved }: { memory: Memory; 
         }
     };
 
-    return (
+    // Rendered on <body>: inside the card, the grid's stacking layer would put it under the sidebar
+    return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-on-surface/25 backdrop-blur-sm px-4" onClick={onClose}>
             <div
                 onClick={(e) => e.stopPropagation()}
@@ -94,6 +96,7 @@ export function EditMemoryModal({ memory, onClose, onSaved }: { memory: Memory; 
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
