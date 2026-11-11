@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, Suspense, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -168,13 +168,13 @@ function ChatsNav({ onNavigate }: { onNavigate?: () => void }) {
     return (
         <div className="flex flex-col gap-1.5">
             <span className="px-3 text-[11px] tracking-[0.08em] text-on-surface-variant uppercase">Chats</span>
-            <div className="grid content-start gap-px">
+            <div className="grid min-w-0 grid-cols-1 content-start gap-px">
                 <Link href="/chat" onClick={newChat} className={chatRow(false)}>
                     <Plus className="size-4 flex-none" />
                     New chat
                 </Link>
                 {groupChats(shown).map((group) => (
-                    <div key={group.label} className="grid gap-px">
+                    <div key={group.label} className="grid min-w-0 grid-cols-1 gap-px">
                         <span className="px-3 pt-2.5 pb-1 text-[10.5px] tracking-[0.06em] text-on-surface-variant/70 uppercase">{group.label}</span>
                         {group.items.map((chat) => (
                             <div key={chat.id} className="group/item relative">
@@ -299,6 +299,50 @@ function CollectionsNav({ onNavigate }: { onNavigate?: () => void }) {
     );
 }
 
+/**
+ * The sidebar's scrolling middle. No scrollbar (browsers draw them with arrows and tracks on
+ * Windows); instead the top or bottom edge fades out while there is more to scroll that way.
+ */
+function FadeScroll({ children }: { children: React.ReactNode }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [edges, setEdges] = useState({ top: false, bottom: false });
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const update = () => {
+            const top = el.scrollTop > 2;
+            const bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
+            setEdges((e) => (e.top === top && e.bottom === bottom ? e : { top, bottom }));
+        };
+        el.addEventListener("scroll", update, { passive: true });
+        // Also runs once right away, then whenever the content changes size as chats and collections load
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        Array.from(el.children).forEach((child) => ro.observe(child));
+        const mo = new MutationObserver(update);
+        mo.observe(el, { childList: true, subtree: true });
+        return () => {
+            el.removeEventListener("scroll", update);
+            ro.disconnect();
+            mo.disconnect();
+        };
+    }, []);
+
+    const fade = 28;
+    const mask = `linear-gradient(to bottom, ${edges.top ? "transparent" : "#000"} 0, #000 ${fade}px, #000 calc(100% - ${fade}px), ${edges.bottom ? "transparent" : "#000"} 100%)`;
+
+    return (
+        <div
+            ref={ref}
+            className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto overscroll-contain px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ maskImage: mask, WebkitMaskImage: mask }}
+        >
+            {children}
+        </div>
+    );
+}
+
 function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; onNavigate?: () => void }) {
     const router = useRouter();
     const pathname = usePathname();
@@ -326,13 +370,13 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
                 Add memory
             </button>
 
-            <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto px-1 [scrollbar-color:transparent_transparent] [scrollbar-width:thin] hover:[scrollbar-color:var(--color-outline-variant)_transparent]">
+            <FadeScroll>
                 <Suspense fallback={<div className="h-64" />}>
                     <MainNav onNavigate={onNavigate} />
                     <CollectionsNav onNavigate={onNavigate} />
                     <ChatsNav onNavigate={onNavigate} />
                 </Suspense>
-            </div>
+            </FadeScroll>
 
             <div className="grid gap-3 border-t border-outline-variant pt-4">
                 <InstallRow onNavigate={onNavigate} />
