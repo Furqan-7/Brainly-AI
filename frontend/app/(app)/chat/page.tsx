@@ -2,94 +2,33 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowUp, Filter, Search, Sparkles } from "lucide-react";
+import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "motion/react";
 import { ChatThread, useChat } from "@/app/components/chat/ChatComponent";
 import { SearchResults } from "@/app/components/chat/SearchResults";
 import { SourceViewer } from "@/app/components/chat/Sources";
-import { ALL_TYPES, TYPE_META } from "@/app/components/memory/typeMeta";
-import type { MemoryType, SearchFilters, Source } from "@/app/types/memory";
-import { clearSearchCache } from "@/app/services/api";
-import { MEMORIES_CHANGED, NEW_CHAT, useShell } from "../AppShell";
-
-const dateRanges = [
-    { label: "Any time", days: 0 },
-    { label: "Past week", days: 7 },
-    { label: "Past month", days: 30 },
-    { label: "Past year", days: 365 },
-];
-
-const SUGGESTIONS = [
-    "that reel about project ideas I saved",
-    "videos about cooking from last month",
-    "what did my PDFs say about transformers?",
-    "notes from the Q3 planning meeting",
-];
+import { Composer, EMPTY_SCOPE, scopeDays, scopeFind, scopeTypes, takeCommands, type ComposerHandle, type Scope } from "@/app/components/chat/Composer";
+import { LiveMatches, StartPanels } from "@/app/components/chat/AskStart";
+import type { Memory, SearchFilters, Source } from "@/app/types/memory";
+import { clearSearchCache, getMemories } from "@/app/services/api";
+import { collectionColor, MEMORIES_CHANGED, NEW_CHAT, useShell } from "../AppShell";
 
 type Mode = "ask" | "search";
 
+const ease = [0.22, 1, 0.36, 1] as const;
+
 /** Filters for a question, captured when it's sent. */
-function buildFilters(types: MemoryType[], rangeDays: number): SearchFilters {
+function buildFilters(scope: Scope): SearchFilters {
+    const types = scopeTypes(scope);
+    const rangeDays = scopeDays(scope);
     return {
         types: types.length ? types : undefined,
         // Rounded to the minute, so the same search can come from the cache
         from: rangeDays ? new Date(Math.floor(Date.now() / 60_000) * 60_000 - rangeDays * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        collectionId: scope.collectionId,
     };
 }
 
 const newNonce = () => Date.now();
-
-const chip = (on: boolean) =>
-    `flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] transition-colors cursor-pointer disabled:cursor-not-allowed ${on
-        ? "bg-primary-container text-white"
-        : "text-on-surface-variant shadow-[inset_0_0_0_1px_var(--color-outline-variant)] hover:text-on-surface hover:bg-surface-container-high"
-    }`;
-
-function ModeSwitch({ mode, setMode, compact = false }: { mode: Mode; setMode: (m: Mode) => void; compact?: boolean }) {
-    return (
-        <div className={`inline-flex flex-none overflow-hidden shadow-[inset_0_0_0_1px_var(--color-outline-variant)] ${compact ? "rounded-[10px]" : ""}`} role="group" aria-label="Mode">
-            {(["ask", "search"] as const).map((m) => (
-                <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMode(m)}
-                    aria-pressed={mode === m}
-                    title={m === "ask" ? "A written answer from your memories (uses a daily AI answer)" : "Matching memories, instantly (free)"}
-                    className={`flex items-center gap-1.5 transition-colors cursor-pointer disabled:cursor-not-allowed ${compact ? "px-2.5 py-1.5 text-[12.5px]" : "px-3.5 py-2 text-[13.5px]"} ${mode === m ? "bg-primary-container text-white" : "text-on-surface-variant hover:text-on-surface"}`}
-                >
-                    {m === "ask" ? <Sparkles className="size-3.5" /> : <Search className="size-3.5" />}
-                    {/* icons only in the docked box on phones, so the input keeps its room */}
-                    <span className={compact ? "max-sm:sr-only" : ""}>{m === "ask" ? "Ask AI" : "Search"}</span>
-                </button>
-            ))}
-        </div>
-    );
-}
-
-function FiltersPanel({ types, toggleType, rangeDays, setRangeDays }: { types: MemoryType[]; toggleType: (t: MemoryType) => void; rangeDays: number; setRangeDays: (d: number) => void }) {
-    return (
-        <div className="rounded-2xl grid gap-3 border border-outline-variant bg-surface-container-lowest p-4">
-            <div className="flex flex-wrap gap-1.5">
-                {ALL_TYPES.map((type) => {
-                    const { plural, icon: Icon } = TYPE_META[type];
-                    return (
-                        <button key={type} type="button" onClick={() => toggleType(type)} className={chip(types.includes(type))}>
-                            <Icon className="size-3.5" /> {plural}
-                        </button>
-                    );
-                })}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-                {dateRanges.map((r) => (
-                    <button key={r.days} type="button" onClick={() => setRangeDays(r.days)} className={chip(rangeDays === r.days)}>
-                        {r.label}
-                    </button>
-                ))}
-            </div>
-            <p className="text-xs text-on-surface-variant">Tip: you can also just write it, like “videos from last month”.</p>
-        </div>
-    );
-}
 
 export default function AskPage() {
     // useSearchParams (for ?c=<chat id>) needs a Suspense boundary
@@ -101,19 +40,21 @@ export default function AskPage() {
 }
 
 function Ask() {
-    const { me, refreshMe, reloadChats, setDecor } = useShell();
+    const { me, counts, collections, chats, refreshMe, reloadChats, setDecor, openAddContent } = useShell();
     const router = useRouter();
     const params = useSearchParams();
     const chatParam = Number(params.get("c")) || null;
 
-    const [mode, setMode] = useState<Mode>("ask");
     const [query, setQuery] = useState("");
+    const [scope, setScope] = useState<Scope>(EMPTY_SCOPE);
     const [search, setSearch] = useState<{ text: string; nonce: number; filters: SearchFilters } | null>(null);
-    const [showFilters, setShowFilters] = useState(false);
-    const [types, setTypes] = useState<MemoryType[]>([]);
-    const [rangeDays, setRangeDays] = useState(0);
     // The source open in the viewer: which list it came from ("message:n" or "search:n") and its number
     const [viewer, setViewer] = useState<{ key: string; sources: Source[]; n: number } | null>(null);
+    const [recent, setRecent] = useState<Memory[] | null>(null);
+    const [savedLabel, setSavedLabel] = useState<string | null>(null);
+    const composerRef = useRef<ComposerHandle>(null);
+    // "/find" lists matches without an AI answer
+    const mode: Mode = scopeFind(scope) ? "search" : "ask";
 
     const chat = useChat({
         onAnswered: () => {
@@ -131,7 +72,7 @@ function Ask() {
     // Open the chat in ?c=, or start fresh when it's removed
     useEffect(() => {
         if (chatParam && chatParam !== conversationRef.current) {
-            setMode("ask");
+            setScope((s) => ({ ...s, commands: s.commands.filter((k) => k !== "find") }));
             setViewer(null);
             load(chatParam).catch(() => router.replace("/chat"));
         } else if (!chatParam && conversationRef.current) {
@@ -146,39 +87,56 @@ function Ask() {
             reset();
             setSearch(null);
             setQuery("");
-            setMode("ask");
+            setScope(EMPTY_SCOPE);
             setViewer(null);
+            requestAnimationFrame(() => composerRef.current?.focus());
         };
         window.addEventListener(NEW_CHAT, onNewChat);
         return () => window.removeEventListener(NEW_CHAT, onNewChat);
     }, [reset]);
 
+    // Newest saves, to suggest questions about them
+    useEffect(() => {
+        getMemories({ sort: "newest" })
+            .then((page) => {
+                setRecent(page.memories.filter((m) => m.status === "ready").slice(0, 3));
+                const last = page.memories[0]?.createdAt;
+                if (last) {
+                    const d = Math.floor((Date.now() - new Date(last).getTime()) / 86_400_000);
+                    setSavedLabel(d < 1 ? "today" : d < 2 ? "yesterday" : `${d} days ago`);
+                }
+            })
+            .catch(() => setRecent([]));
+    }, []);
+
     const active = mode === "ask" ? chat.messages.length > 0 : search !== null;
 
     useEffect(() => {
-        setDecor(true);
+        setDecor(active);
         return () => setDecor(false);
-    }, [setDecor]);
+    }, [setDecor, active]);
 
-    const submit = (text = query) => {
-        if (!text.trim() || (mode === "ask" && chat.busy)) return;
-        setShowFilters(false);
-        if (mode === "ask") {
-            void chat.send(text, buildFilters(types, rangeDays));
+    const submit = (raw = query) => {
+        // "/week" typed without picking it from the menu still counts as a filter
+        const { text, scope: next } = takeCommands(raw, scope);
+        if (next !== scope) setScope(next);
+        if (!text.trim() || (!scopeFind(next) && chat.busy)) return;
+        if (!scopeFind(next)) {
+            void chat.send(text, buildFilters(next));
             setQuery("");
         } else {
             setQuery(text);
-            setSearch({ text: text.trim(), nonce: newNonce(), filters: buildFilters(types, rangeDays) });
+            setSearch({ text: text.trim(), nonce: newNonce(), filters: buildFilters(next) });
         }
     };
 
-    // Search mode: results follow the text as you type (Enter still searches at once)
+    // Find mode: results follow the text as you type (Enter still searches at once)
     useEffect(() => {
         if (mode !== "search") return;
-        const text = query.trim();
+        const text = takeCommands(query, scope).text;
         if (text.length < 2) return;
         const timer = setTimeout(() => {
-            const filters = buildFilters(types, rangeDays);
+            const filters = buildFilters(scope);
             setSearch((current) =>
                 current && current.text === text && JSON.stringify(current.filters) === JSON.stringify(filters)
                     ? current
@@ -186,7 +144,7 @@ function Ask() {
             );
         }, 350);
         return () => clearTimeout(timer);
-    }, [mode, query, types, rangeDays]);
+    }, [mode, query, scope]);
 
     // Saved something new: don't show cached results that miss it
     useEffect(() => {
@@ -194,24 +152,7 @@ function Ask() {
         return () => window.removeEventListener(MEMORIES_CHANGED, clearSearchCache);
     }, []);
 
-    const toggleType = (type: MemoryType) =>
-        setTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
-
     const closeViewer = useCallback(() => setViewer(null), []);
-    const filtersOn = showFilters || types.length > 0 || rangeDays > 0;
-    const placeholder =
-        mode === "ask"
-            ? active ? 'Ask a follow-up, e.g. "show me more like that"' : 'Ask anything, e.g. "that reel about project ideas"'
-            : "Search titles, transcripts, notes… (results appear as you type)";
-
-    // Grow the question box with its text (up to a limit), like a chat app
-    const inputRef = useRef<HTMLTextAreaElement>(null);
-    useEffect(() => {
-        const el = inputRef.current;
-        if (!el) return;
-        el.style.height = "auto";
-        el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-    }, [query]);
 
     // Keep the newest message in view as you ask and answers stream in
     const messageCount = chat.messages.length;
@@ -219,138 +160,124 @@ function Ask() {
         if (messageCount > 0) window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
     }, [messageCount]);
 
-    const composer = (
-        <form
-            onSubmit={(e) => {
-                e.preventDefault();
-                submit();
-            }}
-            className="grid gap-1 rounded-[20px] border border-outline-variant bg-surface-container-lowest p-2.5 shadow-[0_18px_40px_-28px_rgba(60,35,20,0.55)] transition-[border-color,box-shadow] focus-within:border-on-surface/40 focus-within:shadow-[0_22px_48px_-28px_rgba(60,35,20,0.65)]"
-        >
-            <textarea
-                ref={inputRef}
-                rows={1}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                    // Enter sends, Shift+Enter starts a new line
-                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                        e.preventDefault();
-                        submit();
-                    }
-                }}
-                placeholder={placeholder}
-                className="max-h-[200px] w-full resize-none bg-transparent px-2 pt-1.5 pb-1 text-[15.5px] leading-[1.5] outline-none placeholder:text-on-surface-variant/70"
-                aria-label={mode === "ask" ? "Ask your brain" : "Search your brain"}
-            />
-            <div className="flex items-center gap-2">
-                <ModeSwitch mode={mode} setMode={setMode} compact />
-                <button
-                    type="button"
-                    onClick={() => setShowFilters((s) => !s)}
-                    title="Filter by type and date"
-                    aria-pressed={showFilters}
-                    className={`flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[12.5px] transition-colors ${filtersOn ? "bg-tertiary-container text-primary" : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"}`}
-                >
-                    <Filter className="size-3.5" />
-                    <span className="max-sm:sr-only">Filters{types.length + (rangeDays ? 1 : 0) ? ` · ${types.length + (rangeDays ? 1 : 0)}` : ""}</span>
-                </button>
-                <button
-                    type="submit"
-                    disabled={!query.trim() || (mode === "ask" && chat.busy)}
-                    className="ml-auto grid size-9 flex-none place-items-center rounded-xl bg-primary-container text-white transition-[background-color,transform,opacity] hover:bg-black active:scale-95 disabled:opacity-30"
-                    title={mode === "ask" ? "Ask (Enter)" : "Search (Enter)"}
-                >
-                    <ArrowUp className="size-4" />
-                </button>
-            </div>
-        </form>
-    );
-
     const openSource = (key: string, sources: Source[], n: number) => setViewer({ key, sources, n });
     const heading = mode === "ask" ? chat.title ?? "New chat" : `Results for “${search?.text}”`;
-    const firstName = me?.user.username ?? "friend";
+    const placeholder =
+        mode === "search"
+            ? "Find in your saves… (results appear as you type)"
+            : active
+                ? 'Ask a follow-up, e.g. "show me more like that"'
+                : "Ask anything you saved… type / to filter, @ for a collection";
+    const answersLeft = me ? Math.max(0, me.plan.chatsPerDay - me.usage.chatsToday) : null;
 
     return (
-        <>
-            {/* A screen tall so the question box rests at the bottom; moves left when the viewer is open */}
-            <div className={`mx-auto -mb-24 flex min-h-[calc(100svh/var(--ui-zoom,1)-3rem)] w-full max-w-[760px] flex-col ${viewer ? "xl:ml-0" : ""}`}>
-                {active ? (
-                    <>
-                        <h1 className="mb-8 truncate text-[14px] font-medium text-on-surface-variant first-letter:uppercase" title={heading}>
-                            {heading}
-                        </h1>
-                        {mode === "ask" ? (
-                            <ChatThread messages={chat.messages} activeSource={viewer?.key ?? null} onOpenSource={openSource} />
-                        ) : (
-                            <SearchResults
-                                query={search}
-                                activeN={viewer?.key.startsWith("search:") ? viewer.n : null}
-                                onOpen={(sources, n) => openSource(`search:${n}`, sources, n)}
+        <MotionConfig reducedMotion="user">
+            {/* A screen tall so the question box can rest at the bottom; moves left when the viewer is open */}
+            <div className={`relative mx-auto -mb-24 flex min-h-[calc(100svh/var(--ui-zoom,1)-3rem)] w-full max-w-[760px] flex-col ${viewer ? "xl:ml-0" : ""}`}>
+                <LayoutGroup>
+                    {/* Before the first question: what Brainly knows, then the box, then ideas */}
+                    <AnimatePresence mode="popLayout" initial={false}>
+                        {!active && (
+                            <motion.header
+                                key="hello"
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -18, filter: "blur(4px)", transition: { duration: 0.32, ease } }}
+                                transition={{ duration: 0.5, ease }}
+                                className="pt-[9vh] pb-6"
+                            >
+                                <h1 className="font-headline text-[clamp(2.1rem,3.6vw,2.75rem)] leading-[1.05] font-normal tracking-[-0.025em]">Ask your brain.</h1>
+                                <p className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[14.5px] text-on-surface-variant">
+                                    {counts && (
+                                        <span>
+                                            <b className="font-semibold text-on-surface">{counts.total.toLocaleString()}</b> {counts.total === 1 ? "memory" : "memories"}
+                                        </span>
+                                    )}
+                                    {savedLabel && (
+                                        <>
+                                            <span aria-hidden="true">·</span>
+                                            <span>last saved <b className="font-semibold text-on-surface">{savedLabel}</b></span>
+                                        </>
+                                    )}
+                                    <span aria-hidden="true">·</span>
+                                    <span>answers cite the saves they came from</span>
+                                </p>
+                            </motion.header>
+                        )}
+                    </AnimatePresence>
+
+                    {active && (
+                        <motion.div key="thread" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.12, ease }}>
+                            <h1 className="mb-8 truncate text-[14px] font-medium text-on-surface-variant first-letter:uppercase" title={heading}>
+                                {heading}
+                            </h1>
+                            {mode === "ask" ? (
+                                <ChatThread messages={chat.messages} activeSource={viewer?.key ?? null} onOpenSource={openSource} />
+                            ) : (
+                                <SearchResults
+                                    query={search}
+                                    activeN={viewer?.key.startsWith("search:") ? viewer.n : null}
+                                    onOpen={(sources, n) => openSource(`search:${n}`, sources, n)}
+                                />
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* The question box: under the greeting at first, then resting at the bottom of the chat */}
+                    <motion.div
+                        layout="position"
+                        transition={{ layout: { type: "spring", stiffness: 260, damping: 32 } }}
+                        className={active ? "sticky bottom-0 z-20 mt-auto flex flex-col gap-2 pt-8 pb-4" : "relative z-20"}
+                    >
+                        {active && (
+                            // Messages fade out above the box; soft side edges so it doesn't read as a panel
+                            <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-x-0 inset-y-0 -z-10 bg-background [mask-composite:intersect] [mask-image:linear-gradient(to_bottom,transparent,#000_32px),linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)] lg:-inset-x-16"
                             />
                         )}
-                    </>
-                ) : (
-                    // Before the first question: a quiet greeting in the middle of the page
-                    <div className="flex flex-1 flex-col items-center justify-center gap-5 py-10 text-center">
-                        <motion.span
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                            className="grid size-12 place-items-center rounded-2xl bg-tertiary-container text-primary"
-                        >
-                            <Sparkles className="size-6" />
-                        </motion.span>
-                        <motion.h1
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: 0.05 }}
-                            className="max-w-[18ch] font-headline text-[clamp(2rem,3.6vw,2.9rem)] leading-[1.08] font-normal tracking-[-0.025em] text-balance"
-                        >
-                            What are you trying to remember, {firstName}?
-                        </motion.h1>
-                        <p className="max-w-[46ch] text-[15px] leading-[1.6] text-on-surface-variant">
-                            {mode === "ask"
-                                ? "Ask in plain words. Brainly answers only from what you saved and shows where each answer came from."
-                                : "Search everything you saved, instantly. No AI answer, so it doesn't use your daily answers."}
-                        </p>
-                        <div className="mt-2 flex max-w-[600px] flex-wrap justify-center gap-2">
-                            {SUGGESTIONS.map((s, i) => (
-                                <motion.button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => submit(s)}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.15 + i * 0.06, duration: 0.45 }}
-                                    className="rounded-full border border-outline-variant bg-surface-container-lowest/80 px-3.5 py-2 text-[13.5px] text-on-surface-variant transition-colors hover:border-on-surface/40 hover:text-on-surface"
-                                >
-                                    {s}
-                                </motion.button>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                        <Composer
+                            ref={composerRef}
+                            value={query}
+                            onChange={setQuery}
+                            scope={scope}
+                            onScopeChange={setScope}
+                            onSubmit={() => submit()}
+                            busy={mode === "ask" && chat.busy}
+                            placeholder={placeholder}
+                            counts={counts}
+                            collections={collections}
+                            collectionColor={collectionColor}
+                            large={!active}
+                            menuPlacement={active ? "above" : "below"}
+                            below={!active && mode === "ask" ? <LiveMatches text={takeCommands(query, scope).text} filters={buildFilters(scope)} /> : null}
+                        />
+                        {active && (
+                            <span className="text-center text-[11.5px] text-on-surface-variant">
+                                {mode === "search"
+                                    ? "Find is instant and doesn't use AI answers. Remove the /find chip to ask instead."
+                                    : answersLeft !== null
+                                        ? `${answersLeft} of ${me!.plan.chatsPerDay} AI answers left today · answers come only from your saves`
+                                        : "Answers come only from your saves."}
+                            </span>
+                        )}
+                    </motion.div>
 
-                {/* The question box, always at the bottom */}
-                <div className="sticky bottom-0 z-20 mt-auto flex flex-col gap-2 pt-8 pb-4">
-                    {/* Messages fade out above the box; soft side edges so it doesn't read as a panel */}
-                    <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-x-0 inset-y-0 -z-10 bg-background [mask-composite:intersect] [mask-image:linear-gradient(to_bottom,transparent,#000_32px),linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)] lg:-inset-x-16"
-                    />
-                    <AnimatePresence initial={false}>
-                        {showFilters && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                <FiltersPanel types={types} toggleType={toggleType} rangeDays={rangeDays} setRangeDays={setRangeDays} />
+                    <AnimatePresence mode="popLayout" initial={false}>
+                        {!active && (
+                            <motion.div
+                                key="ideas"
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 28, filter: "blur(4px)", transition: { duration: 0.32, ease } }}
+                                transition={{ duration: 0.5, delay: 0.08, ease }}
+                                className="pt-5 pb-16"
+                            >
+                                <StartPanels recent={recent} chats={chats} onAsk={(q) => submit(q)} onAdd={() => openAddContent()} />
                             </motion.div>
                         )}
                     </AnimatePresence>
-                    {composer}
-                    <span className="text-center text-[11.5px] text-on-surface-variant">
-                        {mode === "ask" ? "Brainly answers only from your memories. Each answer uses one of your daily AI answers." : "Search is instant and doesn't use AI answers."}
-                    </span>
-                </div>
+                </LayoutGroup>
             </div>
 
             <SourceViewer
@@ -359,6 +286,6 @@ function Ask() {
                 onSelect={(n) => setViewer((v) => (v ? { ...v, n, key: `${v.key.split(":")[0]}:${n}` } : v))}
                 onClose={closeViewer}
             />
-        </>
+        </MotionConfig>
     );
 }
