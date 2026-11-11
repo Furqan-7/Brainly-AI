@@ -3,7 +3,7 @@ import { prisma } from "db";
 import { MiddleWhere } from "../MiddleWhere";
 import { ChatSchema, parseTypes, searchSchema } from "../types";
 import { consumeChat } from "../lib/plans";
-import { groq, ANSWER_MODEL, streamAnswer } from "../lib/llm";
+import { completeAnswer, streamAnswer } from "../lib/llm";
 import { log } from "../lib/logger";
 import { displayTitle, fallbackTitle, generateTitle } from "../lib/chatTitle";
 import { stripThinkingTags } from "../stripThinkingTags";
@@ -133,14 +133,7 @@ chatRouter.post("/api/chat", MiddleWhere, async (req, res) => {
 
         let answer = NOT_FOUND_ANSWER;
         if (chunks.length > 0) {
-            const completion = await groq.chat.completions.create({
-                model: ANSWER_MODEL,
-                messages: buildAnswerMessages(question, chunks, history),
-                max_tokens: 700,
-                temperature: 0.3,
-                reasoning_effort: "none",
-            } as any);
-            answer = stripThinkingTags(completion.choices[0]?.message?.content ?? "").trim() || NOT_FOUND_ANSWER;
+            answer = stripThinkingTags(await completeAnswer(buildAnswerMessages(question, chunks, history))).trim() || NOT_FOUND_ANSWER;
         }
         await saveTurn(conversation.id, question, answer, sources);
         const title = titling ? await titling : conversation.title;

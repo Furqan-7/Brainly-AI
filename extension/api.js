@@ -2,7 +2,7 @@
 // Settings live in chrome.storage.local: { apiUrl, webUrl, token }. "Connect" in the popup
 // opens Brainly's /extension page, which hands the extension its token (see connect.js).
 
-export const DEFAULT_WEB_URL = "https://brainly-ai-frontend.vercel.app";
+export const DEFAULT_WEB_URL = "https://brainlyai.me";
 
 export async function getSettings() {
   const { webUrl = DEFAULT_WEB_URL, apiUrl, token = "" } = await chrome.storage.local.get(["apiUrl", "webUrl", "token"]);

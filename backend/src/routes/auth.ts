@@ -5,7 +5,10 @@ import { prisma } from "db";
 import passport from "../config/passport";
 import { signinSchema, signupSchema } from "../types";
 import { MiddleWhere } from "../MiddleWhere";
-import { clearAuthCookie, clientUrl, setAuthCookie, signHandoffToken, signToken, verifyHandoffToken } from "../lib/auth";
+import {
+    allowedClientOrigin, clearAuthCookie, clientUrl, setAuthCookie, signHandoffToken, signOAuthState, signToken,
+    verifyHandoffToken, verifyOAuthState,
+} from "../lib/auth";
 import { getUsage } from "../lib/plans";
 import { log } from "../lib/logger";
 
@@ -21,24 +24,38 @@ function oauthCallback(req: Request, res: Response) {
     // the web app instead: it trades this short-lived token for a session cookie on its own
     // domain through the /backend proxy.
     const handoff = encodeURIComponent(signHandoffToken(user.id, user.username));
-    res.redirect(`${clientUrl()}/backend/auth/complete?token=${handoff}`);
+    // Back to the address sign-in started from (brainlyai.me, not the vercel.app one)
+    const origin = verifyOAuthState(req.query.state) ?? clientUrl();
+    res.redirect(`${origin}/backend/auth/complete?token=${handoff}`);
+}
+
+/**
+ * Starts an OAuth sign-in, remembering which web app address the user is on. The request comes
+ * through that address's /backend proxy, so the page's own URL is in Referer (or Origin).
+ */
+function startOAuth(provider: "google" | "github", scope: string[]) {
+    return (req: Request, res: Response, next: () => void) => {
+        const origin = allowedClientOrigin(req.get("referer")) ?? allowedClientOrigin(req.get("origin")) ?? clientUrl();
+        passport.authenticate(provider, { scope, state: signOAuthState(origin), session: false })(req, res, next);
+    };
 }
 
 authRouter.get("/auth/complete", (req, res) => {
     const token = typeof req.query.token === "string" ? req.query.token : "";
     const user = verifyHandoffToken(token);
-    if (!user) return res.redirect(`${clientUrl()}/auth/signin?error=oauth`);
+    // Relative, like the success path: this runs through the web app address the user is on
+    if (!user) return res.redirect("/auth/signin?error=oauth");
     setAuthCookie(req, res, signToken(user.userId, user.username));
     // Relative, so the browser stays on whichever web app address it came through
     return res.redirect("/chat");
 });
 
 if (process.env.GOOGLE_CLIENT_ID) {
-    authRouter.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+    authRouter.get("/auth/google", startOAuth("google", ["profile", "email"]));
     authRouter.get("/auth/google/callback", passport.authenticate("google", { session: false }), oauthCallback);
 }
 if (process.env.GITHUB_CLIENT_ID) {
-    authRouter.get("/auth/github", passport.authenticate("github", { scope: ["user:email"] }));
+    authRouter.get("/auth/github", startOAuth("github", ["user:email"]));
     authRouter.get("/auth/github/callback", passport.authenticate("github", { session: false }), oauthCallback);
 }
 
