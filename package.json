@@ -2,6 +2,7 @@
   "name": "brainly-ai",
   "version": "1.0.0",
   "private": true,
+  "license": "FSL-1.1-ALv2",
   "scripts": {
     "dev": "concurrently \"pnpm --filter frontend dev\" \"pnpm --filter backend dev\"",
     "build": "pnpm --filter db db:generate && pnpm --filter db build && pnpm --filter db migrate:deploy && pnpm --filter backend build",
