@@ -123,7 +123,7 @@ function Library() {
             {view === "recent" && !collectionId && <RediscoverPanel />}
 
             {/* One toolbar: search, type tabs and sort */}
-            <div className="sticky top-[61px] z-20 mt-5 flex flex-wrap items-center gap-2 rounded-2xl border border-outline-variant/70 bg-surface-container-lowest/95 p-2 shadow-[0_12px_30px_-24px_rgba(60,35,20,0.5)] backdrop-blur md:top-3">
+            <div className="sticky top-[61px] z-30 mt-5 flex flex-wrap items-center gap-2 rounded-2xl border border-outline-variant/70 bg-surface-container-lowest/95 p-2 shadow-[0_12px_30px_-24px_rgba(60,35,20,0.5)] backdrop-blur md:top-3">
                 <label className="flex min-w-0 flex-[1_1_100%] items-center gap-2.5 md:flex-[1_1_280px] rounded-xl bg-background px-3 py-2.5 text-on-surface-variant focus-within:ring-1 focus-within:ring-on-surface/30">
                     <Search className="size-4 flex-none" />
                     <input
