@@ -13,6 +13,7 @@ import {
     Library,
     Loader2,
     LogOut,
+    MailWarning,
     Menu,
     Network,
     Plus,
@@ -25,7 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useInstall } from "@/app/components/pwa";
-import { deleteConversation, getCollections, getConversations, getCounts, logout } from "@/app/services/api";
+import { deleteConversation, errorMessage, getCollections, getConversations, getCounts, logout, resendVerificationEmail } from "@/app/services/api";
 import type { Collection, ConversationSummary, Me, MemoryCounts } from "@/app/types/memory";
 import AddContent from "@/app/components/AddContent";
 import { Logo } from "@/app/components/landing/ui";
@@ -423,6 +424,57 @@ function Sidebar({ me, onAdd, onNavigate }: { me: Me | null; onAdd: () => void; 
 }
 
 /** Layout for every signed-in page: sidebar navigation, Add memory, and shared account data. */
+/** Asks email sign-ups to confirm their address, so a forgotten password can always be reset. */
+function VerifyEmailBanner({ me }: { me: Me }) {
+    const [state, setState] = useState<"idle" | "sending" | "sent" | "hidden">(() => {
+        try {
+            return sessionStorage.getItem("brainly:verify-hidden") ? "hidden" : "idle";
+        } catch {
+            return "idle";
+        }
+    });
+    const [error, setError] = useState("");
+    if (me.user.emailVerified || state === "hidden") return null;
+
+    const resend = async () => {
+        setState("sending");
+        setError("");
+        try {
+            await resendVerificationEmail();
+            setState("sent");
+        } catch (err) {
+            setError(errorMessage(err));
+            setState("idle");
+        }
+    };
+    const hide = () => {
+        try {
+            sessionStorage.setItem("brainly:verify-hidden", "1");
+        } catch { /* storage blocked */ }
+        setState("hidden");
+    };
+
+    return (
+        <div role="status" className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[14px]">
+            <MailWarning className="size-4 flex-none text-amber-700" />
+            <p className="m-0 min-w-0 flex-1">
+                {state === "sent"
+                    ? <>Sent. Open the link we emailed to <b className="font-medium">{me.user.email}</b>.</>
+                    : <>Confirm your email (<b className="font-medium">{me.user.email}</b>) so you can reset your password if you ever forget it.</>}
+                {error && <span className="block text-error">{error}</span>}
+            </p>
+            {state !== "sent" && (
+                <button type="button" onClick={resend} disabled={state === "sending"} className="rounded-lg flex items-center gap-1.5 border border-on-surface/20 bg-surface-container-lowest px-3 py-1.5 text-[13px] hover:border-on-surface disabled:opacity-60">
+                    {state === "sending" && <Loader2 className="size-3.5 animate-spin" />} Resend link
+                </button>
+            )}
+            <button type="button" onClick={hide} className="grid size-7 place-items-center rounded-md text-on-surface-variant hover:text-on-surface" title="Hide for now">
+                <X className="size-4" />
+            </button>
+        </div>
+    );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { me, loading, refresh } = useAuth();
     const pathname = usePathname();
@@ -574,6 +626,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                         className="mx-auto w-full max-w-[1100px] px-4 pt-8 pb-24 md:px-10 md:pt-12"
                     >
+                        <VerifyEmailBanner me={me} />
                         {children}
                     </motion.div>
                 </main>

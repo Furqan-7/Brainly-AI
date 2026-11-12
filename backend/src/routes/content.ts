@@ -386,7 +386,7 @@ contentRouter.get("/api/files/:id", async (req, res, next) => {
     if (memory.collections.length > 0) return sendStoredFile(res, memory.file_path);
 
     // Private file — require the owner's session
-    MiddleWhere(req, res, async () => {
+    await MiddleWhere(req, res, async () => {
         if (res.locals.userId !== memory.userId) return res.status(404).json({ message: "File not found", success: false });
         try {
             await sendStoredFile(res, memory.file_path!);

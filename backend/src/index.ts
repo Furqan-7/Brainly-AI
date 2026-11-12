@@ -11,6 +11,7 @@ import passport from "./config/passport";
 import { requestLogger, log } from "./lib/logger";
 import { ensureUploadDirs } from "./lib/storage";
 import { authRouter } from "./routes/auth";
+import { accountRouter } from "./routes/account";
 import { contentRouter } from "./routes/content";
 import { chatRouter } from "./routes/chat";
 import { collectionsRouter } from "./routes/collections";
@@ -54,6 +55,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use(authRouter);
+app.use(accountRouter);
 app.use(contentRouter);
 app.use(chatRouter);
 app.use(collectionsRouter);

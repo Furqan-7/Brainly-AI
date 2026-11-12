@@ -12,6 +12,22 @@ export const signinSchema = z.object({
     password: z.string().min(6),
 });
 
+export const forgotPasswordSchema = z.object({ email: z.string().trim().email() });
+
+export const resetPasswordSchema = z.object({
+    token: z.string().min(20).max(2000),
+    password: z.string().min(6).max(200),
+});
+
+export const verifyEmailSchema = z.object({ token: z.string().min(20).max(2000) });
+
+export const deleteAccountSchema = z.object({
+    /** The account's email, typed out to confirm */
+    confirm: z.string().trim().min(3).max(320),
+    /** Required when the account has a password */
+    password: z.string().max(200).optional(),
+});
+
 const memoryType = z.enum(MEMORY_TYPES as [string, ...string[]]);
 
 // Accepts ["a","b"] (JSON) or "a, b" (multipart form fields)

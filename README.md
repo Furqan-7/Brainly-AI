@@ -61,6 +61,8 @@ Brainly is one place to save all of it. It reads each save for you (captions, tr
 
 **Built properly**
 - Postgres-backed job queue (`FOR UPDATE SKIP LOCKED`) with retries, backoff and visible failures
+- **Your account, your data:** email verification, forgot-password reset links, a one-click ZIP export of everything you saved, and account deletion
+- **Connected devices:** every extension sign-in is listed in Settings and can be signed out on its own, plus "sign out everywhere"
 - httpOnly-cookie sessions, rate limiting, SSRF protection on every fetched URL, upload type and size limits, private file serving
 - Local disk or S3 / Cloudflare R2 storage
 - Free and premium plan limits (memories, daily AI answers, upload size)
@@ -147,7 +149,9 @@ pnpm --filter db exec prisma migrate deploy
 pnpm dev    # web on :3000, API on :3001
 ```
 
-`backend/.env.example` lists every setting: storage, OAuth, worker and retrieval tuning.
+`backend/.env.example` lists every setting: storage, OAuth, email, worker and retrieval tuning.
+
+Password reset and email verification need an email provider: set `RESEND_API_KEY` ([Resend](https://resend.com), free tier) or `SMTP_URL` (any SMTP server, e.g. Gmail with an app password), plus `EMAIL_FROM`. Without one, emails are printed to the API's log in development and not sent in production.
 
 ### Tests
 
@@ -227,8 +231,14 @@ All `/api/*` routes need the session cookie (web app) or `Authorization: Bearer 
 | --- | --- | --- |
 | POST | `/signup`, `/signin`, `/logout` | Email and password sign-in (sets or clears the session cookie) |
 | GET | `/auth/google`, `/auth/github` | OAuth sign-in (when configured) |
+| POST | `/auth/forgot-password`, `/auth/reset-password` | Email a reset link; set a new password from it (signs out every other session) |
+| POST | `/auth/verify-email`, `/api/account/verify-email` | Confirm the email from its link; send the link again |
 | GET | `/api/me` | Current user, plan and usage |
-| POST | `/api/extension-token` | Long-lived token for the browser extension |
+| POST | `/api/extension-token` | Long-lived token for the browser extension (each one is a connected device) |
+| GET / DELETE | `/api/devices[/:id]` | Connected extensions; sign one out (`current` = the caller) |
+| POST | `/api/account/sign-out-everywhere` | Sign out every other browser and extension |
+| GET | `/api/account/export` | ZIP of everything saved: JSON, notes as Markdown, uploaded files |
+| DELETE | `/api/account` | Delete the account and all its data (`confirm`: the email, plus `password` if set) |
 | POST | `/api/content` | Save a link, note or file (`type` is detected for YouTube, Instagram, TikTok and X links) |
 | POST | `/api/import` | Import Notion, Google Docs or Markdown files as notes |
 | GET | `/api/content` | List memories: `view`, `types`, `q`, `tag`, `collectionId`, `sort` (`newest` / `oldest`), `cursor`, `limit` |

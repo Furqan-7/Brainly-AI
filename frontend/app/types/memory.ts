@@ -123,9 +123,24 @@ export interface Plan {
 }
 
 export interface Me {
-    user: { id: number; username: string; email: string; isPremium: boolean; createdAt: string };
+    user: {
+        id: number; username: string; email: string; isPremium: boolean; createdAt: string;
+        /** Whether they've confirmed the email (via the emailed link, a password reset, or Google / GitHub) */
+        emailVerified: boolean;
+        /** False for Google / GitHub-only accounts */
+        hasPassword: boolean;
+    };
     plan: Plan;
     usage: { memoryCount: number; chatsToday: number };
+}
+
+/** A signed-in browser extension (or a copied token) */
+export interface Device {
+    id: string;
+    name: string;
+    createdAt: string;
+    lastUsedAt: string;
+    current: boolean;
 }
 
 export interface Collection {

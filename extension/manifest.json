@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Brainly AI — Save to Brain",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Save any page, link, video, reel or text selection to your Brainly second brain in one click. Brainly names, summarises and tags it for you.",
   "action": {
     "default_popup": "popup.html",

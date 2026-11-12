@@ -34,7 +34,7 @@ export default function SignInPage() {
       const err = caught as { response?: { status?: number; data?: { message?: string } } };
       const status = err?.response?.status;
       if (status === 400) setError("No account found with that email address.");
-      else if (status === 402) setError("Incorrect password. Please try again.");
+      else if (status === 402) setError("Incorrect password. Try again, or use “Forgot password?” to choose a new one.");
       else if (status === 411) setError("Enter a valid email and a password of at least 6 characters.");
       else if (status === 429) setError("Too many attempts. Wait a few minutes and try again.");
       else if (!navigator.onLine) setError("You appear to be offline. Check your connection.");
@@ -59,6 +59,9 @@ export default function SignInPage() {
       <form onSubmit={handleSignIn} className="grid gap-4" noValidate>
         <Field id="email" label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" autoComplete="email" />
         <Field id="password" label="Password" type="password" value={password} onChange={setPassword} placeholder="Your password" autoComplete="current-password" />
+        <Link href="/auth/forgot" className="-mt-2 w-fit justify-self-end text-[13px] text-on-surface-variant underline decoration-outline-variant underline-offset-4 hover:text-on-surface hover:decoration-on-surface">
+          Forgot password?
+        </Link>
         <FormError message={error} />
         <SubmitButton loading={loading}>Sign in</SubmitButton>
       </form>

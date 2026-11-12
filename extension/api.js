@@ -53,6 +53,19 @@ export async function apiFetch(path, options = {}) {
 }
 
 /**
+ * Signs this extension out: the server forgets its token (so it stops working even if copied),
+ * then it is removed here. Works offline too; the token is cleared either way.
+ */
+export async function disconnect() {
+  try {
+    await apiFetch("/api/devices/current", { method: "DELETE" });
+  } catch {
+    /* already signed out, or offline */
+  }
+  await chrome.storage.local.remove("token");
+}
+
+/**
  * Saves a link. No title needed: the server detects YouTube / Instagram / TikTok / X links and
  * names the memory from the page itself. A real page title (not just the URL) is sent if known.
  */
