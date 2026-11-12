@@ -336,6 +336,12 @@ export default function SettingsPage() {
             <Section title="Delete account" aside="Permanently removes your account and everything you saved.">
                 <DeleteAccount me={me} />
             </Section>
+
+            <p className="border-t border-outline-variant pt-6 text-[13px] text-on-surface-variant">
+                <Link href="/privacy" className="underline decoration-outline-variant underline-offset-4 hover:text-on-surface">Privacy Policy</Link>
+                {" · "}
+                <Link href="/terms" className="underline decoration-outline-variant underline-offset-4 hover:text-on-surface">Terms of Service</Link>
+            </p>
         </>
     );
 }

@@ -80,8 +80,10 @@ export function AuthLayout({
                 >
                     {children}
                 </motion.div>
-                <p className="text-center text-xs text-on-surface-variant">
+                <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-center text-xs text-on-surface-variant">
                     <Link href="/" className="hover:text-on-surface">← Back to Brainly</Link>
+                    <Link href="/privacy" className="hover:text-on-surface">Privacy</Link>
+                    <Link href="/terms" className="hover:text-on-surface">Terms</Link>
                 </p>
             </div>
             {artSide === "right" && artPanel}

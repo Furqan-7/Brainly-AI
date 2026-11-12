@@ -18,25 +18,20 @@ interface ProviderSignIn {
     /** Only emails the provider has verified */
     email: string;
     username: string;
-    accessToken: string;
-    refreshToken?: string | null;
 }
 
 /**
  * Finds or creates the Brainly user for a Google / GitHub sign-in. The provider has verified the
- * email, so the account counts as verified from here on.
+ * email, so the account counts as verified from here on. Only the provider's account id is kept:
+ * Brainly never calls Google or GitHub on the user's behalf, so their access tokens aren't stored.
  */
-export async function signInWithProvider({ provider, providerAccountId, email, username, accessToken, refreshToken }: ProviderSignIn) {
+export async function signInWithProvider({ provider, providerAccountId, email, username }: ProviderSignIn) {
     // 1. this provider account is already linked
     const existingAccount = await prisma.account.findUnique({
         where: { provider_providerAccountId: { provider, providerAccountId } },
         include: { user: true },
     });
     if (existingAccount) {
-        await prisma.account.update({
-            where: { id: existingAccount.id },
-            data: { accessToken, refreshToken: refreshToken ?? null },
-        });
         return { id: existingAccount.user.id, username: existingAccount.user.username };
     }
 
@@ -56,7 +51,7 @@ export async function signInWithProvider({ provider, providerAccountId, email, u
 
     // 4. link the provider account to the user
     await prisma.account.create({
-        data: { userId: user.id, provider, providerAccountId, accessToken, refreshToken: refreshToken ?? null },
+        data: { userId: user.id, provider, providerAccountId },
     });
     return { id: user.id, username: user.username };
 }
@@ -73,7 +68,7 @@ if (process.env.GOOGLE_CLIENT_ID) {
                 callbackURL: `${process.env.GOOGLE_CALLBACK_URL}`!,
                 scope: ["profile", "email"],
             },
-            async (accessToken: string, refreshToken: string, profile: GoogleProfile, done: VerifyCallback) => {
+            async (_accessToken: string, _refreshToken: string, profile: GoogleProfile, done: VerifyCallback) => {
                 try {
                     const email = profile.emails?.find((e) => e.verified !== false)?.value;
                     if (!email) return done(new Error("No verified email returned from Google"), undefined);
@@ -82,8 +77,6 @@ if (process.env.GOOGLE_CLIENT_ID) {
                         providerAccountId: profile.id,
                         email,
                         username: profile.displayName || `google_${profile.id}`,
-                        accessToken,
-                        refreshToken,
                     });
                     return done(null, user);
                 } catch (error) {
@@ -110,7 +103,7 @@ if (process.env.GITHUB_CLIENT_ID) {
                 // Every address with its verified flag, instead of just the primary one
                 allRawEmails: true,
             },
-            async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: VerifyCallback) => {
+            async (_accessToken: string, _refreshToken: string, profile: GitHubProfile, done: VerifyCallback) => {
                 try {
                     const emails = (profile.emails ?? []) as GitHubEmail[];
                     const email = (emails.find((e) => e.primary && e.verified) ?? emails.find((e) => e.verified))?.value;
@@ -120,8 +113,6 @@ if (process.env.GITHUB_CLIENT_ID) {
                         providerAccountId: profile.id,
                         email,
                         username: profile.username || `github_${profile.id}`,
-                        accessToken,
-                        refreshToken,
                     });
                     return done(null, user);
                 } catch (error) {

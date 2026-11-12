@@ -187,6 +187,13 @@ body {
   .note-md th { font-weight: 600; background: color-mix(in srgb, var(--color-on-surface) 4%, transparent); }
   .note-md img { max-width: 100%; border-radius: 8px; }
   .note-md-reader { font-size: 15.5px; line-height: 1.7; }
+  /* Privacy Policy and Terms (components/legal/LegalPage.tsx) */
+  .legal-body ul { margin: 0; padding-left: 1.25em; list-style: disc; display: grid; gap: 0.45em; }
+  .legal-body li::marker { color: var(--color-lp-muted); }
+  .legal-body b { font-weight: 600; color: var(--color-lp-ink); }
+  .legal-body a { text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--color-lp-line); }
+  .legal-body a:hover { text-decoration-color: var(--color-lp-ink); }
+
   /* Brainly's answers in chat (components/chat/AnswerMarkdown.tsx) */
   .answer-md { font-size: 16px; line-height: 1.75; }
   .answer-md p, .answer-md ul, .answer-md ol { margin-bottom: 0.9em; }

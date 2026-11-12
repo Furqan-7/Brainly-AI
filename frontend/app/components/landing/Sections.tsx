@@ -14,6 +14,8 @@ export function LandingFooter() {
                     <a href="#pricing" className={link}>Pricing</a>
                     <a href="#faq" className={link}>FAQ</a>
                     <Link href="/about" className={link}>About</Link>
+                    <Link href="/privacy" className={link}>Privacy</Link>
+                    <Link href="/terms" className={link}>Terms</Link>
                     <Link href="/auth/signin" className={link}>Sign in</Link>
                     <Link href="/auth/signup" className={link}>Create your brain</Link>
                 </nav>
