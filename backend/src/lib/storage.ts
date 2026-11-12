@@ -1,4 +1,6 @@
 import fs from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import os from "node:os";
 import path from "node:path";
 import { Response } from "express";
@@ -74,6 +76,17 @@ export async function withLocalFile<T>(filePath: string, fn: (localFile: string)
     } finally {
         await fs.rm(tmp, { force: true });
     }
+}
+
+/** Opens a stored file for reading (streamed from disk or S3, never loaded whole into memory). */
+export async function openStoredFile(filePath: string): Promise<Readable> {
+    if (filePath.startsWith("s3:")) {
+        const obj = await s3!.send(new GetObjectCommand({ Bucket: bucket, Key: filePath.slice(3) }));
+        return obj.Body as Readable;
+    }
+    const local = localPath(filePath);
+    await fs.access(local);
+    return createReadStream(local);
 }
 
 export async function deleteStoredFile(filePath: string | null | undefined) {

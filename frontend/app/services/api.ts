@@ -10,7 +10,7 @@
 
 import axios from "axios";
 import type {
-    ChatMessage, Collection, ConversationSummary, GraphEdge, GraphNode, Me, Memory, MemoryCounts, MemoryQuery,
+    ChatMessage, Collection, ConversationSummary, Device, GraphEdge, GraphNode, Me, Memory, MemoryCounts, MemoryQuery,
     PublicMemory, RediscoverItem, SearchFilters, Source,
 } from "../types/memory";
 
@@ -58,8 +58,50 @@ export async function getMe(): Promise<Me> {
     return (await api.get("/api/me")).data;
 }
 
-export async function getExtensionToken(): Promise<string> {
-    return (await api.post("/api/extension-token")).data.token;
+/** `copy`: shown to the user to paste by hand, so Connected devices can label it */
+export async function getExtensionToken(kind: "connect" | "copy" = "connect"): Promise<string> {
+    return (await api.post("/api/extension-token", { kind })).data.token;
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+    await api.post("/auth/forgot-password", { email });
+}
+
+/** Sets a new password from an emailed link; the browser is signed in afterwards. */
+export async function resetPassword(token: string, password: string): Promise<void> {
+    await api.post("/auth/reset-password", { token, password });
+}
+
+export async function verifyEmail(token: string): Promise<{ email: string }> {
+    return (await api.post("/auth/verify-email", { token })).data;
+}
+
+export async function resendVerificationEmail(): Promise<{ sentTo?: string; alreadyVerified?: boolean }> {
+    return (await api.post("/api/account/verify-email")).data;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Account: devices, export, delete
+// ─────────────────────────────────────────────────────────────
+
+export async function getDevices(): Promise<Device[]> {
+    return (await api.get("/api/devices")).data.devices;
+}
+
+export async function signOutDevice(id: string): Promise<void> {
+    await api.delete(`/api/devices/${encodeURIComponent(id)}`);
+}
+
+/** Signs out every other browser and extension; this browser stays signed in. */
+export async function signOutEverywhere(): Promise<void> {
+    await api.post("/api/account/sign-out-everywhere");
+}
+
+/** Downloads a ZIP of everything saved (a plain link, so the browser streams it to disk). */
+export const EXPORT_URL = `${API_BASE}/api/account/export`;
+
+export async function deleteAccount(confirm: string, password?: string): Promise<void> {
+    await api.delete("/api/account", { data: { confirm, password } });
 }
 
 // ─────────────────────────────────────────────────────────────

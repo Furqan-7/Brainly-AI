@@ -47,7 +47,7 @@ export default function ConnectExtensionPage() {
 
     const copyToken = async () => {
         try {
-            await navigator.clipboard.writeText(await getExtensionToken());
+            await navigator.clipboard.writeText(await getExtensionToken("copy"));
             setCopied(true);
         } catch {
             setStep("error");

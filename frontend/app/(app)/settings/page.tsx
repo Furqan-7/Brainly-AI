@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Download, LogOut, Puzzle, Smartphone } from "lucide-react";
-import { getExtensionToken, logout } from "@/app/services/api";
+import { Check, Copy, Download, Laptop, Loader2, LogOut, Puzzle, Smartphone, Trash2 } from "lucide-react";
+import {
+    deleteAccount, errorMessage, EXPORT_URL, getDevices, getExtensionToken, logout, signOutDevice, signOutEverywhere,
+} from "@/app/services/api";
+import type { Device, Me } from "@/app/types/memory";
 import { useInstall } from "@/app/components/pwa";
 import { PageHeader, useShell } from "../AppShell";
 
@@ -74,18 +77,165 @@ function InstallApp() {
     );
 }
 
+const buttonClass = "rounded-xl flex w-fit items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm transition-colors hover:border-on-surface disabled:opacity-60";
+const dangerClass = "rounded-xl flex w-fit items-center gap-2 px-4 py-2.5 text-sm text-error shadow-[inset_0_0_0_1px_var(--color-error)] transition-colors hover:bg-error hover:text-white disabled:opacity-60";
+
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+
+function lastUsed(iso: string): string {
+    const hours = (Date.now() - new Date(iso).getTime()) / 3_600_000;
+    if (hours < 1) return "used in the last hour";
+    if (hours < 24) return "used today";
+    const days = Math.floor(hours / 24);
+    return days === 1 ? "used yesterday" : days < 30 ? `used ${days} days ago` : `last used ${formatDate(iso)}`;
+}
+
+/** Each connected extension, with its own Sign out, plus "sign out everywhere else". */
+function ConnectedDevices({ reloadKey }: { reloadKey: number }) {
+    const [devices, setDevices] = useState<Device[] | null>(null);
+    const [busy, setBusy] = useState<string | null>(null);
+    const [message, setMessage] = useState("");
+
+    const load = useCallback(() => {
+        getDevices().then(setDevices).catch(() => setDevices([]));
+    }, []);
+    useEffect(load, [load, reloadKey]);
+
+    const signOut = async (device: Device) => {
+        setBusy(device.id);
+        setMessage("");
+        try {
+            await signOutDevice(device.id);
+            setDevices((list) => list?.filter((d) => d.id !== device.id) ?? null);
+            setMessage(`${device.name} is signed out. It can't save to your account any more.`);
+        } catch (err) {
+            setMessage(errorMessage(err));
+        }
+        setBusy(null);
+    };
+
+    const everywhere = async () => {
+        if (!window.confirm("Sign out every other browser and every connected extension? This browser stays signed in.")) return;
+        setBusy("all");
+        setMessage("");
+        try {
+            await signOutEverywhere();
+            setDevices([]);
+            setMessage("Signed out everywhere else. Only this browser is still signed in.");
+        } catch (err) {
+            setMessage(errorMessage(err));
+        }
+        setBusy(null);
+    };
+
+    return (
+        <div className="grid gap-4">
+            {devices === null ? (
+                <Loader2 className="size-4 animate-spin text-on-surface-variant" />
+            ) : devices.length === 0 ? (
+                <p className="text-[14.5px] text-on-surface-variant">No extensions are connected right now.</p>
+            ) : (
+                <ul className="m-0 grid list-none gap-2 p-0">
+                    {devices.map((d) => (
+                        <li key={d.id} className="rounded-xl flex flex-wrap items-center gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3">
+                            <Laptop className="size-4 flex-none text-on-surface-variant" />
+                            <div className="grid min-w-0 flex-1">
+                                <span className="truncate text-[14.5px]">{d.name}</span>
+                                <span className="text-[12.5px] text-on-surface-variant">Connected {formatDate(d.createdAt)} · {lastUsed(d.lastUsedAt)}</span>
+                            </div>
+                            <button type="button" onClick={() => signOut(d)} disabled={busy !== null} className="rounded-lg flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-error shadow-[inset_0_0_0_1px_var(--color-error)] hover:bg-error hover:text-white disabled:opacity-60">
+                                {busy === d.id ? <Loader2 className="size-3.5 animate-spin" /> : <LogOut className="size-3.5" />} Sign out
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <button type="button" onClick={everywhere} disabled={busy !== null} className={buttonClass}>
+                {busy === "all" ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />} Sign out everywhere else
+            </button>
+            {message && <p role="status" className="text-[13.5px] text-on-surface-variant">{message}</p>}
+            <p className="text-xs text-on-surface-variant">
+                Lost a laptop? Sign its extension out here. Extensions connected before this list existed don&apos;t appear in it; “Sign out everywhere else” signs those out too.
+            </p>
+        </div>
+    );
+}
+
+/** Type the email (and password, if there is one) to delete the account for good. */
+function DeleteAccount({ me }: { me: Me }) {
+    const router = useRouter();
+    const [open, setOpen] = useState(false);
+    const [confirm, setConfirm] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [deleting, setDeleting] = useState(false);
+    const matches = confirm.trim().toLowerCase() === me.user.email.toLowerCase();
+
+    const submit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!matches) return setError("Type your email exactly as shown.");
+        setDeleting(true);
+        setError("");
+        try {
+            await deleteAccount(confirm.trim(), me.user.hasPassword ? password : undefined);
+            router.replace("/");
+        } catch (err) {
+            setError(errorMessage(err));
+            setDeleting(false);
+        }
+    };
+
+    if (!open) {
+        return (
+            <button type="button" onClick={() => setOpen(true)} className={dangerClass}>
+                <Trash2 className="size-4" /> Delete my account
+            </button>
+        );
+    }
+
+    const inputClass = "rounded-xl w-full border border-outline-variant bg-surface-container-lowest px-3.5 py-2.5 text-[15px] outline-none focus:border-on-surface";
+    return (
+        <form onSubmit={submit} className="grid gap-4 rounded-2xl border border-error/40 bg-error/5 p-5" noValidate>
+            <p className="m-0 text-[14.5px] leading-[1.6]">
+                This deletes <b>{me.user.email}</b>{" "}and everything in it, right now and for good: every memory and uploaded file, your collections (shared links stop working), your chats and connected extensions. It can&apos;t be undone. Want a copy? <a href={EXPORT_URL} download className="underline underline-offset-4">Download your data</a> first.
+            </p>
+            <label className="grid gap-1.5 text-[13px] font-medium">
+                Type your email to confirm
+                <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={me.user.email} autoComplete="off" className={inputClass} />
+            </label>
+            {me.user.hasPassword && (
+                <label className="grid gap-1.5 text-[13px] font-medium">
+                    Your password
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className={inputClass} />
+                </label>
+            )}
+            {error && <p role="alert" className="m-0 text-[13.5px] text-error">{error}</p>}
+            <div className="flex flex-wrap gap-2">
+                <button type="submit" disabled={deleting || !matches || (me.user.hasPassword && !password)} className="rounded-xl flex items-center gap-2 bg-error px-4 py-2.5 text-sm text-white transition-opacity hover:opacity-90 disabled:opacity-50">
+                    {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Delete forever
+                </button>
+                <button type="button" onClick={() => { setOpen(false); setConfirm(""); setPassword(""); setError(""); }} className={buttonClass}>
+                    Cancel
+                </button>
+            </div>
+        </form>
+    );
+}
+
 export default function SettingsPage() {
     const { me } = useShell();
     const router = useRouter();
     const [token, setToken] = useState<"idle" | "copied" | "error">("idle");
+    const [devicesKey, setDevicesKey] = useState(0);
 
     if (!me) return null;
     const pro = me.plan.name === "premium";
 
     const copyToken = async () => {
         try {
-            await navigator.clipboard.writeText(await getExtensionToken());
+            await navigator.clipboard.writeText(await getExtensionToken("copy"));
             setToken("copied");
+            setDevicesKey((k) => k + 1);
         } catch {
             setToken("error");
         }
@@ -105,7 +255,7 @@ export default function SettingsPage() {
                 <dl className="grid gap-4 sm:grid-cols-2">
                     {[
                         ["Name", me.user.username],
-                        ["Email", me.user.email],
+                        ["Email", me.user.emailVerified ? me.user.email : `${me.user.email} (not confirmed)`],
                         ["Member since", new Date(me.user.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })],
                         ["Plan", pro ? "Pro" : "Free"],
                     ].map(([k, v]) => (
@@ -154,8 +304,23 @@ export default function SettingsPage() {
                 </div>
             </Section>
 
+            <Section title="Connected devices" aside="Every browser extension signed in to your account. Signing one out stops it saving to Brainly straight away.">
+                <ConnectedDevices reloadKey={devicesKey} />
+            </Section>
+
             <Section title="On your phone" aside="Install Brainly, then share reels, videos and links to it from any app. They're saved straight away, with the title, summary and tags added for you.">
                 <InstallApp />
+            </Section>
+
+            <Section title="Your data" aside="A ZIP of everything you saved, yours to keep or take elsewhere.">
+                <div className="grid gap-3">
+                    <a href={EXPORT_URL} download className={buttonClass}>
+                        <Download className="size-4" /> Download everything
+                    </a>
+                    <p className="text-[13.5px] leading-[1.55] text-on-surface-variant">
+                        Includes every memory (links, notes, your context, summaries and tags) and your collections and chats as JSON, your notes as Markdown files, and the PDFs, images and audio you uploaded.
+                    </p>
+                </div>
             </Section>
 
             <Section title="Session">
@@ -166,6 +331,10 @@ export default function SettingsPage() {
                 >
                     <LogOut className="size-4" /> Sign out
                 </button>
+            </Section>
+
+            <Section title="Delete account" aside="Permanently removes your account and everything you saved.">
+                <DeleteAccount me={me} />
             </Section>
         </>
     );

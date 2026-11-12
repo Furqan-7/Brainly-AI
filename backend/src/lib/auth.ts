@@ -1,11 +1,97 @@
+import crypto from "node:crypto";
 import { CookieOptions, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 export const AUTH_COOKIE = "brainly_token";
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-export function signToken(userId: number, username: string, expiresIn: jwt.SignOptions["expiresIn"] = "7d"): string {
-    return jwt.sign({ userId, username }, process.env.JWT_TOKEN as string, { expiresIn });
+const secret = () => process.env.JWT_TOKEN as string;
+
+export interface SignTokenOptions {
+    expiresIn?: jwt.SignOptions["expiresIn"];
+    /** The user's current tokenVersion; "sign out everywhere" bumps it to cancel older tokens */
+    tokenVersion?: number;
+    /** Set for the browser extension: the Device row that can be signed out on its own */
+    deviceId?: string;
+}
+
+export function signToken(userId: number, username: string, { expiresIn = "7d", tokenVersion = 0, deviceId }: SignTokenOptions = {}): string {
+    return jwt.sign({ userId, username, v: tokenVersion, ...(deviceId ? { did: deviceId } : {}) }, secret(), { expiresIn });
+}
+
+export interface SessionClaims {
+    userId: number;
+    /** Tokens issued before tokenVersion existed carry none, which counts as 0 */
+    tokenVersion: number;
+    deviceId?: string;
+}
+
+/** Reads a sign-in token (cookie or extension). Purpose-bound tokens (reset links etc.) never pass. */
+export function verifySessionToken(token: string): SessionClaims | null {
+    try {
+        const decoded = jwt.verify(token, secret());
+        if (typeof decoded !== "object" || typeof decoded.userId !== "number" || decoded.purpose) return null;
+        return {
+            userId: decoded.userId,
+            tokenVersion: typeof decoded.v === "number" ? decoded.v : 0,
+            deviceId: typeof decoded.did === "string" ? decoded.did : undefined,
+        };
+    } catch {
+        return null;
+    }
+}
+
+// ─── Email links ─────────────────────────────────────────────────────────────
+
+/**
+ * Password reset links are signed with a key that includes the current password hash, so a
+ * link stops working as soon as it has been used (or the password changes another way).
+ */
+function resetKey(passwordHash: string | null): string {
+    const fingerprint = crypto.createHash("sha256").update(passwordHash ?? "no-password").digest("hex");
+    return `${secret()}:reset:${fingerprint}`;
+}
+
+export const RESET_LINK_MINUTES = 60;
+
+export function signPasswordResetToken(user: { id: number; password: string | null }): string {
+    return jwt.sign({ userId: user.id, purpose: "password-reset" }, resetKey(user.password), { expiresIn: `${RESET_LINK_MINUTES}m` });
+}
+
+/** The user a reset link is for, without checking it yet (the key depends on that user). */
+export function passwordResetUserId(token: string): number | null {
+    const decoded = jwt.decode(token);
+    return decoded && typeof decoded === "object" && decoded.purpose === "password-reset" && typeof decoded.userId === "number"
+        ? decoded.userId
+        : null;
+}
+
+export function verifyPasswordResetToken(token: string, user: { id: number; password: string | null }): boolean {
+    try {
+        const decoded = jwt.verify(token, resetKey(user.password));
+        return typeof decoded === "object" && decoded.purpose === "password-reset" && decoded.userId === user.id;
+    } catch {
+        return false;
+    }
+}
+
+export function signEmailVerificationToken(userId: number, email: string): string {
+    return jwt.sign({ userId, email, purpose: "verify-email" }, secret(), { expiresIn: "3d" });
+}
+
+export function verifyEmailVerificationToken(token: string): { userId: number; email: string } | null {
+    try {
+        const decoded = jwt.verify(token, secret());
+        if (typeof decoded !== "object" || decoded.purpose !== "verify-email" || typeof decoded.userId !== "number") return null;
+        return { userId: decoded.userId, email: String(decoded.email ?? "") };
+    } catch {
+        return null;
+    }
+}
+
+/** The web app address a request came from (for links in emails), or the main one. */
+export function requestOrigin(req: Request): string {
+    return allowedClientOrigin(req.get("origin")) ?? allowedClientOrigin(req.get("referer")) ?? clientUrl();
 }
 
 /** Every address the web app is served from (CLIENT_URL may list several origins). */

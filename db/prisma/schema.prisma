@@ -15,7 +15,13 @@ model User {
   password  String?
   createdAt DateTime   @default(now())
   isPremium Boolean    @default(false)
+  // Set once the user proves they own the email (link in the verification email, password
+  // reset, or Google / GitHub sign-in)
+  emailVerified DateTime?
+  // Bumped by "sign out everywhere" and password resets: tokens carrying an older version stop working
+  tokenVersion  Int       @default(0)
   accounts  Account[]
+  devices   Device[]
   memories  Memories[]
   collections   Collection[]
   conversations Conversation[]
@@ -32,6 +38,18 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+}
+
+/** A signed-in browser extension (or a copied token). Deleting the row signs that device out. */
+model Device {
+  id         String   @id
+  userId     Int
+  name       String
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Memories {
