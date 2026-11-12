@@ -1,12 +1,13 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { AlertCircle, Check, Copy, Sparkles } from "lucide-react";
 
 import { getConversation, streamChat } from "../../services/api";
 import { ThinkingDots } from "./ThinkingDots";
-import { CitationChip, SourceShelf } from "./Sources";
+import { SourceShelf } from "./Sources";
+import { AnswerMarkdown } from "./AnswerMarkdown";
 import type { ChatMessage, SearchFilters, Source } from "../../types/memory";
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -89,22 +90,6 @@ export function useChat({ onAnswered, onConversation }: { onAnswered?: () => voi
 
 // ─── Thread ──────────────────────────────────────────────────────────────────
 
-/** Answer text with [n] citations turned into chips that show the source's picture. */
-function AnswerText({ text, sources, activeN, onCite }: { text: string; sources: Source[]; activeN: number | null; onCite: (n: number) => void }) {
-    const byN = new Map(sources.map((s) => [s.n, s]));
-    const parts = text.split(/(\[\d+\])/g);
-    return (
-        <p className="text-[16px] leading-[1.75] whitespace-pre-wrap text-on-surface">
-            {parts.map((part, i) => {
-                const cite = part.match(/^\[(\d+)\]$/);
-                if (!cite) return <Fragment key={i}>{part}</Fragment>;
-                const n = Number(cite[1]);
-                return <CitationChip key={i} n={n} source={byN.get(n)} active={activeN === n} onClick={() => onCite(n)} />;
-            })}
-        </p>
-    );
-}
-
 function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false);
     return (
@@ -125,12 +110,12 @@ function CopyButton({ text }: { text: string }) {
     );
 }
 
-/** Brainly's reply: plain text like a chat app, with its sources as cards underneath. */
+/** Brainly's reply: the answer as formatted text with citation chips, and its sources as cards underneath. */
 function AssistantMessage({ message, activeN, onOpenSource }: { message: ChatMessage; activeN: number | null; onOpenSource: (sources: Source[], n: number) => void }) {
     // Sources the answer actually cites come first; the rest stay available behind "Show more"
     const cited = new Set([...message.content.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])));
     const sources = [...(message.sources ?? [])].sort((a, b) => Number(cited.has(b.n)) - Number(cited.has(a.n)));
-    const open = (n: number) => onOpenSource(sources, n);
+    const open = useCallback((n: number) => onOpenSource(sources, n), [onOpenSource, sources]);
     const waiting = message.streaming && !message.content;
 
     return (
@@ -149,7 +134,7 @@ function AssistantMessage({ message, activeN, onOpenSource }: { message: ChatMes
                     <ThinkingDots /> Searching your memories…
                 </span>
             ) : (
-                <AnswerText text={message.content} sources={sources} activeN={activeN} onCite={open} />
+                <AnswerMarkdown text={message.content} sources={sources} activeN={activeN} onCite={open} />
             )}
 
             {sources.length > 0 && <SourceShelf sources={sources} activeN={activeN} onOpen={open} />}

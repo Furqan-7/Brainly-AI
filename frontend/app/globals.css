@@ -187,5 +187,11 @@ body {
   .note-md th { font-weight: 600; background: color-mix(in srgb, var(--color-on-surface) 4%, transparent); }
   .note-md img { max-width: 100%; border-radius: 8px; }
   .note-md-reader { font-size: 15.5px; line-height: 1.7; }
+  /* Brainly's answers in chat (components/chat/AnswerMarkdown.tsx) */
+  .answer-md { font-size: 16px; line-height: 1.75; }
+  .answer-md p, .answer-md ul, .answer-md ol { margin-bottom: 0.9em; }
+  .answer-md li { margin: 0.35em 0; }
+  .answer-md h1, .answer-md h2, .answer-md h3, .answer-md h4 { font-size: 1.15em; margin: 1.3em 0 0.45em; }
+  .answer-md strong { font-weight: 600; }
   .note-md-reader p, .note-md-reader ul, .note-md-reader ol { margin-bottom: 0.85em; }
 }

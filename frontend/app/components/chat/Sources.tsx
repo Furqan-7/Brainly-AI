@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ExternalLink, FileText, Mic, Play, X } from "lucide-react";
-import type { Source } from "../../types/memory";
-import { fileUrl } from "../../services/api";
+import { Check, Copy, ExternalLink, FileText, FolderOpen, Mic, Play, Quote, X } from "lucide-react";
+import type { Memory, Source } from "../../types/memory";
+import { fileUrl, getMemoryStatuses } from "../../services/api";
+import { plainText } from "../../lib/markdown";
+import { NoteMarkdown } from "../memory/NoteMarkdown";
 import { TYPE_META } from "../memory/typeMeta";
 import { embedUrl, sourceHref } from "./SourceCard";
 
@@ -154,13 +156,14 @@ function SourceMedia({ source }: { source: Source }) {
 
     if (source.type === "pdf") {
         // A page with the passage Brainly used, highlighted
+        const text = plainText(source.passage || source.snippet);
         return (
             <span className="flex h-full justify-center overflow-hidden bg-[#efe7e0] px-3 pt-3">
                 <span className="grid w-[112px] content-start gap-1 overflow-hidden bg-white p-2.5 shadow-[0_10px_24px_-14px_rgba(60,35,20,0.6)]">
                     <span className="truncate font-headline text-[9px] font-medium">{source.title}</span>
                     <span className="line-clamp-6 text-[7px] leading-[1.45] text-on-surface-variant">
-                        <mark className="bg-[#f7d774] text-on-surface">{source.snippet.slice(0, 90)}</mark>
-                        {source.snippet.slice(90)}
+                        <mark className="bg-[#f7d774] text-on-surface">{text.slice(0, 90)}</mark>
+                        {text.slice(90, 400)}
                     </span>
                 </span>
             </span>
@@ -211,11 +214,15 @@ function SourceMedia({ source }: { source: Source }) {
         );
     }
 
-    // Tweets and notes: show the text itself
+    // Tweets and notes: show the words themselves (the part that matched), not the AI summary
     const tint = source.type === "tweet" ? "bg-[#e8f4fd]" : "bg-[#f6ecc9]";
     return (
         <span className={`flex h-full items-start overflow-hidden p-3 ${tint}`}>
-            <span className="line-clamp-5 text-[12px] leading-[1.5] text-on-surface/80">“{source.snippet}”</span>
+            <span className="line-clamp-5 text-[12px] leading-[1.5] text-on-surface/80">
+                {/* Room for the number badge in the corner, so it never covers the first words */}
+                <span aria-hidden="true" className="float-left mr-1 h-4 w-5" />
+                {plainText(source.passage || source.snippet)}
+            </span>
         </span>
     );
 }
@@ -275,6 +282,132 @@ export function SourceShelf({ sources, activeN, onOpen, initial = 4 }: { sources
 }
 
 // ─── Viewer ──────────────────────────────────────────────────────────────────
+
+// Full memories already loaded for the viewer, so flipping between tabs is instant
+const memoryCache = new Map<number, Memory | null>();
+
+/** The whole memory behind a source (note text, your context, tags…). `undefined` while loading. */
+function useMemoryDetails(memoryId: number): Memory | null | undefined {
+    const [memory, setMemory] = useState<Memory | null | undefined>(() => memoryCache.get(memoryId));
+    useEffect(() => {
+        if (memoryCache.has(memoryId)) return;
+        let cancelled = false;
+        getMemoryStatuses([memoryId])
+            .then(([found]) => {
+                memoryCache.set(memoryId, found ?? null);
+                if (!cancelled) setMemory(found ?? null);
+            })
+            .catch(() => !cancelled && setMemory(null));
+        return () => {
+            cancelled = true;
+        };
+    }, [memoryId]);
+    return memory;
+}
+
+function Section({ label, icon, children, aside }: { label: string; icon?: React.ReactNode; children: React.ReactNode; aside?: React.ReactNode }) {
+    return (
+        <section className="grid gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+            <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-[10.5px] tracking-[0.08em] text-on-surface-variant uppercase">
+                    {icon}
+                    {label}
+                </span>
+                {aside}
+            </div>
+            {children}
+        </section>
+    );
+}
+
+function CopyText({ text, label = "Copy" }: { text: string; label?: string }) {
+    const [copied, setCopied] = useState(false);
+    return (
+        <button
+            type="button"
+            onClick={() => {
+                void navigator.clipboard?.writeText(text).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                });
+            }}
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11.5px] text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+        >
+            {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+            {copied ? "Copied" : label}
+        </button>
+    );
+}
+
+/**
+ * What the viewer says about a memory, beyond the media itself: your note in full, why you saved
+ * it, the passage the answer came from, Brainly's summary, and its tags and collections.
+ */
+function SourceDetails({ source }: { source: Source }) {
+    const memory = useMemoryDetails(source.memoryId);
+    const passage = source.passage || source.snippet;
+    const context = typeof memory?.metadata?.context === "string" ? memory.metadata.context.trim() : "";
+    const summary = (source.summary ?? memory?.summary ?? "").trim();
+    const note = source.type === "note" ? memory?.note?.trim() : null;
+    const savedAt = memory?.createdAt ?? source.savedAt;
+    const tags = memory?.tags ?? [];
+    const collections = memory?.collections ?? [];
+
+    return (
+        <>
+            {note ? (
+                <Section label="Your note" aside={<CopyText text={note} />}>
+                    <NoteMarkdown text={note} size="reader" />
+                </Section>
+            ) : (
+                passage && (
+                    <Section
+                        label={source.type === "pdf" ? "Passage Brainly used" : source.type === "note" ? "Your note" : "The part Brainly used"}
+                        aside={<CopyText text={plainText(passage)} />}
+                    >
+                        {source.type === "note" && memory === undefined ? (
+                            <p className="text-[14px] leading-[1.65] text-on-surface-variant">{plainText(passage)}</p>
+                        ) : (
+                            <p className="text-[14px] leading-[1.65] whitespace-pre-line text-on-surface">
+                                <mark className="rounded-[3px] bg-[#f7d774]/60 px-0.5 text-on-surface [box-decoration-break:clone]">{plainText(passage)}</mark>
+                            </p>
+                        )}
+                    </Section>
+                )
+            )}
+
+            {context && (
+                <Section label="Why you saved it" icon={<Quote className="size-3" />}>
+                    <p className="border-l-2 border-primary/50 pl-3 text-[14.5px] leading-[1.6] text-on-surface italic">{context}</p>
+                </Section>
+            )}
+
+            {summary && summary !== passage && (
+                <Section label="Summary by Brainly">
+                    <p className="text-[13.5px] leading-[1.65] text-on-surface-variant">{summary}</p>
+                </Section>
+            )}
+
+            {(tags.length > 0 || collections.length > 0 || savedAt) && (
+                <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-on-surface-variant">
+                    {savedAt && (
+                        <span className="mr-1">
+                            Saved {new Date(savedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                    )}
+                    {collections.map((c) => (
+                        <span key={c.id} className="flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-lowest px-2 py-0.5">
+                            <FolderOpen className="size-3" /> {c.name}
+                        </span>
+                    ))}
+                    {tags.map((t) => (
+                        <span key={t} className="rounded-full bg-on-surface/[0.06] px-2 py-0.5">#{t}</span>
+                    ))}
+                </div>
+            )}
+        </>
+    );
+}
 
 function ViewerBody({ source }: { source: Source }) {
     const player = embedUrl(source.type, source.source_url);
@@ -349,7 +482,7 @@ export function SourceViewer({ sources, activeN, onSelect, onClose }: { sources:
                                 Source {source.n} · {TYPE_META[source.type as keyof typeof TYPE_META]?.label ?? source.type}
                                 {detail && <span className="normal-case tracking-normal">· {detail}</span>}
                             </span>
-                            <h2 className="truncate text-[15px] font-semibold">{source.title}</h2>
+                            <h2 className="line-clamp-2 text-[15px] leading-snug font-semibold [overflow-wrap:anywhere]">{source.title}</h2>
                         </div>
                         <button type="button" onClick={onClose} title="Close" className="rounded-lg grid size-8 flex-none place-items-center border border-outline-variant bg-surface-container-lowest hover:border-on-surface">
                             <X className="size-4" />
@@ -377,17 +510,8 @@ export function SourceViewer({ sources, activeN, onSelect, onClose }: { sources:
 
                     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
                         <ViewerBody source={source} />
-                        {source.snippet && (
-                            <div className="grid gap-1.5 rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
-                                <span className="text-[10.5px] tracking-[0.08em] text-on-surface-variant uppercase">
-                                    {source.type === "pdf" ? "Passage Brainly used" : "From your memory"}
-                                </span>
-                                <p className="text-[13.5px] leading-[1.65] text-on-surface">
-                                    {source.type === "pdf" ? <mark className="bg-[#f7d774]/70 text-on-surface">{source.snippet}</mark> : source.snippet}
-                                </p>
-                            </div>
-                        )}
-                        {!href && !source.snippet && (
+                        <SourceDetails key={source.memoryId} source={source} />
+                        {!href && !source.snippet && !source.passage && source.type !== "note" && (
                             <p className="flex items-center gap-2 text-sm text-on-surface-variant">
                                 <FileText className="size-4" /> Nothing to preview for this memory.
                             </p>

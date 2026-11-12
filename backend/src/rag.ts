@@ -17,7 +17,12 @@ export interface Source {
     source_url: string | null;
     has_file: boolean;
     thumbnail: string | null;
+    /** Short text for cards: the memory's summary, or the start of the passage */
     snippet: string;
+    /** The part of the memory that matched the question (what the answer was built from) */
+    passage: string;
+    /** The AI summary of the whole memory */
+    summary: string | null;
     score: number;
     /** Website name for links (from the page's metadata) */
     site_name: string | null;
@@ -70,6 +75,14 @@ Latest message: ${question}`,
     return typeof query === "string" && query.trim() ? query.trim() : question;
 }
 
+const PASSAGE_CHARS = 700;
+
+/** The matched text without the "Personal note" that indexing appends (the viewer shows it on its own). */
+export function passageOf(content: string): string {
+    const withoutNote = content.replace(/\n*Personal note: [\s\S]*$/, "").trim() || content.trim();
+    return withoutNote.length > PASSAGE_CHARS ? `${withoutNote.slice(0, PASSAGE_CHARS).replace(/\s+\S*$/, "")}…` : withoutNote;
+}
+
 export function toSources(chunks: RetrievedChunk[]): Source[] {
     return chunks.map((chunk, i) => {
         const meta = chunk.memory_metadata ?? {};
@@ -83,6 +96,8 @@ export function toSources(chunks: RetrievedChunk[]): Source[] {
             has_file: Boolean(chunk.file_path),
             thumbnail: text(meta.thumbnail_url),
             snippet: (chunk.summary || chunk.content).slice(0, 220),
+            passage: passageOf(chunk.content),
+            summary: text(chunk.summary),
             score: Number((chunk.rerank_score ?? chunk.combined_score).toFixed(4)),
             site_name: text(meta.site_name),
             author: text(meta.author),
@@ -165,6 +180,8 @@ Cite the sources you use inline with their number in square brackets, like [1] o
 When a source is a video, reel or TikTok, point the user to it (e.g. "your saved reel [2] covers this") so they can watch it.
 If the answer is not in the sources, say: "I couldn't find that in your saved content."
 Never make up information. Be concise and accurate.
+Format the answer in Markdown so it is easy to scan: short paragraphs, "-" bullet lists when there are several items,
+and **bold** for the few key terms. Use "###" headings only to split a long answer into parts. No tables unless asked.
 
 SOURCES FROM THE USER'S KNOWLEDGE BASE:
 ${context || "(no matching sources)"}`;
