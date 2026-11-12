@@ -77,7 +77,12 @@ export interface Source {
     source_url: string | null;
     has_file: boolean;
     thumbnail: string | null;
+    /** Short text for cards: the memory's summary, or the start of the passage */
     snippet: string;
+    /** The part of the memory the answer was built from (missing on chats saved before it existed) */
+    passage?: string;
+    /** AI summary of the whole memory */
+    summary?: string | null;
     score: number;
     /** Website name for links */
     site_name?: string | null;
