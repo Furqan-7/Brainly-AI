@@ -394,7 +394,7 @@ describe.skipIf(!TEST_DB)("account: email, devices, export, delete (real Postgre
     it("Google sign-in takes over an unverified password account (someone may have signed up with your email)", async () => {
         const { signInWithProvider } = await import("../src/config/passport");
         const squatter = await call("/signup", { method: "POST", body: json({ username: "squatter", email: "owner@example.com", password: "secret12" }) });
-        const user = await signInWithProvider({ provider: "google", providerAccountId: "g-owner", email: "owner@example.com", username: "Owner", accessToken: "x" });
+        const user = await signInWithProvider({ provider: "google", providerAccountId: "g-owner", email: "owner@example.com", username: "Owner" });
         const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
         expect(row.password).toBeNull();
         expect(row.emailVerified).not.toBeNull();
@@ -404,7 +404,7 @@ describe.skipIf(!TEST_DB)("account: email, devices, export, delete (real Postgre
         // A verified account keeps its password when Google is linked
         const { cookie } = await call("/signup", { method: "POST", body: json({ username: "careful", email: "careful@example.com", password: "secret12" }) });
         await prisma.user.updateMany({ where: { email: "careful@example.com" }, data: { emailVerified: new Date() } });
-        await signInWithProvider({ provider: "google", providerAccountId: "g-careful", email: "careful@example.com", username: "Careful", accessToken: "x" });
+        await signInWithProvider({ provider: "google", providerAccountId: "g-careful", email: "careful@example.com", username: "Careful" });
         expect((await call("/api/me", { cookie })).res.status).toBe(200);
     });
 

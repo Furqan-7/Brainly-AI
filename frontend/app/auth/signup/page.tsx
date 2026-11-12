@@ -65,6 +65,12 @@ export default function SignupPage() {
         <SubmitButton loading={loading}>Create your brain</SubmitButton>
       </form>
 
+      <p className="-mt-3 text-center text-[12.5px] leading-[1.5] text-on-surface-variant">
+        By creating an account (with email or Google), you agree to our{" "}
+        <Link href="/terms" className="underline decoration-outline-variant underline-offset-4 hover:text-on-surface">Terms of Service</Link> and{" "}
+        <Link href="/privacy" className="underline decoration-outline-variant underline-offset-4 hover:text-on-surface">Privacy Policy</Link>.
+      </p>
+
       <p className="text-center text-[14px] text-on-surface-variant">
         Already have one?{" "}
         <Link href="/auth/signin" className="font-medium text-on-surface underline decoration-outline-variant underline-offset-4 hover:decoration-on-surface">
