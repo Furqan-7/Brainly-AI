@@ -29,7 +29,7 @@ interface MemoryCardProps {
  * Picks the content for memory.type. Every card shares the same frame, hover actions and footer
  * (MemoryCard below); a new memory type only needs a new content file and one case here.
  */
-function CardBody({ memory }: { memory: Memory }) {
+export function CardBody({ memory }: { memory: Memory }) {
     switch (memory.type) {
         case "youtube":
             return <YoutubeCard memory={memory} />;

@@ -7,6 +7,7 @@ import type { Memory, Source } from "../../types/memory";
 import { fileUrl, getMemoryStatuses } from "../../services/api";
 import { plainText } from "../../lib/markdown";
 import { NoteMarkdown } from "../memory/NoteMarkdown";
+import { CardBody } from "../memory/MemoryCard";
 import { TYPE_META } from "../memory/typeMeta";
 import { embedUrl, sourceHref } from "./SourceCard";
 
@@ -180,22 +181,22 @@ function SourceMedia({ source }: { source: Source }) {
 
     if (source.type === "url") {
         const domain = domainOf(source.source_url) ?? "link";
+        const imageClass = "size-full object-cover object-top transition-transform duration-500 group-hover:scale-105";
+        // Like the library: a screenshot of the site first, then its own preview image, then its initial
+        const screenshot = source.source_url && /^https?:\/\//i.test(source.source_url) ? `/api/preview?url=${encodeURIComponent(source.source_url)}` : null;
+        const initial = (
+            <span className="grid size-full place-items-center">
+                <span className="grid justify-items-center gap-1">
+                    <span className="grid size-10 place-items-center rounded-xl bg-surface-container-lowest font-headline text-xl text-secondary">
+                        {domain.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="text-[11px] text-on-secondary-fixed/70">{domain}</span>
+                </span>
+            </span>
+        );
         return (
             <span className="block h-full overflow-hidden bg-secondary-container">
-                <Thumb
-                    src={thumb}
-                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    fallback={
-                        <span className="grid size-full place-items-center">
-                            <span className="grid justify-items-center gap-1">
-                                <span className="grid size-10 place-items-center rounded-xl bg-surface-container-lowest font-headline text-xl text-secondary">
-                                    {domain.slice(0, 1).toUpperCase()}
-                                </span>
-                                <span className="text-[11px] text-on-secondary-fixed/70">{domain}</span>
-                            </span>
-                        </span>
-                    }
-                />
+                <Thumb src={screenshot} className={imageClass} fallback={<Thumb src={thumb} className={imageClass} fallback={initial} />} />
             </span>
         );
     }
@@ -320,6 +321,55 @@ function Section({ label, icon, children, aside }: { label: string; icon?: React
     );
 }
 
+/** Shown in the viewer exactly as in the library (website screenshot, rich X post…) */
+const LIBRARY_CARD_TYPES = new Set(["url", "tweet"]);
+
+/** The memory's library card, without the library's hover actions. */
+function LibraryCard({ memory }: { memory: Memory }) {
+    return (
+        <div className="overflow-hidden rounded-[18px] border border-outline-variant/60 bg-surface-container-lowest pb-1 shadow-[0_1px_2px_rgba(60,35,20,0.04),0_14px_30px_-26px_rgba(60,35,20,0.55)]">
+            <CardBody memory={memory} />
+        </div>
+    );
+}
+
+function LibraryCardSkeleton() {
+    return (
+        <div className="grid gap-3 rounded-[18px] border border-outline-variant/60 bg-surface-container-lowest p-3">
+            <div className="aspect-[16/10] animate-pulse rounded-[11px] bg-on-surface/5" />
+            <div className="h-3 w-1/3 animate-pulse rounded bg-on-surface/5" />
+            <div className="h-4 w-3/4 animate-pulse rounded bg-on-surface/5" />
+        </div>
+    );
+}
+
+/** A long passage, clamped to a few lines with "Show more". */
+function Excerpt({ text, color }: { text: string; color: string }) {
+    const [open, setOpen] = useState(false);
+    const long = text.length > 320;
+    return (
+        <div className="grid gap-1.5">
+            <p
+                className={`border-l-2 pl-3 text-[14px] leading-[1.65] whitespace-pre-line text-on-surface ${long && !open ? "line-clamp-5" : ""}`}
+                style={{ borderColor: color }}
+            >
+                {text}
+            </p>
+            {long && (
+                <button type="button" onClick={() => setOpen((o) => !o)} className="justify-self-start pl-3 text-[12.5px] text-on-surface-variant underline decoration-outline-variant underline-offset-4 hover:text-on-surface">
+                    {open ? "Show less" : "Show more"}
+                </button>
+            )}
+        </div>
+    );
+}
+
+/** The passage without the memory's title repeated at its start (pages often begin with their own heading). */
+function withoutTitle(passage: string, title: string): string {
+    const t = title.trim();
+    return t && passage.toLowerCase().startsWith(t.toLowerCase()) ? passage.slice(t.length).replace(/^[\s:.\-–—|]+/, "") || passage : passage;
+}
+
 function CopyText({ text, label = "Copy" }: { text: string; label?: string }) {
     const [copied, setCopied] = useState(false);
     return (
@@ -345,7 +395,7 @@ function CopyText({ text, label = "Copy" }: { text: string; label?: string }) {
  */
 function SourceDetails({ source }: { source: Source }) {
     const memory = useMemoryDetails(source.memoryId);
-    const passage = source.passage || source.snippet;
+    const passage = withoutTitle(plainText(source.passage || source.snippet), source.title);
     const context = typeof memory?.metadata?.context === "string" ? memory.metadata.context.trim() : "";
     const summary = (source.summary ?? memory?.summary ?? "").trim();
     const note = source.type === "note" ? memory?.note?.trim() : null;
@@ -353,8 +403,14 @@ function SourceDetails({ source }: { source: Source }) {
     const tags = memory?.tags ?? [];
     const collections = memory?.collections ?? [];
 
+    const libraryCard = LIBRARY_CARD_TYPES.has(source.type);
+    // What the library card already shows under the title (the page's description, or the summary)
+    const cardText = (memory?.metadata?.description || memory?.summary || "").trim();
+
     return (
         <>
+            {libraryCard && (memory ? <LibraryCard memory={memory} /> : memory === undefined ? <LibraryCardSkeleton /> : <ViewerBody source={source} />)}
+
             {note ? (
                 <Section label="Your note" aside={<CopyText text={note} />}>
                     <NoteMarkdown text={note} size="reader" />
@@ -363,14 +419,12 @@ function SourceDetails({ source }: { source: Source }) {
                 passage && (
                     <Section
                         label={source.type === "pdf" ? "Passage Brainly used" : source.type === "note" ? "Your note" : "The part Brainly used"}
-                        aside={<CopyText text={plainText(passage)} />}
+                        aside={<CopyText text={passage} />}
                     >
                         {source.type === "note" && memory === undefined ? (
-                            <p className="text-[14px] leading-[1.65] text-on-surface-variant">{plainText(passage)}</p>
+                            <p className="text-[14px] leading-[1.65] text-on-surface-variant">{passage}</p>
                         ) : (
-                            <p className="text-[14px] leading-[1.65] whitespace-pre-line text-on-surface">
-                                <mark className="rounded-[3px] bg-[#f7d774]/60 px-0.5 text-on-surface [box-decoration-break:clone]">{plainText(passage)}</mark>
-                            </p>
+                            <Excerpt text={passage} color={source.type === "pdf" ? "#e0b43c" : typeColor(source.type)} />
                         )}
                     </Section>
                 )
@@ -382,7 +436,7 @@ function SourceDetails({ source }: { source: Source }) {
                 </Section>
             )}
 
-            {summary && summary !== passage && (
+            {summary && summary !== passage && !(libraryCard && cardText === summary) && (
                 <Section label="Summary by Brainly">
                     <p className="text-[13.5px] leading-[1.65] text-on-surface-variant">{summary}</p>
                 </Section>
@@ -509,7 +563,7 @@ export function SourceViewer({ sources, activeN, onSelect, onClose }: { sources:
                     )}
 
                     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-                        <ViewerBody source={source} />
+                        {!LIBRARY_CARD_TYPES.has(source.type) && <ViewerBody source={source} />}
                         <SourceDetails key={source.memoryId} source={source} />
                         {!href && !source.snippet && !source.passage && source.type !== "note" && (
                             <p className="flex items-center gap-2 text-sm text-on-surface-variant">
