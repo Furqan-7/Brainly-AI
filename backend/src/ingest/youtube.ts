@@ -2,6 +2,7 @@ import { YoutubeTranscript } from "youtube-transcript";
 import { safeGet } from "../lib/safeFetch";
 import { youtubeId } from "../lib/urls";
 import { transcribeVideo, videoDuration } from "./transcribe";
+import { formatTimestamp, transcriptWithTimestamps } from "./timestamps";
 
 export interface YoutubeVideo {
     text: string;
@@ -9,13 +10,6 @@ export interface YoutubeVideo {
     author: string | null;
     thumbnail: string | null;
     duration: string | null;
-}
-
-function formatDuration(seconds: number): string {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export function youtubeThumbnail(url: string): string | null {
@@ -33,7 +27,8 @@ export async function fetchYoutube(url: string): Promise<YoutubeVideo> {
             .then((r) => r.data)
             .catch(() => null),
         YoutubeTranscript.fetchTranscript(id ?? url)
-            .then((items) => items.map((i) => i.text).join(" "))
+            // "(m:ss)" markers let answers open the video at the moment they cite
+            .then((items) => transcriptWithTimestamps(items))
             .catch(() => ""),
         videoDuration(watchUrl),
     ]);
@@ -51,6 +46,6 @@ export async function fetchYoutube(url: string): Promise<YoutubeVideo> {
         title,
         author,
         thumbnail: youtubeThumbnail(watchUrl),
-        duration: seconds ? formatDuration(seconds) : null,
+        duration: seconds ? formatTimestamp(seconds) : null,
     };
 }

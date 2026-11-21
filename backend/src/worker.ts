@@ -20,14 +20,15 @@ export function backoffMs(attempts: number): number {
     return 30_000 * 2 ** Math.max(0, attempts - 1); // 30s, 60s, 120s…
 }
 
-async function claimJob(): Promise<any | null> {
+export async function claimJob(): Promise<any | null> {
     const rows = await prisma.$queryRaw<any[]>`
         UPDATE "Memories"
         SET status = 'processing', attempts = attempts + 1, "updatedAt" = now()
         WHERE id = (
             SELECT id FROM "Memories"
             WHERE status = 'pending' AND ("nextAttemptAt" IS NULL OR "nextAttemptAt" <= now())
-            ORDER BY id
+            -- A big import (hundreds of bookmarks) waits behind everyday saves instead of holding them up
+            ORDER BY (metadata->>'bulk') IS NOT NULL, id
             LIMIT 1
             FOR UPDATE SKIP LOCKED
         )

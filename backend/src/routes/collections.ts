@@ -3,6 +3,8 @@ import crypto from "node:crypto";
 import { prisma } from "db";
 import { MiddleWhere } from "../MiddleWhere";
 import { collectionMemoriesSchema, collectionSchema } from "../types";
+import { clientUrl } from "../lib/auth";
+import { renderRss } from "../lib/rss";
 
 export const collectionsRouter: Router = Router();
 
@@ -134,4 +136,45 @@ collectionsRouter.get("/api/public/collections/:slug", async (req, res) => {
             }),
         },
     });
+});
+
+const FEED_ITEMS = 50;
+
+/**
+ * RSS feed of a publicly shared collection (newest first), served by the web app at
+ * /c/<slug>/feed.xml. Unsharing the collection makes the feed disappear with the page.
+ */
+collectionsRouter.get("/api/public/collections/:slug/feed.xml", async (req, res) => {
+    const collection = await prisma.collection.findUnique({
+        where: { shareSlug: req.params.slug },
+        include: {
+            user: { select: { username: true } },
+            memories: {
+                where: { status: "ready", archived: false },
+                orderBy: { createdAt: "desc" },
+                take: FEED_ITEMS,
+                select: { id: true, title: true, source_url: true, summary: true, tags: true, metadata: true, createdAt: true },
+            },
+        },
+    });
+    if (!collection) return res.status(404).type("text/plain").send("Collection not found");
+
+    const page = `${clientUrl()}/c/${encodeURIComponent(req.params.slug)}`;
+    const xml = renderRss({
+        title: `${collection.name} · Brainly AI`,
+        link: page,
+        feedUrl: `${page}/feed.xml`,
+        description: collection.description || `Shared by ${collection.user.username} on Brainly AI.`,
+        items: collection.memories.map((m) => ({
+            id: m.id,
+            title: m.title,
+            // Notes and files have no address of their own; they open on the collection page
+            link: m.source_url ?? page,
+            description: m.summary || ((m.metadata ?? {}) as Record<string, any>).description || null,
+            tags: m.tags,
+            date: m.createdAt,
+        })),
+    });
+    res.setHeader("Cache-Control", "public, max-age=300");
+    return res.status(200).type("application/rss+xml; charset=utf-8").send(xml);
 });

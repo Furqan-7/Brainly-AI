@@ -464,7 +464,7 @@ function SourceDetails({ source }: { source: Source }) {
 }
 
 function ViewerBody({ source }: { source: Source }) {
-    const player = embedUrl(source.type, source.source_url);
+    const player = embedUrl(source.type, source.source_url, source.timestamp);
     const vertical = source.type === "reel" || source.type === "tiktok";
     const file = source.has_file ? fileUrl(source.memoryId) : null;
     const thumb = sourceThumb(source);

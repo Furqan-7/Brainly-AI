@@ -208,6 +208,150 @@ describe.skipIf(!TEST_DB)("integration (real Postgres)", () => {
         const named = await (await post({ type: "url", source_url: "https://www.instagram.com/reel/Kp2_named/", title: "My favourite ideas" })).json();
         expect(named).toMatchObject({ title: "My favourite ideas", autoTitle: false });
     });
+
+    it("imports a browser bookmarks file as links, skipping ones already saved", async () => {
+        const html = `<!DOCTYPE NETSCAPE-Bookmark-file-1><TITLE>Bookmarks</TITLE><DL><p>
+            <DT><H3>Bookmarks bar</H3><DL><p>
+                <DT><H3>Cooking</H3><DL><p>
+                    <DT><A HREF="https://www.youtube.com/watch?v=pasta12345" ADD_DATE="1600000000">How to make pasta</A>
+                    <DT><A HREF="https://example.com/sauces">https://example.com/sauces</A>
+                </DL><p>
+                <DT><A HREF="https://instagram.com/reel/Zz9_shared?igsh=abc">Already saved reel</A>
+                <DT><A HREF="ftp://files.example.com/a.zip">Not a web page</A>
+            </DL><p></DL>`;
+        const form = new FormData();
+        form.append("files", new Blob([html], { type: "text/html" }), "bookmarks.html");
+        const res = await fetch(`${base}/api/import`, { method: "POST", headers: auth, body: form });
+        const body = await res.json();
+        expect(res.status).toBe(201);
+        expect(body).toMatchObject({ links: 2, notes: 0, duplicates: 1, overLimit: 0 });
+        expect(body.message).toBe("Imported 2 links (skipped 1 already saved)");
+
+        const video = await prisma.memories.findFirst({ where: { userId, source_url: "https://www.youtube.com/watch?v=pasta12345" } });
+        expect(video).toMatchObject({ type: "youtube", title: "How to make pasta", tags: ["cooking"] });
+        expect(video?.createdAt.getTime()).toBe(1600000000 * 1000);
+        expect(video?.metadata).toMatchObject({ imported_from: "bookmarks", bulk: true, canonical_url: "https://youtube.com/watch?v=pasta12345" });
+
+        // A bookmark titled with its own URL gets an automatic title, like a quick save
+        const link = await prisma.memories.findFirst({ where: { userId, source_url: "https://example.com/sauces" } });
+        expect(link).toMatchObject({ type: "url", title: "Link from example.com" });
+        expect(link?.metadata).toMatchObject({ auto_title: true });
+
+        // Importing the same file again adds nothing
+        const again = new FormData();
+        again.append("files", new Blob([html], { type: "text/html" }), "bookmarks.html");
+        const second = await (await fetch(`${base}/api/import`, { method: "POST", headers: auth, body: again })).json();
+        expect(second).toMatchObject({ count: 0, duplicates: 3, message: "Imported nothing new (skipped 3 already saved)" });
+    });
+
+    it("an import bigger than the plan saves what fits and says how many didn't", async () => {
+        const { PLANS } = await import("../src/lib/plans");
+        const original = PLANS.free.maxMemories;
+        PLANS.free.maxMemories = (await prisma.memories.count({ where: { userId } })) + 1;
+        try {
+            const form = new FormData();
+            form.append("files", new Blob(["title,url\nOne,https://example.com/one\nTwo,https://example.com/two\n"], { type: "text/csv" }), "raindrop.csv");
+            const res = await fetch(`${base}/api/import`, { method: "POST", headers: auth, body: form });
+            const body = await res.json();
+            expect(res.status).toBe(201);
+            expect(body).toMatchObject({ links: 1, overLimit: 1, upgrade: true });
+
+            const full = new FormData();
+            full.append("files", new Blob(["title,url\nThree,https://example.com/three\n"], { type: "text/csv" }), "raindrop.csv");
+            expect((await fetch(`${base}/api/import`, { method: "POST", headers: auth, body: full })).status).toBe(402);
+        } finally {
+            PLANS.free.maxMemories = original;
+        }
+    });
+
+    it("the worker takes everyday saves before a bulk import's backlog", async () => {
+        const { claimJob } = await import("../src/worker");
+        const everyday = await prisma.memories.create({ data: { userId, type: "note", title: "Quick note", note: "Call the bank" } });
+        const job = await claimJob();
+        expect(job?.id).toBe(everyday.id);
+        await prisma.memories.delete({ where: { id: everyday.id } });
+    });
+
+    it("publishes a shared collection as an RSS feed, and removes it when unshared", async () => {
+        const json = { ...auth, "Content-Type": "application/json" };
+        const created = await (await fetch(`${base}/api/collections`, { method: "POST", headers: json, body: JSON.stringify({ name: "Reading <list> & more" }) })).json();
+        const id = created.collection.id;
+        await fetch(`${base}/api/collections/${id}/memories`, { method: "POST", headers: json, body: JSON.stringify({ memoryIds: [reelId] }) });
+        const shared = await (await fetch(`${base}/api/collections/${id}/share`, { method: "POST", headers: auth })).json();
+        const slug = shared.shareSlug ?? shared.collection?.shareSlug ?? shared.slug;
+        expect(slug).toEqual(expect.any(String));
+
+        const res = await fetch(`${base}/api/public/collections/${slug}/feed.xml`);
+        expect(res.status).toBe(200);
+        expect(res.headers.get("content-type")).toContain("application/rss+xml");
+        const xml = await res.text();
+        expect(xml).toContain("<title>Reading &lt;list&gt; &amp; more · Brainly AI</title>");
+        expect(xml).toContain(`<link>http://localhost:3000/c/${slug}</link>`);
+        expect(xml).toContain("<link>https://www.instagram.com/reel/C8abc_12/</link>");
+        expect(xml).toContain(`<guid isPermaLink="false">brainly-memory-${reelId}</guid>`);
+
+        await fetch(`${base}/api/collections/${id}/share`, { method: "DELETE", headers: auth });
+        expect((await fetch(`${base}/api/public/collections/${slug}/feed.xml`)).status).toBe(404);
+        await fetch(`${base}/api/collections/${id}`, { method: "DELETE", headers: auth });
+    });
+
+    it("serves memories to AI assistants over MCP, signed in with a Bearer token only", async () => {
+        const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+        const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
+        const { signToken } = await import("../src/lib/auth");
+
+        // No token, or only the site cookie: refused
+        const initialize = { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } } };
+        const headers = { "Content-Type": "application/json", Accept: "application/json, text/event-stream" };
+        expect((await fetch(`${base}/mcp`, { method: "POST", headers, body: JSON.stringify(initialize) })).status).toBe(401);
+        const { AUTH_COOKIE } = await import("../src/lib/auth");
+        const cookie = `${AUTH_COOKIE}=${auth.Authorization.slice(7)}`;
+        expect((await fetch(`${base}/mcp`, { method: "POST", headers: { ...headers, Cookie: cookie }, body: JSON.stringify(initialize) })).status).toBe(401);
+
+        const client = new Client({ name: "test-client", version: "1.0.0" });
+        await client.connect(new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: auth } }));
+        const call = async (name: string, args: Record<string, unknown>) => {
+            const result = (await client.callTool({ name, arguments: args })) as any;
+            return { ...result, data: result.isError ? null : JSON.parse(result.content[0].text) };
+        };
+
+        const { tools } = await client.listTools();
+        expect(tools.map((t) => t.name).sort()).toEqual(["get_memory", "list_recent_memories", "save_memory", "search_memories"]);
+
+        const search = await call("search_memories", { query: "project ideas" });
+        expect(search.data.results[0]).toMatchObject({ id: reelId, type: "reel", url: "https://www.instagram.com/reel/C8abc_12/" });
+
+        const memory = await call("get_memory", { id: reelId });
+        expect(memory.data).toMatchObject({ id: reelId, personal_note: "Ideas for my portfolio" });
+        expect(memory.data.text).toContain("5 full-stack project ideas");
+        expect(memory.data.text).not.toContain("Personal note:");
+
+        const saved = await call("save_memory", { note: "Remember: try HyDE with a 1.5s timeout.", tags: ["RAG"] });
+        expect(saved.data).toMatchObject({ saved: true, type: "note" });
+        const row = await prisma.memories.findUnique({ where: { id: saved.data.id } });
+        expect(row).toMatchObject({ userId, type: "note", tags: ["rag"] });
+        expect(row?.metadata).toMatchObject({ saved_from: "mcp" });
+
+        const again = await call("save_memory", { url: "https://instagram.com/reel/C8abc_12" });
+        expect(again.data).toMatchObject({ saved: false, already_saved: true, id: reelId });
+
+        expect((await call("save_memory", {})).isError).toBe(true);
+        const recent = await call("list_recent_memories", { limit: 50 });
+        expect(recent.data.memories.some((m: any) => m.id === saved.data.id)).toBe(true);
+
+        // Another user's memory is invisible
+        const other = await prisma.user.create({ data: { username: "other", email: "other-mcp@example.com" } });
+        const otherClient = new Client({ name: "other", version: "1.0.0" });
+        await otherClient.connect(new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+            requestInit: { headers: { Authorization: `Bearer ${signToken(other.id, other.username)}` } },
+        }));
+        const peek = (await otherClient.callTool({ name: "get_memory", arguments: { id: reelId } })) as any;
+        expect(peek.isError).toBe(true);
+        await client.close();
+        await otherClient.close();
+        await prisma.memories.delete({ where: { id: saved.data.id } });
+        await prisma.user.delete({ where: { id: other.id } });
+    });
 });
 
 describe.skipIf(!TEST_DB)("account: email, devices, export, delete (real Postgres)", () => {

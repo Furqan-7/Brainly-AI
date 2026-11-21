@@ -38,13 +38,16 @@ Brainly is one place to save all of it. It reads each save for you (captions, tr
 **Save anything, from anywhere**
 - **Videos and reels:** YouTube videos and Shorts, Instagram Reels and TikToks, with captions or an audio transcript (Whisper), author, thumbnail and duration
 - **The web:** articles and pages (clean text via Readability and Open Graph, LinkedIn posts too), and X posts shown with the author, photos and video
+- **Discussions:** Hacker News and Reddit threads are saved with the post and its top comments, not just the page
 - **Your own stuff:** notes in Markdown, PDFs (scanned ones are OCR'd), images (OCR or an AI description) and voice notes recorded in the browser
 - **Imports** from Notion and Google Docs (`.md`, `.txt`, `.html`, `.docx` or a Notion `.zip`)
+- **Bookmark imports** from any browser's bookmarks export, Pocket, Raindrop and Instapaper (`.html`, `.csv` or Pocket's `.zip`): folders and tags become tags, the original date is kept, and links you already saved are skipped
 - **Browser extension** for Chrome, Edge, Brave, Opera, Arc, Vivaldi, Firefox and Safari: save the page, a link or selected text
 - **Installable app** with **Share → Brainly** on Android
 
 **Find it again**
 - **Ask** in plain words. Answers come only from your saves, stream in live and cite each source `[1]`; sources open the original or play reels and videos inline
+- **YouTube sources open at the right moment:** a cited video plays from the part of the transcript the answer came from
 - **Filters as you type:** `/instagram`, `/youtube`, `/link`, `/note`, `/pdf`, `/week`, `/month`… and `@` to ask within a collection
 - **Live matches** while you type, so you see Brainly has the right saves before asking
 - **Find mode** (`/find`) lists matches instantly with no AI answer
@@ -54,10 +57,13 @@ Brainly is one place to save all of it. It reads each save for you (captions, tr
 **Organise**
 - A Pinterest-style **library** with type tabs, search, sort, starred and archive
 - **Tags** (yours plus AI auto-tags) and an AI summary for every memory
-- **Collections** you can share publicly with a link
+- **Collections** you can share publicly with a link, each with an **RSS feed** (`/c/<slug>/feed.xml`) for feed readers
 - **Rediscover:** spaced-repetition review and throwbacks to old saves
 - **Duplicate** detection, and a page to find and merge them
 - A **knowledge graph** of how your saves connect
+
+**Use it from your AI assistant**
+- **MCP server** at `/mcp`: Claude, ChatGPT, Cursor and other MCP clients can search your saves, read one in full, list recent ones and save new links or notes
 
 **Built properly**
 - Postgres-backed job queue (`FOR UPDATE SKIP LOCKED`) with retries, backoff and visible failures
@@ -212,6 +218,29 @@ Bump `version` in `extension/manifest.json` before each upload. The extension ta
 </details>
 
 <details>
+<summary><b>Connect an AI assistant (MCP)</b></summary>
+
+Brainly is an [MCP](https://modelcontextprotocol.io) server, so AI assistants can use your saves as a tool.
+
+1. Open **/extension** in Brainly and click **Copy token instead**. It shows up in **Settings → Connected devices**, where you can sign it out any time.
+2. Add the server to your assistant with the address `https://brainlyai.me/backend/mcp` and the header `Authorization: Bearer <token>`. In Claude Code:
+
+   ```bash
+   claude mcp add --transport http brainly https://brainlyai.me/backend/mcp --header "Authorization: Bearer <token>"
+   ```
+
+| Tool | What it does |
+| --- | --- |
+| `search_memories` | Search by meaning and keywords, optionally by type or collection |
+| `get_memory` | Read one memory in full: text or transcript, summary, tags, your note |
+| `list_recent_memories` | What you saved lately |
+| `save_memory` | Save a link or a note (named, summarised and tagged in the background) |
+
+The endpoint only accepts a Bearer token, never the site's sign-in cookie, so a web page can't use it on your behalf.
+
+</details>
+
+<details>
 <summary><b>Mobile share sheet and premium plans</b></summary>
 
 **Share sheet:** open Brainly in Chrome on Android and choose **Install app**. Brainly then appears in the system **Share** menu; sharing a reel, video, link or text saves it straight away (`/share`), and Brainly names it and adds a summary and tags.
@@ -257,6 +286,8 @@ All `/api/*` routes need the session cookie (web app) or `Authorization: Bearer 
 | GET / DELETE | `/api/conversations[/:id]` | Chat history |
 | CRUD | `/api/collections[/:id]`, `/api/collections/:id/memories`, `/api/collections/:id/share` | Collections and sharing |
 | GET | `/api/public/collections/:slug` | A publicly shared collection |
+| GET | `/api/public/collections/:slug/feed.xml` | RSS feed of a shared collection (the web app serves it at `/c/:slug/feed.xml`) |
+| POST | `/mcp` | MCP server (Streamable HTTP, stateless); needs `Authorization: Bearer <token>` |
 | GET | `/api/graph`, `/api/rediscover` | Knowledge graph, review digest |
 
 </details>

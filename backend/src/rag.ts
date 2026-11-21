@@ -2,6 +2,7 @@ import { GetHypotheticalAnswer } from "./GetHypotheticalAnswer";
 import { dedupeByMemory, embedOne, expandWithNeighbors, hybridSearch, rerankChunks, RetrievedChunk } from "./Retrieval";
 import { log } from "./lib/logger";
 import { completeJson, ChatMessage } from "./lib/llm";
+import { stripTimestamps } from "./ingest/timestamps";
 import { hasFilters, mergeFilters, parseSearchFilters, SearchFilters } from "./lib/searchFilters";
 
 export interface ChatTurn {
@@ -32,6 +33,8 @@ export interface Source {
     duration: string | null;
     /** When the memory was saved (ISO date) */
     savedAt: string | null;
+    /** For videos: the second the matched passage starts at, so the source opens there */
+    timestamp: number | null;
 }
 
 /**
@@ -85,6 +88,8 @@ export function passageOf(content: string): string {
 
 export function toSources(chunks: RetrievedChunk[]): Source[] {
     return chunks.map((chunk, i) => {
+        // YouTube transcripts carry "(m:ss)" markers for the AI; people see the plain text
+        const content = chunk.type === "youtube" ? stripTimestamps(chunk.content) : chunk.content;
         const meta = chunk.memory_metadata ?? {};
         const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
         return {
@@ -95,14 +100,15 @@ export function toSources(chunks: RetrievedChunk[]): Source[] {
             source_url: chunk.source_url,
             has_file: Boolean(chunk.file_path),
             thumbnail: text(meta.thumbnail_url),
-            snippet: (chunk.summary || chunk.content).slice(0, 220),
-            passage: passageOf(chunk.content),
+            snippet: (chunk.summary || content).slice(0, 220),
+            passage: passageOf(content),
             summary: text(chunk.summary),
             score: Number((chunk.rerank_score ?? chunk.combined_score).toFixed(4)),
             site_name: text(meta.site_name),
             author: text(meta.author),
             duration: text(meta.duration),
             savedAt: chunk.createdAt ? new Date(chunk.createdAt).toISOString() : null,
+            timestamp: chunk.type === "youtube" && typeof chunk.metadata?.start_s === "number" ? chunk.metadata.start_s : null,
         };
     });
 }
@@ -178,6 +184,7 @@ export function buildAnswerMessages(question: string, chunks: RetrievedChunk[], 
 Answer using ONLY the user's saved content in the numbered sources below.
 Cite the sources you use inline with their number in square brackets, like [1] or [2][3].
 When a source is a video, reel or TikTok, point the user to it (e.g. "your saved reel [2] covers this") so they can watch it.
+Video transcripts contain times like (12:34); when it helps, say roughly when in the video something is covered (e.g. "around 12:34 [1]").
 If the answer is not in the sources, say: "I couldn't find that in your saved content."
 Never make up information. Be concise and accurate.
 Format the answer in Markdown so it is easy to scan: short paragraphs, "-" bullet lists when there are several items,

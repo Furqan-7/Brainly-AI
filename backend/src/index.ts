@@ -16,6 +16,7 @@ import { contentRouter } from "./routes/content";
 import { chatRouter } from "./routes/chat";
 import { collectionsRouter } from "./routes/collections";
 import { insightsRouter } from "./routes/insights";
+import { mcpRouter } from "./routes/mcp";
 import { startWorker } from "./worker";
 
 export const app: Express = express();
@@ -60,6 +61,7 @@ app.use(contentRouter);
 app.use(chatRouter);
 app.use(collectionsRouter);
 app.use(insightsRouter);
+app.use(mcpRouter);
 
 app.use((req, res) => {
     res.status(404).json({ message: "Not found", success: false });

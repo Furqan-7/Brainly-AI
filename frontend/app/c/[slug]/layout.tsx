@@ -27,7 +27,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return {
         title,
         description,
-        alternates: { canonical: `/c/${slug}` },
+        // The feed link is in <head> only (feed readers find it from the page's address); nothing on the page changes
+        alternates: { canonical: `/c/${slug}`, types: { "application/rss+xml": [{ url: `/c/${slug}/feed.xml`, title }] } },
         // Setting openGraph/twitter here replaces the root ones, so the site screenshot is named again
         openGraph: { title, description, url: `/c/${slug}`, siteName: SITE_NAME, type: "website", images: [PREVIEW_IMAGE] },
         twitter: { card: "summary_large_image", title, description, images: [{ ...PREVIEW_IMAGE, url: "/twitter-image.jpg" }] },
