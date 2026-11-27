@@ -57,6 +57,18 @@ export async function persistUpload(tmpPath: string, originalName: string, mimeT
     return `uploads/${name}`;
 }
 
+/** Stores bytes we fetched ourselves (e.g. a video thumbnail) and returns their file_path. */
+export async function persistBuffer(data: Buffer, ext: string, mimeType: string, prefix = "uploads"): Promise<string> {
+    const name = storedName(`file${ext}`);
+    if (s3) {
+        const key = `${prefix}/${name}`;
+        await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: data, ContentType: mimeType }));
+        return `s3:${key}`;
+    }
+    await fs.writeFile(path.join(UPLOAD_DIR, name), data);
+    return `uploads/${name}`;
+}
+
 function localPath(filePath: string) {
     const resolved = path.resolve(BACKEND_ROOT, filePath);
     if (!resolved.startsWith(UPLOAD_DIR + path.sep)) throw new Error("Invalid file path");

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, History, Plus } from "lucide-react";
 import axios from "axios";
-import { searchMemories } from "../../services/api";
+import { searchMemories, thumbnailSrc } from "../../services/api";
 import type { ConversationSummary, Memory, SearchFilters, Source } from "../../types/memory";
 import { TYPE_META } from "../memory/typeMeta";
 
@@ -67,7 +67,7 @@ export function LiveMatches({ text, filters }: { text: string; filters: SearchFi
                             <span className="flex flex-none">
                                 {results.slice(0, 3).map((r, i) => (
                                     <motion.span key={r.memoryId} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className={i ? "-ml-2" : ""}>
-                                        <Thumb src={r.thumbnail} type={r.type} className="size-8 rounded-lg border-2 border-surface-container-lowest" />
+                                        <Thumb src={thumbnailSrc(r.memoryId, r.type, r.thumbnail)} type={r.type} className="size-8 rounded-lg border-2 border-surface-container-lowest" />
                                     </motion.span>
                                 ))}
                             </span>
@@ -160,7 +160,7 @@ export function StartPanels({
                                 {...item(i)}
                                 className="group flex items-center gap-3 rounded-2xl p-2 text-left transition-colors hover:bg-on-surface/4 cursor-pointer"
                             >
-                                <Thumb src={m.metadata?.thumbnail_url} type={m.type} className="size-11 flex-none rounded-xl" />
+                                <Thumb src={thumbnailSrc(m.id, m.type, m.metadata?.thumbnail_url)} type={m.type} className="size-11 flex-none rounded-xl" />
                                 <span className="min-w-0 flex-1">
                                     <span className="block text-[13.5px] leading-snug font-semibold text-on-surface line-clamp-2">{questionFor(m)}</span>
                                     <span className="text-[11.5px] text-on-surface-variant">{TYPE_META[m.type]?.label ?? m.type} · saved {ago(m.createdAt)}</span>

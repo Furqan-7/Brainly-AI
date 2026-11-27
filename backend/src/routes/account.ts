@@ -223,11 +223,17 @@ accountRouter.delete("/api/account", MiddleWhere, deleteLimiter, async (req, res
         return res.status(402).json({ message: "Incorrect password.", success: false });
     }
 
-    const stored = await prisma.memories.findMany({ where: { userId: user.id, file_path: { not: null } }, select: { file_path: true } });
+    const memories = await prisma.memories.findMany({
+        where: { userId: user.id, OR: [{ file_path: { not: null } }, { type: { in: ["reel", "tiktok"] } }] },
+        select: { file_path: true, metadata: true },
+    });
+    // Uploads, plus our stored copies of reel and TikTok thumbnails
+    const stored = memories.flatMap((m) => [m.file_path, (m.metadata as Record<string, unknown> | null)?.thumbnail_file])
+        .filter((f): f is string => typeof f === "string");
     // Everything else cascades in the database
     await prisma.user.delete({ where: { id: user.id } });
     // Files last, so a failure here never leaves an account whose files are gone
-    for (const { file_path } of stored) await deleteStoredFile(file_path);
+    for (const file_path of stored) await deleteStoredFile(file_path);
 
     log("info", "account deleted", { userId: user.id, files: stored.length });
     clearAuthCookie(req, res);

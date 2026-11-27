@@ -24,12 +24,8 @@ export function parseReelDescription(description: string): { caption: string; au
     return { caption: captionMatch?.[1] ?? description, author: authorMatch?.[1] ?? "" };
 }
 
-export async function fetchReel(url: string): Promise<ReelInfo> {
-    let caption = "";
-    let author = "";
-    let thumbnail: string | null = null;
-    let videoUrl: string | null = null;
-
+/** Reads the reel's public page for its caption, author, thumbnail and video file (no transcript). */
+export async function fetchReelPage(url: string): Promise<{ caption: string; author: string; thumbnail: string | null; videoUrl: string | null }> {
     try {
         const { data } = await safeGet<string>(url, {
             headers: { "User-Agent": CRAWLER_UA, "Accept-Language": "en-US,en;q=0.9" },
@@ -38,13 +34,21 @@ export async function fetchReel(url: string): Promise<ReelInfo> {
         const $ = cheerio.load(data);
         const og = (prop: string) => $(`meta[property="og:${prop}"]`).attr("content")?.trim() ?? "";
 
-        ({ caption, author } = parseReelDescription(og("description")));
-        thumbnail = og("image") || null;
-        videoUrl = og("video") || og("video:secure_url") || null;
+        const { caption, author } = parseReelDescription(og("description"));
+        return {
+            caption,
+            author,
+            thumbnail: og("image") || null,
+            videoUrl: og("video") || og("video:secure_url") || null,
+        };
     } catch (error) {
         console.log("Error while fetching reel " + error);
+        return { caption: "", author: "", thumbnail: null, videoUrl: null };
     }
+}
 
+export async function fetchReel(url: string): Promise<ReelInfo> {
+    const { caption, author, thumbnail, videoUrl } = await fetchReelPage(url);
     // What's said in the reel is usually the most searchable part
     const transcript = await transcribeVideo(url, videoUrl);
     return { caption, author, thumbnail, transcript };

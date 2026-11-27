@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Copy, ExternalLink, FileText, FolderOpen, Mic, Play, Quote, X } from "lucide-react";
 import type { Memory, Source } from "../../types/memory";
-import { fileUrl, getMemoryStatuses } from "../../services/api";
+import { fileUrl, getMemoryStatuses, thumbnailSrc } from "../../services/api";
 import { plainText } from "../../lib/markdown";
 import { NoteMarkdown } from "../memory/NoteMarkdown";
 import { CardBody } from "../memory/MemoryCard";
@@ -60,6 +60,7 @@ function youtubeThumb(url: string | null): string | null {
 
 /** The best picture for a source: its saved thumbnail, the uploaded image, or YouTube's thumbnail. */
 export function sourceThumb(source: Source): string | null {
+    if (source.type === "reel" || source.type === "tiktok") return thumbnailSrc(source.memoryId, source.type, source.thumbnail);
     if (source.thumbnail) return source.thumbnail;
     if (source.type === "image" && source.has_file) return fileUrl(source.memoryId);
     if (source.type === "youtube") return youtubeThumb(source.source_url);

@@ -19,6 +19,7 @@ import { deleteStoredFile, persistUpload, sendStoredFile, TMP_UPLOAD_DIR } from 
 import { canAddMemories, getUsage } from "../lib/plans";
 import { wakeWorker } from "../worker";
 import { log } from "../lib/logger";
+import { freshThumbnailUrl, saveThumbnail, STORED_THUMBNAIL_TYPES } from "../ingest/thumbnail";
 
 export const contentRouter: Router = Router();
 
@@ -483,6 +484,54 @@ contentRouter.get("/api/files/:id", async (req, res, next) => {
     });
 });
 
+/**
+ * Serves our stored copy of a reel or TikTok thumbnail (their CDN links expire and Instagram's
+ * can't be shown on other sites). Memories saved before copies were kept get one on first view.
+ */
+contentRouter.get("/api/thumbnails/:id", async (req, res, next) => {
+    const id = Number(req.params.id);
+    const memory = Number.isInteger(id)
+        ? await prisma.memories.findUnique({
+            where: { id },
+            select: { type: true, source_url: true, metadata: true, userId: true, collections: { where: { shareSlug: { not: null } }, select: { id: true } } },
+        })
+        : null;
+    const notFound = () => res.status(404).set("Cache-Control", "no-store").json({ message: "Thumbnail not found", success: false });
+    if (!memory || !STORED_THUMBNAIL_TYPES.has(memory.type)) return notFound();
+
+    const send = async () => {
+        try {
+            const meta = (memory.metadata ?? {}) as Record<string, any>;
+            let file: string | null = meta.thumbnail_file ?? null;
+            if (!file) {
+                // The saved CDN link may still work; if not, ask the source for a fresh one
+                file = (await saveThumbnail(meta.thumbnail_url)) ?? (await saveThumbnail(await freshThumbnailUrl(memory.type, memory.source_url)));
+                if (!file) return notFound();
+                // Merge into the latest metadata so a concurrent edit isn't lost
+                const latest = await prisma.memories.findUnique({ where: { id }, select: { metadata: true } });
+                const latestMeta = (latest?.metadata ?? {}) as Record<string, any>;
+                if (latestMeta.thumbnail_file) {
+                    await deleteStoredFile(file);
+                    file = latestMeta.thumbnail_file as string;
+                } else {
+                    await prisma.memories.update({ where: { id }, data: { metadata: { ...latestMeta, thumbnail_file: file } } });
+                }
+            }
+            res.set("Cache-Control", "private, max-age=86400");
+            await sendStoredFile(res, file);
+        } catch (e) {
+            next(e);
+        }
+    };
+
+    if (memory.collections.length > 0) return send();
+    // Private memory — require the owner's session
+    await MiddleWhere(req, res, async () => {
+        if (res.locals.userId !== memory.userId) return notFound();
+        await send();
+    });
+});
+
 // ─── Update ──────────────────────────────────────────────────────────────────
 
 contentRouter.patch("/api/content/:id", MiddleWhere, async (req, res) => {
@@ -586,11 +635,17 @@ contentRouter.post("/api/content/merge", MiddleWhere, async (req, res) => {
         prisma.memories.deleteMany({ where: { id: { in: removeIds }, userId } }),
     ]);
     await Promise.all(remove.map((m) => (m.file_path !== keep.file_path ? deleteStoredFile(m.file_path) : null)));
+    await Promise.all(remove.map((m) => deleteStoredFile(thumbnailFileOf(m.metadata))));
     wakeWorker();
     return res.status(200).json({ success: true, keptId: keep.id, removed: removeIds.length });
 });
 
 // ─── Delete ──────────────────────────────────────────────────────────────────
+
+function thumbnailFileOf(metadata: unknown): string | null {
+    const file = (metadata as Record<string, unknown> | null)?.thumbnail_file;
+    return typeof file === "string" ? file : null;
+}
 
 async function deleteMemory(userId: number, id: number) {
     const memory = await ownedMemory(userId, id);
@@ -598,6 +653,7 @@ async function deleteMemory(userId: number, id: number) {
     // Chunks and collection links cascade in the database
     await prisma.memories.delete({ where: { id } });
     await deleteStoredFile(memory.file_path);
+    await deleteStoredFile(thumbnailFileOf(memory.metadata));
     return true;
 }
 

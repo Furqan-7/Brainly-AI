@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { AlertCircle, Check, Library, Loader2, Sparkles } from "lucide-react";
 import axios from "axios";
-import { addMemory, errorMessage, getMemoryStatuses, updateMemory } from "@/app/services/api";
+import { addMemory, errorMessage, getMemoryStatuses, thumbnailSrc, updateMemory } from "@/app/services/api";
 import { TYPE_META } from "@/app/components/memory/typeMeta";
 import type { Memory } from "@/app/types/memory";
 import { MEMORIES_CHANGED, useShell } from "../AppShell";
@@ -117,7 +117,8 @@ function Share() {
     };
 
     const meta = memory ? TYPE_META[memory.type as keyof typeof TYPE_META] : null;
-    const thumb = (memory?.metadata as Record<string, unknown> | null)?.thumbnail_url as string | undefined;
+    const savedThumb = (memory?.metadata as Record<string, unknown> | null)?.thumbnail_url as string | undefined;
+    const thumb = memory && id && savedThumb ? thumbnailSrc(id, memory.type, savedThumb) : null;
     const reading = !memory || memory.status === "pending" || memory.status === "processing";
 
     return (

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ExternalLink, RotateCcw, Sparkles, X } from "lucide-react";
-import { getRediscover, reviewMemory } from "../../services/api";
+import { getRediscover, reviewMemory, thumbnailSrc } from "../../services/api";
 import type { RediscoverItem } from "../../types/memory";
 import { sourceHref } from "../chat/SourceCard";
 import { TYPE_META } from "./typeMeta";
@@ -22,7 +22,7 @@ function Thumb({ item, className }: { item: RediscoverItem; className: string })
     const meta = TYPE_META[item.type] ?? TYPE_META.note;
     const Icon = meta.icon ?? Sparkles;
     const [failed, setFailed] = useState(false);
-    const src = item.metadata?.thumbnail_url;
+    const src = thumbnailSrc(item.id, item.type, item.metadata?.thumbnail_url);
     if (src && !failed) {
         // eslint-disable-next-line @next/next/no-img-element -- remote thumbnail
         return <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} className={`${className} object-cover`} />;

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Brain, ExternalLink, Loader2 } from "lucide-react";
-import { getPublicCollection, fileUrl } from "../../services/api";
+import { getPublicCollection, fileUrl, thumbnailSrc } from "../../services/api";
 import { TYPE_META } from "../../components/memory/typeMeta";
 import type { PublicMemory } from "../../types/memory";
 
@@ -58,7 +58,7 @@ export default function PublicCollectionPage() {
                                     <div key={m.id} className="bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden flex flex-col">
                                         {m.thumbnail_url && (
                                             // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={m.thumbnail_url} alt="" referrerPolicy="no-referrer" className="w-full aspect-video object-cover" />
+                                            <img src={thumbnailSrc(m.id, m.type, m.thumbnail_url)!} alt="" referrerPolicy="no-referrer" className="w-full aspect-video object-cover" />
                                         )}
                                         <div className="p-4 space-y-2 flex-1">
                                             <div className="flex items-center gap-1.5 text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
