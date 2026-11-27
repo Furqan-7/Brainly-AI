@@ -92,6 +92,8 @@ export interface Source {
     duration?: string | null;
     /** When the memory was saved (ISO date) */
     savedAt?: string | null;
+    /** For YouTube videos: the second the matched passage starts at (opens the video there) */
+    timestamp?: number | null;
 }
 
 export interface SearchFilters {

@@ -10,8 +10,9 @@ import {
 import { normalizeUrl, isTikTokUrl, youtubeId } from "../lib/urls";
 import { isInstagramReelUrl } from "../ingest/reel";
 import { youtubeThumbnail } from "../ingest/youtube";
-import { IMPORT_EXTENSIONS, parseImport } from "../ingest/imports";
-import { needsAutoTitle, provisionalTitle } from "../lib/memoryTitle";
+import { IMPORT_EXTENSIONS, ImportedDoc, parseImport } from "../ingest/imports";
+import type { ImportedLink } from "../ingest/bookmarks";
+import { cleanTitle, needsAutoTitle, provisionalTitle } from "../lib/memoryTitle";
 import { cleanTags } from "../ingest/enrich";
 import { assertSafeUrlShape } from "../lib/safeFetch";
 import { deleteStoredFile, persistUpload, sendStoredFile, TMP_UPLOAD_DIR } from "../lib/storage";
@@ -56,7 +57,7 @@ export function detectType(type: string, url: string): string {
     return type;
 }
 
-function validateUrlForType(type: string, url: string): string | null {
+export function validateUrlForType(type: string, url: string): string | null {
     try {
         assertSafeUrlShape(url);
     } catch (e) {
@@ -70,7 +71,7 @@ function validateUrlForType(type: string, url: string): string | null {
 }
 
 /** Compares normalized URLs, so it also catches memories saved before canonical_url was stored. */
-async function findDuplicate(userId: number, canonicalUrl: string) {
+export async function findDuplicate(userId: number, canonicalUrl: string) {
     const saved = await prisma.memories.findMany({
         where: { userId, source_url: { not: null } },
         select: { id: true, title: true, source_url: true },
@@ -203,46 +204,132 @@ contentRouter.post("/api/content", MiddleWhere, upload.single("file"), async (re
     }
 });
 
-/** Bulk import of Notion / Google Docs exports and Markdown/text files as notes. */
+/** The canonical URL of every link the user has saved, for skipping repeats in bulk imports. */
+async function savedUrls(userId: number): Promise<Set<string>> {
+    const saved = await prisma.memories.findMany({
+        where: { userId, source_url: { not: null } },
+        select: { source_url: true, metadata: true },
+    });
+    return new Set(saved.map((m) => ((m.metadata ?? {}) as Record<string, any>).canonical_url ?? normalizeUrl(m.source_url!)));
+}
+
+/**
+ * Bulk import: Notion / Google Docs exports and Markdown/text files become notes; bookmarks
+ * (any browser's export, Pocket, Raindrop, Instapaper) become links. Links already saved are
+ * skipped, and an import bigger than the plan allows saves what fits and says how many didn't.
+ */
 contentRouter.post("/api/import", MiddleWhere, upload.array("files", 20), async (req, res) => {
     const userId = res.locals.userId;
     const files = (req.files as Express.Multer.File[]) ?? [];
     try {
-        const docs = [];
+        const notes: ImportedDoc[] = [];
+        const found: ImportedLink[] = [];
         for (const file of files) {
             const ext = path.extname(file.originalname).toLowerCase();
             if (IMPORT_EXTENSIONS.includes(ext)) {
-                docs.push(...(await parseImport(file.originalname, await fs.readFile(file.path))));
+                const result = await parseImport(file.originalname, await fs.readFile(file.path));
+                notes.push(...result.notes);
+                found.push(...result.links);
             }
         }
-        if (docs.length === 0) {
+        if (notes.length === 0 && found.length === 0) {
             return res.status(400).json({ message: `No importable files found. Supported: ${IMPORT_EXTENSIONS.join(", ")}`, success: false });
         }
 
-        const quota = await canAddMemories(userId, docs.length);
-        if (!quota.ok) return res.status(402).json({ message: quota.message, success: false, upgrade: true });
+        // Links: only web addresses that pass the same checks as a single save, not saved before
+        const already = await savedUrls(userId);
+        const links: (ImportedLink & { type: string; canonical: string })[] = [];
+        let duplicates = 0;
+        for (const link of found) {
+            const type = detectType("url", link.url);
+            if (validateUrlForType(type, link.url)) continue;
+            const canonical = normalizeUrl(link.url);
+            if (already.has(canonical)) {
+                duplicates++;
+                continue;
+            }
+            already.add(canonical);
+            links.push({ ...link, type, canonical });
+        }
+
+        const { plan, memoryCount } = await getUsage(userId);
+        const room = Math.max(0, plan.maxMemories - memoryCount);
+        const wanted = notes.length + links.length;
+        if (wanted > 0 && room === 0) {
+            const quota = await canAddMemories(userId, wanted);
+            return res.status(402).json({ message: quota.message, success: false, upgrade: true });
+        }
+        const keptNotes = notes.slice(0, room);
+        const keptLinks = links.slice(0, Math.max(0, room - keptNotes.length));
+        const overLimit = wanted - keptNotes.length - keptLinks.length;
 
         const collectionId = Number(req.body.collectionId) || null;
         const collection = collectionId
             ? await prisma.collection.findFirst({ where: { id: collectionId, userId }, select: { id: true } })
             : null;
 
-        await prisma.$transaction(
-            docs.map((doc) =>
-                prisma.memories.create({
-                    data: {
+        const created = await prisma.$transaction(async (tx) => {
+            const rows = await tx.memories.createManyAndReturn({
+                select: { id: true },
+                data: [
+                    ...keptNotes.map((doc) => ({
                         userId,
-                        type: "note",
+                        type: "note" as const,
                         title: doc.title,
                         note: doc.text,
-                        metadata: { imported_from: "file" },
-                        collections: collection ? { connect: { id: collection.id } } : undefined,
-                    },
-                })
-            )
-        );
+                        metadata: { imported_from: "file", bulk: true },
+                    })),
+                    ...keptLinks.map((link) => {
+                        const autoTitle = needsAutoTitle(link.title, link.url);
+                        return {
+                            userId,
+                            type: link.type as any,
+                            title: autoTitle ? provisionalTitle(link.type, link.url) : cleanTitle(link.title) ?? link.title!.slice(0, 200),
+                            source_url: link.url,
+                            tags: cleanTags(link.tags, 10),
+                            // Keeps the date it was first bookmarked, so throwbacks and date filters stay true
+                            ...(link.addedAt ? { createdAt: link.addedAt } : {}),
+                            metadata: {
+                                context: link.note?.slice(0, 2000) || null,
+                                canonical_url: link.canonical,
+                                thumbnail_url: link.type === "youtube" ? youtubeThumbnail(link.url) : null,
+                                imported_from: "bookmarks",
+                                bulk: true,
+                                ...(autoTitle ? { auto_title: true } : {}),
+                            },
+                        };
+                    }),
+                ],
+            });
+            if (collection && rows.length) {
+                await tx.collection.update({
+                    where: { id: collection.id },
+                    data: { memories: { connect: rows.map((r) => ({ id: r.id })) } },
+                });
+            }
+            return rows;
+        });
         wakeWorker();
-        return res.status(201).json({ message: `Imported ${docs.length} notes`, success: true, count: docs.length });
+
+        const parts = [
+            keptNotes.length && `${keptNotes.length} ${keptNotes.length === 1 ? "note" : "notes"}`,
+            keptLinks.length && `${keptLinks.length} ${keptLinks.length === 1 ? "link" : "links"}`,
+        ].filter(Boolean);
+        const skipped = [
+            duplicates && `${duplicates} already saved`,
+            overLimit && `${overLimit} over your ${plan.name} plan's limit of ${plan.maxMemories}`,
+        ].filter(Boolean);
+        const message = `Imported ${parts.join(" and ") || "nothing new"}${skipped.length ? ` (skipped ${skipped.join(", ")})` : ""}`;
+        return res.status(201).json({
+            message,
+            success: true,
+            count: created.length,
+            notes: keptNotes.length,
+            links: keptLinks.length,
+            duplicates,
+            overLimit,
+            ...(overLimit ? { upgrade: true } : {}),
+        });
     } catch (error) {
         log("error", "import failed", { error: String(error) });
         return res.status(500).json({ message: "Import failed", success: false });

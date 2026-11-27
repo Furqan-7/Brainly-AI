@@ -113,7 +113,7 @@ const ACCEPT: Partial<Record<ContentType, string>> = {
     pdf: ".pdf",
     image: "image/*",
     audio: "audio/*,.m4a,.mp3,.wav,.webm,.ogg",
-    import: ".md,.markdown,.txt,.html,.htm,.docx,.zip",
+    import: ".md,.markdown,.txt,.html,.htm,.docx,.csv,.zip",
 };
 
 const inputClass =
@@ -240,7 +240,14 @@ export default function AddContent({
         try {
             if (isImport) {
                 if (files.length === 0) throw new Error("Choose at least one file to import.");
-                await importFiles(files, collectionId || undefined);
+                const result = await importFiles(files, collectionId || undefined);
+                // Something was skipped (already saved, or over the plan's limit): say so instead of closing
+                if (result.duplicates || result.overLimit) {
+                    onSaved();
+                    setFiles([]);
+                    setSaveError(result.message);
+                    return;
+                }
             } else if (isFileType) {
                 if (!file) throw new Error("Please choose a file.");
                 const formdata = new FormData();
@@ -445,7 +452,7 @@ export default function AddContent({
                                             <p className="text-sm font-medium text-on-surface-variant">Drag & drop or click to upload</p>
                                             <p className="text-xs text-on-surface-variant mt-0.5 text-center">
                                                 {isImport
-                                                    ? ".md, .txt, .html, .docx or a Notion export .zip"
+                                                    ? ".md, .txt, .html, .docx, a Notion export .zip, or bookmarks (browser, Pocket, Raindrop, Instapaper)"
                                                     : activeType === "pdf"
                                                         ? "PDF (scanned PDFs are OCR'd)"
                                                         : activeType === "audio"

@@ -33,6 +33,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1161.0",
     "@google/genai": "^2.5.0",
     "@google/generative-ai": "^0.24.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@mozilla/readability": "^0.6.0",
     "@the-convocation/twitter-scraper": "^0.22.3",
     "archiver": "^7.0.1",

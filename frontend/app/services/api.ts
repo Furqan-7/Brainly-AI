@@ -141,11 +141,23 @@ export async function addMemory(payload: FormData | Record<string, unknown>): Pr
     return (await api.post("/api/content", payload)).data;
 }
 
-export async function importFiles(files: File[], collectionId?: number): Promise<number> {
+export interface ImportResult {
+    count: number;
+    /** e.g. "Imported 120 links (skipped 4 already saved)" */
+    message: string;
+    /** Links skipped because they were already saved */
+    duplicates: number;
+    /** Items skipped because the plan's memory limit was reached */
+    overLimit: number;
+}
+
+/** Imports notes (Notion, Google Docs, Markdown) and bookmarks (browsers, Pocket, Raindrop, Instapaper). */
+export async function importFiles(files: File[], collectionId?: number): Promise<ImportResult> {
     const form = new FormData();
     files.forEach((f) => form.append("files", f));
     if (collectionId) form.append("collectionId", String(collectionId));
-    return (await api.post("/api/import", form)).data.count;
+    const data = (await api.post("/api/import", form)).data;
+    return { count: data.count ?? 0, message: data.message ?? "", duplicates: data.duplicates ?? 0, overLimit: data.overLimit ?? 0 };
 }
 
 export async function updateMemory(

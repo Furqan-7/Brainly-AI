@@ -22,7 +22,11 @@ const nextConfig: NextConfig = {
     "/api/preview": ["./node_modules/@sparticuz/chromium/bin/**/*"],
   },
   async rewrites() {
-    return [{ source: "/backend/:path*", destination: `${BACKEND_URL}/:path*` }];
+    return [
+      { source: "/backend/:path*", destination: `${BACKEND_URL}/:path*` },
+      // RSS feed of a publicly shared collection, next to its page
+      { source: "/c/:slug/feed.xml", destination: `${BACKEND_URL}/api/public/collections/:slug/feed.xml` },
+    ];
   },
 };
 

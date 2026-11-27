@@ -32,18 +32,18 @@ describe("cleanTags", () => {
 
 describe("parseImport", () => {
     it("uses the first markdown heading as the title", async () => {
-        const [doc] = await parseImport("notes.md", Buffer.from("# Project ideas\n\nBuild a RAG app"));
+        const { notes: [doc] } = await parseImport("notes.md", Buffer.from("# Project ideas\n\nBuild a RAG app"));
         expect(doc.title).toBe("Project ideas");
         expect(doc.text).toContain("Build a RAG app");
     });
 
     it("strips Notion's id suffix from file names", async () => {
-        const [doc] = await parseImport("Reading list 0123456789abcdef0123456789abcdef.txt", Buffer.from("Some books"));
+        const { notes: [doc] } = await parseImport("Reading list 0123456789abcdef0123456789abcdef.txt", Buffer.from("Some books"));
         expect(doc.title).toBe("Reading list");
     });
 
     it("extracts text from HTML", async () => {
-        const [doc] = await parseImport("page.html", Buffer.from("<html><body><h1>Hi</h1><script>x()</script><p>Body text</p></body></html>"));
+        const { notes: [doc] } = await parseImport("page.html", Buffer.from("<html><body><h1>Hi</h1><script>x()</script><p>Body text</p></body></html>"));
         expect(doc.text).toContain("Body text");
         expect(doc.text).not.toContain("x()");
     });
@@ -53,8 +53,11 @@ describe("parseImport", () => {
         zip.file("Workspace/One.md", "# One\ntext");
         zip.file("Workspace/Two.txt", "two");
         zip.file("Workspace/image.png", "binary");
-        const docs = await parseImport("export.zip", await zip.generateAsync({ type: "nodebuffer" }));
-        expect(docs.map((d) => d.title).sort()).toEqual(["One", "Two"]);
+        zip.file("Workspace/Tasks 0123456789abcdef0123456789abcdef.csv", "Name,URL\nTask,https://example.com");
+        const { notes, links } = await parseImport("export.zip", await zip.generateAsync({ type: "nodebuffer" }));
+        expect(notes.map((d) => d.title).sort()).toEqual(["One", "Two"]);
+        // A Notion database table is not a bookmarks export
+        expect(links).toEqual([]);
     });
 });
 

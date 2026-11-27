@@ -5,6 +5,8 @@ import { processImage } from "./processImage";
 import { chunkMemory, ATOMIC_WORD_THRESHOLD } from "./chunking";
 import { GetEmbeddingsBatch } from "./Embeddings";
 import { fetchWebPage } from "./ingest/web";
+import { discussionFetcher } from "./ingest/discussions";
+import { log } from "./lib/logger";
 import { fetchYoutube } from "./ingest/youtube";
 import { fetchReel } from "./ingest/reel";
 import { fetchTikTok } from "./ingest/tiktok";
@@ -12,6 +14,7 @@ import { transcribeFile } from "./ingest/transcribe";
 import { enrichMemory, cleanTags } from "./ingest/enrich";
 import { withLocalFile } from "./lib/storage";
 import { cleanTitle } from "./lib/memoryTitle";
+import { chunkStartTimes } from "./ingest/timestamps";
 
 interface Extracted {
     text: string;
@@ -26,6 +29,20 @@ async function extractText(memory: any): Promise<Extracted> {
 
     switch (memory.type) {
         case "url": {
+            // Hacker News and Reddit threads: the post and its top comments, not just the page shell
+            const discussion = discussionFetcher(url!);
+            if (discussion) {
+                try {
+                    const thread = await discussion(url!);
+                    return {
+                        text: thread.text,
+                        title: thread.title,
+                        metadata: { description: thread.description, thumbnail_url: thread.image, site_name: thread.siteName, author: thread.author },
+                    };
+                } catch (error) {
+                    log("warn", "discussion fetch failed, reading the page instead", { url, error: error instanceof Error ? error.message : String(error) });
+                }
+            }
             const page = await fetchWebPage(url!);
             return {
                 text: page.text,
@@ -101,6 +118,9 @@ export async function processMemory(memory: any) {
     const wordCount = text.split(/\s+/).length;
     const granularity = wordCount <= ATOMIC_WORD_THRESHOLD ? "atomic" : "long_form";
     const chunks = chunkMemory(text, granularity, { memoryId: memory.id });
+    // Video transcripts: the second each chunk starts at, so a cited passage opens at that moment
+    const starts = memory.type === "youtube" ? chunkStartTimes(chunks.map((c) => c.text)) : null;
+    if (starts) chunks.forEach((c, i) => { if (starts[i] !== null) c.metadata = { ...c.metadata, start_s: starts[i] }; });
 
     // Saved without a title (share sheet, extension): use the source's own title, or ask the AI
     const autoTitle = memory.metadata?.auto_title === true;
@@ -118,6 +138,8 @@ export async function processMemory(memory: any) {
         if (value !== null && value !== undefined && value !== "") metadata[key] = value;
     }
     if (!metadata.description && enrichment.summary) metadata.description = enrichment.summary;
+    // Bulk imports wait behind everyday saves only once; a later edit or retry is an everyday job
+    delete metadata.bulk;
     // Once named, the title stays (a retry or edit doesn't rename it)
     if (autoTitle && title !== memory.title) metadata.auto_title = false;
 
