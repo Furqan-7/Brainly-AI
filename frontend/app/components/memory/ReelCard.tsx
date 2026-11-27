@@ -3,22 +3,24 @@
 import { useState } from "react";
 import type { Memory } from "../../types/memory";
 import { TYPE_META } from "./typeMeta";
+import { thumbnailSrc } from "../../services/api";
 import { CardSummary, CardText, CardTitle, PlayButton, SourceLine } from "./cardParts";
 
 /** Short vertical videos: Instagram Reels and TikToks. */
 export function ReelCard({ memory }: { memory: Memory }) {
     const meta = memory.metadata ?? {};
     const { icon: Icon } = TYPE_META[memory.type];
-    // Instagram CDN thumbnails expire, so fall back to the icon if the image fails
+    // Served from our own copy; falls back to the icon if there isn't one
+    const thumb = thumbnailSrc(memory.id, memory.type, meta.thumbnail_url);
     const [thumbFailed, setThumbFailed] = useState(false);
 
     return (
         <>
             <a href={memory.source_url ?? undefined} target="_blank" rel="noopener noreferrer" className="relative block aspect-[4/5] overflow-hidden bg-surface-container-high" title="Open original">
-                {meta.thumbnail_url && !thumbFailed ? (
+                {thumb && !thumbFailed ? (
                     // eslint-disable-next-line @next/next/no-img-element -- remote reel thumbnail
                     <img
-                        src={meta.thumbnail_url}
+                        src={thumb}
                         alt=""
                         loading="lazy"
                         referrerPolicy="no-referrer"

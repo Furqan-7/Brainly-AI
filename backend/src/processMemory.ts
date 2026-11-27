@@ -15,6 +15,7 @@ import { enrichMemory, cleanTags } from "./ingest/enrich";
 import { withLocalFile } from "./lib/storage";
 import { cleanTitle } from "./lib/memoryTitle";
 import { chunkStartTimes } from "./ingest/timestamps";
+import { saveThumbnail } from "./ingest/thumbnail";
 
 interface Extracted {
     text: string;
@@ -62,6 +63,8 @@ async function extractText(memory: any): Promise<Extracted> {
         case "tiktok": {
             const info = memory.type === "reel" ? await fetchReel(url!) : await fetchTikTok(url!);
             const label = memory.type === "reel" ? "Instagram Reel" : "TikTok video";
+            // Keep our own copy of the thumbnail while its CDN link still works (see ingest/thumbnail.ts)
+            const thumbnailFile = memory.metadata?.thumbnail_file ?? (await saveThumbnail(info.thumbnail));
             // Short videos have little text of their own, so the title the user gave is part of
             // what makes them findable (e.g. saving "Project ideas" and later searching "project").
             return {
@@ -75,6 +78,7 @@ async function extractText(memory: any): Promise<Extracted> {
                 title: info.caption ? cleanTitle(info.caption) : null,
                 metadata: {
                     thumbnail_url: info.thumbnail,
+                    thumbnail_file: thumbnailFile,
                     author: info.author || null,
                     description: info.caption || null,
                     has_transcript: Boolean(info.transcript),

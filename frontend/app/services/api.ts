@@ -38,6 +38,15 @@ export function fileUrl(memoryId: number): string {
     return `${API_BASE}/api/files/${memoryId}`;
 }
 
+/**
+ * The picture to show for a memory. Instagram and TikTok thumbnails are served from the API's
+ * own copy: their CDN links expire, and Instagram's can't be shown on other sites at all.
+ */
+export function thumbnailSrc(memoryId: number, type: string, url: string | null | undefined): string | null {
+    if (type === "reel" || type === "tiktok") return `${API_BASE}/api/thumbnails/${memoryId}`;
+    return url || null;
+}
+
 // ─────────────────────────────────────────────────────────────
 // Auth
 // ─────────────────────────────────────────────────────────────
